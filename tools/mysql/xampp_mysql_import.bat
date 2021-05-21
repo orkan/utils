@@ -26,12 +26,7 @@ if "%MYSQL_DB%" == "" goto error
 if "%MYSQL_FILE%" == "" goto error
 if not exist %MYSQL_FILE% goto error
 
-cmd /c %COMMAND%
-goto end
+cmd /k %COMMAND%
 
 :error
 echo Wrong parameters
-
-:end
-echo.
-pause

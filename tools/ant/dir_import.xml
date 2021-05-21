@@ -4,7 +4,7 @@
 
 	<target name="main">
 
-		<echo>Mirror [SourceDir] to [TargetDir]</echo>
+		<echo>Mirror [SourceDir] to [TargetDir] (preserve defaultExcludes)</echo>
 		<echo>SourceDir: ${SourceDir}</echo>
 		<echo>TargetDir: ${TargetDir}</echo>
 		<echo>Excludes : ${Excludes}</echo>

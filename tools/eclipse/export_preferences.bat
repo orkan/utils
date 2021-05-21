@@ -19,7 +19,7 @@ if "%~x1" NEQ ".epf" (
 )
 
 set HOME=%~dp1
-set RUNNER=%~dp0_prefout.php
+set RUNNER=%~dpn0.php
 set INFILE=%~1
 set INBASE=%~n1
 

@@ -4,10 +4,11 @@
 
 	<target name="main">
 		
-		<echo>Mirror [SourceDir] to [TargetDir]</echo>
+		<echo>Copy [SourceDir] to [TargetDir] (ignore defaultExcludes)</echo>
 		<echo>SourceDir: ${SourceDir}</echo>
 		<echo>TargetDir: ${TargetDir}</echo>
 		<echo>Includes : ${Includes}</echo>
+		<echo>Includes : ${Excludes}</echo>
 
 		<fail message="Source dir not found">
 			<condition>
@@ -32,7 +33,7 @@
 		</delete>
 
 		<copy toDir="${TargetDir}" preserveLastModified="true" verbose="false">
-			<fileset dir="${SourceDir}" includes="${Includes}" defaultExcludes="false"/>
+			<fileset dir="${SourceDir}" includes="${Includes}" excludes="${Excludes}" defaultExcludes="false"/>
 		</copy>
 
 	</target>
