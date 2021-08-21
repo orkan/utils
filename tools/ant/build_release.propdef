@@ -1,0 +1,2 @@
+# This is default tokens file (loaded if one provided!)
+@_buildToolFile@=build_release.xml

@@ -10,6 +10,7 @@
 		<echo>SourceDir: ${SourceDir}</echo>
 		<echo>Includes: ${Includes}</echo>
 		<echo>Version: ${Version}</echo>
+		<echo>Tokens: ${Tokens}</echo>
 
 		<tstamp>
 			<format property="Year" pattern="yyyy"/>
@@ -23,7 +24,7 @@
 		<propertyregex property="VersionPatch" input="${Version}" regexp="(\d+)\.(\d+)\.(\d+)([\-|\+][0-9A-Z-]+)?" select="\3" casesensitive="false" defaultValue="?"/>
 		<propertyregex property="VersionMetas" input="${Version}" regexp="(\d+)\.(\d+)\.(\d+)([\-|\+][0-9A-Z-]+)?" select="\4" casesensitive="false" defaultValue="?"/>
 
-		<replace dir="${SourceDir}" includes="${Includes}" summary="true">
+		<replace dir="${SourceDir}" includes="${Includes}" replacefilterfile="${Tokens}" summary="true">
 			<replacefilter token="@Year@" value="${Year}"/>
 			<replacefilter token="@DATE_YYYYMMD@" value="${DATE_YYYYMMD}"/>
 			<replacefilter token="@DATE_RFC2822@" value="${DATE_RFC2822}"/>
