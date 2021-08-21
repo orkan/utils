@@ -4,9 +4,10 @@ setlocal
 REM Config: --------------------------------------------
 set SOURCE=%~1
 set TARGET=%~2
-set INCLUDES=%~3
-set EXTRAS=%~4
-set CONTINUE=%~5
+set EXTRAS=%~3
+set CONTINUE=%~4
+set EXCLUDES=%~5
+set INCLUDES=%~6
 
 REM Confirm: -------------------------------------------
 if "%CONTINUE%" NEQ "" (
@@ -19,7 +20,7 @@ if "%CONTINUE%" NEQ "" (
 )
 
 REM Command: -------------------------------------------
-set COMMAND=ant -DSourceDir="%SOURCE%" -DTargetDir="%TARGET%" -DIncludes="%INCLUDES%" -f "%~dpn0.xml"
+set COMMAND=ant -DSourceDir="%SOURCE%" -DTargetDir="%TARGET%" -DExcludes="%EXCLUDES%" -DIncludes="%INCLUDES%" -f "%~dpn0.xml"
 
 REM Run: -----------------------------------------------
 echo.

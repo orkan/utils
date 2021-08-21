@@ -7,8 +7,8 @@
 		<echo>Copy [SourceDir] to [TargetDir] (ignore defaultExcludes)</echo>
 		<echo>SourceDir: ${SourceDir}</echo>
 		<echo>TargetDir: ${TargetDir}</echo>
+		<echo>Excludes : ${Excludes}</echo>
 		<echo>Includes : ${Includes}</echo>
-		<echo>Includes : ${Excludes}</echo>
 
 		<fail message="Source dir not found">
 			<condition>
