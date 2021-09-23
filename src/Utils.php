@@ -38,12 +38,8 @@ class Utils
 	 * @param int $precision How many fractional digits?
 	 * @return string Time in format 18394d 16g 11m 41.589s
 	 */
-	public static function formatTime( float $seconds, bool $fractions = true, int $precision = 3 ): string
+	public static function formatTime( float $seconds, bool $fractions = true, int $precision = 6 ): string
 	{
-		if ( defined( 'DEBUG' ) ) {
-			$precision = max( 6, $precision );
-		}
-
 		$d = $h = $m = 0;
 		$s = (int) $seconds; // get int
 		$u = $seconds - $s; // get fractions
