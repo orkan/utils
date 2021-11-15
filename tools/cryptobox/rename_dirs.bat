@@ -26,5 +26,5 @@ set DVRDIR=%~1
 REM Delegate job to PHP...
 php %~n0.php "%DVRDIR%"
 
-echo.
-pause
+REM Show BUILD status
+call ..\bat\exit_status.bat

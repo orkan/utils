@@ -4,17 +4,16 @@ $dvrDir = $argv[1] ?? '';
 $dvrDir = trim( $dvrDir, '"' );
 
 if ( !is_dir( $dvrDir ) ) {
-	die( "
-Rename CryptoBox auto-created DVR subdirs to be sortable by date.
+	echo "Rename CryptoBox auto-created DVR subdirs to be sortable by date.
 New name format: [date] Channel - Program name
 
 Usage:   {$batFile} <ALIDVRS2 dir>
 Example: {$batFile} X:\\ALIDVRS2
-
-" );
+";
+	error( sprintf( 'DVR dir not found "%s"', $dvrDir ) );
 }
 
-printf( 'Looking for DVR dirs in "%s"%s', $dvrDir, "\n" );
+printf( 'Looking for DVR sub-dirs in "%s"%s', $dvrDir, "\n" );
 
 // =====================================================================================================================
 // Create new path names
@@ -54,15 +53,13 @@ foreach ( $Dir as $Item ) {
 }
 
 if ( empty( $paths ) ) {
-	die( "No DVR dirs found!\n" );
+	error( 'No DVR sub-dirs found!' );
 }
-else {
-	printf( "Found %d dirs.\n\n", count( $paths ) );
-}
+
+printf( "Found %d dirs.\n\n", count( $paths ) );
 
 // =====================================================================================================================
 // Rename subdirs
-
 echo "Rename:\n";
 foreach ( $paths as $path ) {
 	$pathOld = $dvrDir . '/' . $path['old'];
@@ -74,9 +71,25 @@ new => {$path['new']}
 ";
 
 	if ( is_dir( $pathNew ) ) {
-		echo "ERROR: Path already exists. Skipping...\n";
+		error( 'Path already exists. Skipping...', 0 );
 		continue;
 	}
 
 	rename( $pathOld, $pathNew );
 }
+
+// =====================================================================================================================
+// Functions
+function error( $str, $code = 123 )
+{
+	if ( $code ) {
+		echo "\n" . str_repeat( '-', 74 ) . "\n";
+	}
+
+	echo "ERROR: {$str}\n";
+
+	if ( $code ) {
+		exit( $code );
+	}
+}
+
