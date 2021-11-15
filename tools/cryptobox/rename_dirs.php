@@ -1,83 +1,95 @@
 <?php
-$baseName = basename( $argv[0] );
+$batFile = basename( $argv[0], 'php' ) . 'bat';
 $dvrDir = $argv[1] ?? '';
-$paths = [];
+$dvrDir = trim( $dvrDir, '"' );
 
 if ( !is_dir( $dvrDir ) ) {
-	die( "
-Rename CryptoBox auto-created DVR subdirs to be sortable by date.
-The new name will be: [date] Channel - Program name
+	echo "Rename CryptoBox auto-created DVR subdirs to be sortable by date.
+New name format: [date] Channel - Program name
 
-Usage:        {$baseName} <ALIDVRS2 dir>
-Example:      {$baseName} X:\\ALIDVRS2
-
-" );
+Usage:   {$batFile} <ALIDVRS2 dir>
+Example: {$batFile} X:\\ALIDVRS2
+";
+	error( sprintf( 'DVR dir not found "%s"', $dvrDir ) );
 }
 
-echo "Looking for DVR dirs in \"$dvrDir\"\n";
+printf( 'Looking for DVR sub-dirs in "%s"%s', $dvrDir, "\n" );
 
 // =====================================================================================================================
 // Create new path names
+$paths = [];
 $Dir = new DirectoryIterator( $dvrDir );
+
 foreach ( $Dir as $Item ) {
 	if ( !$Item->isDir() || $Item->isDot() ) {
 		continue;
 	}
 
-	$path = $Item->getPathname();
 	$name = $Item->getFilename();
 
-	if ( preg_match( '~^\[TS\]~', $name ) ) {
-		$newName = substr( $name, 4 ); // remove [TS]
-	}
-	else {
-		continue; // no DVR dir
+	if ( !preg_match( '~^\[TS\]~', $name ) ) {
+		continue; // not a DVR dir!
 	}
 
+	$name = substr( $name, 4 ); // remove "[TS]..." prefix
+
+	// Extract channel, programme, time
 	$parts = [];
-	preg_match( '~(.+)\[(.+)\]+~', $newName, $parts );
-
+	preg_match( '~(.+)\[(.+)\]+~', $name, $parts );
 	$tmp = $parts[2];
-	$parts[2] = substr( $tmp, 0, -20 ); // program name
-	$parts[3] = substr( $tmp, -19 ); // time
+	$parts[2] = substr( $tmp, 0, -20 ); // Program name
+	$parts[3] = substr( $tmp, -19 ); // Time
 
-	// Rearange time, eg. "10-11-2021.09.15.00" => "2021-11-10 09.15"
+	// Fix time string, eg. "10-11-2021.09.15.00" => "2021-11-10 09.15"
 	$tmp = preg_split( '~[\.-]+~', $parts[3] );
 	$parts[3] = "{$tmp[2]}-{$tmp[1]}-{$tmp[0]} {$tmp[3]}.{$tmp[4]}";
 
-	$newName = "[{$parts[3]}] $parts[1] - $parts[2]";
-
 	/* @formatter:off */
 	$paths[] = [
-		'old' => $path,
-		'new' => $dvrDir . '/' . $newName,
-		'oldName' => $name,
-		'newName' => $newName,
+		'old' => $Item->getFilename(),
+		'new' => "[{$parts[3]}] $parts[1] - $parts[2]",
 	];
 	/* @formatter:on */
 }
 
 if ( empty( $paths ) ) {
-	die( "No DVR dirs found!\n" );
+	error( 'No DVR sub-dirs found!' );
 }
-else {
-	printf( "Found %d dirs.\n\n", count( $paths ) );
-}
+
+printf( "Found %d dirs.\n\n", count( $paths ) );
 
 // =====================================================================================================================
 // Rename subdirs
-
 echo "Rename:\n";
 foreach ( $paths as $path ) {
+	$pathOld = $dvrDir . '/' . $path['old'];
+	$pathNew = $dvrDir . '/' . $path['new'];
+
 	echo "
-old => {$path['oldName']}
-new => {$path['newName']}
+old => {$path['old']}
+new => {$path['new']}
 ";
 
-	if ( is_dir( $path['new'] ) ) {
-		echo "ERROR: Path already exists. Skipping...\n";
+	if ( is_dir( $pathNew ) ) {
+		error( 'Path already exists. Skipping...', 0 );
 		continue;
 	}
 
-	rename( $path['old'], $path['new'] );
+	rename( $pathOld, $pathNew );
 }
+
+// =====================================================================================================================
+// Functions
+function error( $str, $code = 123 )
+{
+	if ( $code ) {
+		echo "\n" . str_repeat( '-', 74 ) . "\n";
+	}
+
+	echo "ERROR: {$str}\n";
+
+	if ( $code ) {
+		exit( $code );
+	}
+}
+
