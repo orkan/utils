@@ -1,6 +1,6 @@
 @echo off
 REM =================================================
-REM CryptoBox DVR dirname fixer (c) @Year@ Orkan
+REM CryptoBox DVR dir rename (c) @Year@ Orkan
 REM -------------------------------------------------
 REM This file is part of orkan/utils package
 REM https://github.com/orkan/utils
@@ -12,9 +12,9 @@ setlocal
 pushd %~dp0
 
 echo **************************************************************************
-echo    Tool: CryptoBox DVR dirname fixer
+echo    Tool: CryptoBox DVR dir rename
 echo   Usage: %~nx0 ^<DVR dir^>
-echo Example: %~nx0 X:\ALIDVRS2
+echo Example: %~nx0 "C:\DVR dir"
 echo **************************************************************************
 echo.
 
