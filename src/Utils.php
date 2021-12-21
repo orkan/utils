@@ -23,9 +23,25 @@ class Utils
 	}
 
 	/**
+	 * Convert size string to bytes
+	 * Examples: 1M -> , 3.4kB ->
+	 *
+	 * @link https://stackoverflow.com/questions/11807115/php-convert-kb-mb-gb-tb-etc-to-bytes
+	 *
+	 * @param int $bytes Size in bytes
+	 * @return string Byte size string
+	 */
+	public static function toBytes( string $str ): int
+	{
+		$m = [];
+		if ( !preg_match( '/^([\d.]+)([BKMGTPE]?)(B)?$/i', trim( $str ), $m ) ) return 0;
+		return (int) floor( $m[1] * ( $m[2] ? ( 1024 ** strpos( 'BKMGTPE', strtoupper( $m[2] ) ) ) : 1 ) );
+	}
+
+	/**
 	 * Finally the formatNumber() unified method
 	 */
-	public static function formatNumber( float $number = 0, int $decimals = 0 , string $point = '.' , string $sep = ' ' ): string
+	public static function formatNumber( float $number = 0, int $decimals = 0, string $point = '.', string $sep = ' ' ): string
 	{
 		return number_format( $number, $decimals, $point, $sep );
 	}
@@ -200,7 +216,7 @@ class Utils
 	 */
 	public static function lastKey( array &$arr )
 	{
-		return key( array_slice( $arr, - 1, null, true ) ); // 4th param - preserve numeric keys!
+		return key( array_slice( $arr, -1, null, true ) ); // 4th param - preserve numeric keys!
 	}
 
 	/**
@@ -226,7 +242,7 @@ class Utils
 		$out['begin'] = $begin->format( $format[0] ?? 'l, d.m.Y H:i');
 		$out['final'] = $final->format( $format[1] ?? 'l, d.m.Y H:i');
 
-		if ( ! isset( $format[2] ) || '%a' === $format[2] ) {
+		if ( !isset( $format[2] ) || '%a' === $format[2] ) {
 			$begin->setTime( 0, 0 ); // Count full days!
 			$final->setTime( 0, 0 );
 		}
@@ -375,7 +391,7 @@ class Utils
 		$cmd = sprintf( $cmd, realpath( $directory ) );
 		shell_exec( $cmd );
 
-		return ! is_dir( $directory );
+		return !is_dir( $directory );
 	}
 
 	/**

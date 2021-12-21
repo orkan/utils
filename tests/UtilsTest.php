@@ -25,24 +25,54 @@ class UtilsTest extends TestCase
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests:
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	public function sizeStringProvider()
+	{
+		/* @formatter:off */
+		return [
+			'bytes: 12'               => [ 'in' => '12'      , 'to' => 12            ],
+			'bytes 1025b'             => [ 'in' => '1025b'   , 'to' => 1025          ],
+			'kibibytes fract (0.5kB)' => [ 'in' => '0.5kB'   , 'to' => 512           ],
+			'kibibytes (1KB)'         => [ 'in' => '1KB'     , 'to' => 1024          ],
+			'kibibytes (10 K)'        => [ 'in' => '10 K'    , 'to' => 10240         ],
+			'mebibytes (1000K)'       => [ 'in' => '1000K'   , 'to' => 1024000       ],
+			'mebibytes (1M)'          => [ 'in' => '1M'      , 'to' => 1048576       ],
+			'mebibytes (1.2 MB)'      => [ 'in' => '1.2 MB'  , 'to' => 1258291       ], // 1258291.2
+			'mebibytes (1025 MB)'     => [ 'in' => '1025 MB' , 'to' => 1074790400    ],
+			'mebibytes (1024MB)'      => [ 'in' => '1024MB'  , 'to' => 1073741824    ],
+			'gibibytes (1GB)'         => [ 'in' => '1GB'     , 'to' => 1073741824    ],
+			'tebibytes (1T)'          => [ 'in' => '1T'      , 'to' => 1099511627776 ],
+		];
+		/* @formatter:on */
+	}
+
+	/**
+	 * Convert size string to bytes
+	 * @dataProvider sizeStringProvider
+	 * @group single
+	 */
+	public function testConvertToBytes( $str, $expected )
+	{
+		$actual = Utils::toBytes( $str );
+		$this->assertSame( $expected, $actual );
+	}
 
 	/**
 	 * Print message to log file if defined( 'TESTING' )
 	 * See: ./_cmd/phpunit.xml for defined constants
 	 * See: ../src/TESTING-Orkan-Utils-print.log for output
 	 */
-	public function test_print()
+	public function testCanPrint()
 	{
 		Utils::print( sprintf( "Hello from %s() in %s, line: %d\n", __METHOD__, __FILE__, __LINE__ ) );
 
 		$this->assertTrue( true );
 	}
 
-	public function test_print_r()
+	public function testCanPrintR()
 	{
 		$needle = 'Hello World!';
 
-	/* @formatter:off */
+		/* @formatter:off */
 		$a = [
 			'key1' => 'aaa',
 			'key2' => [
@@ -64,7 +94,6 @@ class UtilsTest extends TestCase
 		$this->assertStringNotContainsString( $needle, $result, 'Missing Object property in output' );
 	}
 }
-
 class Prop
 {
 	public $prop;
