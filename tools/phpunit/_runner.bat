@@ -30,6 +30,8 @@ set RUN=cmd %SWITCH% %~dp0_phpunit.bat %COMMAND%
 
 if "%DEBUG%" == "1" (
 	echo.
+	echo [VENDOR] %VENDOR%
+	echo [PHPUNIT] %PHPUNIT%
 	echo [RUN] %RUN%
 )
 

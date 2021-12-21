@@ -2,14 +2,15 @@ Installation
 ------------------
 
 Require orkan/utils
-Copy this dir [_cmd-orig] to your project tests/[_cmd]
+Copy this dir [_cmd] to your project tests/[_cmd]
 
 Set correct paths in:
 _config.bat
 phpunit.xml
 
 Note:
-The whole developement is done outside of this package [src] folder.
+The developement is done in the host project (outside of this package).
+Use Composer "options": { "symlink": false } to correctly compute ABS paths in host project location.
 Finally files are imported here as-is, thats why paths here are relative to external location.
 
 Testing
