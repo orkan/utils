@@ -24,7 +24,7 @@ class Utils
 
 	/**
 	 * Convert size string to bytes
-	 * Examples: 1M -> , 3.4kB ->
+	 * Examples: 123 -> 123, 1kB -> 1024, 1M -> 1048576
 	 *
 	 * @link https://stackoverflow.com/questions/11807115/php-convert-kb-mb-gb-tb-etc-to-bytes
 	 *
@@ -34,8 +34,8 @@ class Utils
 	public static function toBytes( string $str ): int
 	{
 		$m = [];
-		if ( !preg_match( '/^([\d.]+)([BKMGTPE]?)(B)?$/i', trim( $str ), $m ) ) return 0;
-		return (int) floor( $m[1] * ( $m[2] ? ( 1024 ** strpos( 'BKMGTPE', strtoupper( $m[2] ) ) ) : 1 ) );
+		if ( !preg_match( '/^([\d.]+)(\s)?([BKMGTPE]?)(B)?$/i', trim( $str ), $m ) ) return 0;
+		return (int) floor( $m[1] * ( $m[3] ? ( 1024 ** strpos( 'BKMGTPE', strtoupper( $m[3] ) ) ) : 1 ) );
 	}
 
 	/**
@@ -381,17 +381,27 @@ class Utils
 
 	/**
 	 * Recursively remove a directory
-	 *
-	 * @param  string  $directory
-	 * @return bool
 	 */
 	public static function removeDirectory( $directory )
 	{
-		$cmd = defined( 'PHP_WINDOWS_VERSION_BUILD' ) ? 'rd /S /Q %s' : 'rm -rf %s';
+		$cmd = defined( 'PHP_WINDOWS_VERSION_BUILD' ) ? 'rd /S /Q "%s"' : 'rm -rf "%s"';
 		$cmd = sprintf( $cmd, realpath( $directory ) );
 		shell_exec( $cmd );
 
 		return !is_dir( $directory );
+	}
+
+	/**
+	 * Clear and re-create a directory
+	 */
+	public static function clearDirectory( $directory )
+	{
+		if ( is_dir( $directory ) ) {
+			self::removeDirectory( $directory );
+			clearstatcache( true );
+		}
+
+		return mkdir( $directory, 0777, true );
 	}
 
 	/**
@@ -406,6 +416,67 @@ class Utils
 		$cmd = defined( 'PHP_WINDOWS_VERSION_BUILD' ) ? 'xcopy /E  %s %s' : 'cp -R %s %s';
 		$cmd = sprintf( $cmd, realpath( $source ), realpath( $destination ) );
 		shell_exec( $cmd );
+
+		return true;
+	}
+
+	/**
+	 * Randomize array. Keep key assigments!
+	 */
+	public static function shuffleArray( array &$arr ): bool
+	{
+		if ( empty( $arr ) ) {
+			return false;
+		}
+
+		$out = [];
+
+		// Generate qnique keys
+		foreach ( $arr as $k => $v ) {
+			$key = str_shuffle( '!@#$%^&*()_+QWEAAihciaudUAPMl{Po[":>' );
+			$key = $key . uniqid();
+			$key = sprintf( '%u', crc32( $key ) );
+			$out[$key] = [ $k, $v ];
+		}
+
+		// Sort == randomize ;)
+		ksort( $out, SORT_NUMERIC );
+
+		// Recreate key assigments
+		$arr = [];
+		foreach ( $out as $v ) {
+			$arr[$v[0]] = $v[1];
+		}
+
+		return true;
+	}
+
+	/**
+	 * Sorts multi-dimensional array by sub-array key
+	 * Maintains key assigments!
+	 *
+	 * @param string $sort Field name to sort by (orig|path|name)
+	 * @param string $dir  Sort direction (asc|desc)
+	 * @return bool
+	 */
+	public static function sortMultiArray( array &$arr, string $sort = 'name', string $dir = 'asc' ): bool
+	{
+		if ( empty( $arr ) || !isset( $arr[0][$sort] ) ) {
+			return false;
+		}
+
+		uasort( $arr, function ( $a, $b ) use ($sort, $dir ) {
+
+			if ( is_int( $a[$sort] ) ) {
+				$cmp = $a[$sort] < $b[$sort] ? -1 : 1;
+			}
+			else {
+				$cmp = strcasecmp( $a[$sort], $b[$sort] );
+			}
+
+			// Keep ASC sorting for unknown [dir]
+			return 'desc' == $dir ? -$cmp : $cmp;
+		} );
 
 		return true;
 	}
