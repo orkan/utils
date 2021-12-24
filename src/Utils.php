@@ -422,6 +422,7 @@ class Utils
 
 	/**
 	 * Randomize array. Keep key assigments!
+	 * @link https://www.php.net/manual/en/function.uniqid.php
 	 */
 	public static function shuffleArray( array &$arr ): bool
 	{
@@ -433,14 +434,13 @@ class Utils
 
 		// Generate qnique keys
 		foreach ( $arr as $k => $v ) {
-			$key = str_shuffle( '!@#$%^&*()_+QWEAAihciaudUAPMl{Po[":>' );
-			$key = $key . uniqid();
-			$key = sprintf( '%u', crc32( $key ) );
+			$key = random_bytes( 8 );
+			$key = bin2hex( $key );
 			$out[$key] = [ $k, $v ];
 		}
 
 		// Sort == randomize ;)
-		ksort( $out, SORT_NUMERIC );
+		ksort( $out );
 
 		// Recreate key assigments
 		$arr = [];
