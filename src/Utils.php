@@ -114,12 +114,17 @@ class Utils
 	 */
 	public static function print( string $message, bool $is_error = false, string $codepage = 'cp852' ): void
 	{
+		/*
+		 * Deprecated due the fact that Utils now are tested from parents projects instead
+		 * and we are unable to locate a writable dir
+		 *
 		if ( defined( 'TESTING' ) ) {
 			$date = \DateTime::createFromFormat( 'U.u', microtime( true ) )->format( 'Y-m-d H:i:s.u' );
 			$line = sprintf( '[%s] %s', $date, $message );
 			file_put_contents( __DIR__ . '/../tests/_cache/TESTING-Orkan-Utils-print.log', $line, FILE_APPEND );
 			return;
 		}
+		 */
 
 		if ( 'cli' === php_sapi_name() ) {
 			fwrite( $is_error ? STDERR : STDOUT, iconv( 'utf-8', $codepage, $message ) );

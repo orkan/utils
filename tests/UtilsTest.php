@@ -77,10 +77,10 @@ class UtilsTest extends TestCase
 			'key1' => 'aaa',
 			'key2' => [
 				'key2.1' => 'bbb',
-				'key2.2' => new Prop(),
+				'key2.2' => new PrintR(),
 				'key2.3' => 'ccc',
 			],
-			'key3' => new Prop( $needle ),
+			'key3' => new PrintR( $needle ),
 			'key4' => 'ddd',
 		];
 		/* @formatter:on */
@@ -93,8 +93,65 @@ class UtilsTest extends TestCase
 		$result = Utils::print_r( $a );
 		$this->assertStringNotContainsString( $needle, $result, 'Missing Object property in output' );
 	}
+
+	/**
+	 * Randomize multi-dimensional array and maintain key assigment
+	 */
+	public function testCanSortMultiArray()
+	{
+		/* @formatter:off */
+		$playlistA = $playlistB = [
+			0 => ['line' => 'line0', 'path' => 'path0', 'name' => 'name_3_0' ],
+			1 => ['line' => 'line1', 'path' => 'path1', 'name' => 'name_2_1' ],
+			3 => ['line' => 'line3', 'path' => 'path3', 'name' => 'name_1_3' ],
+		];
+		/* @formatter:on */
+
+		// Reverse: by name, asc
+		Utils::sortMultiArray( $playlistB, 'name', 'asc' );
+		$this->assertEquals( $playlistA, $playlistB, 'Content differs!' );
+		$this->assertNotSame( $playlistA, $playlistB, 'Same order!' );
+		$this->assertEquals( $playlistA[1], $playlistB[1], 'Lost key assigment!' );
+
+		// Re-create order: by name, desc
+		Utils::sortMultiArray( $playlistB, 'name', 'desc' );
+		$this->assertEquals( $playlistA, $playlistB, 'Content differs!' );
+		$this->assertSame( $playlistA, $playlistB, 'Not same order!' );
+		$this->assertEquals( $playlistA[1], $playlistB[1], 'Lost key assigment!' );
+	}
+
+	/**
+	 * Randomize multi-dimensional array and maintain key assigment
+	 * Note for false positive shuffle results b/c it may return exactly the same order too!
+	 */
+	public function testCanShuffleArray()
+	{
+		/* @formatter:off */
+		$playlistA = $playlistB = [
+			0 => ['line' => 'line0', 'path' => 'path0', 'name' => 'name0' ],
+			1 => ['line' => 'line1', 'path' => 'path1', 'name' => 'name1' ],
+			3 => ['line' => 'line3', 'path' => 'path3', 'name' => 'name3' ],
+		];
+		/* @formatter:on */
+
+		// Two chances to randomize array!
+		for ( $i = 0; $i < 2; $i++ ) {
+			Utils::shuffleArray( $playlistB );
+			if ( array_keys( $playlistA ) != array_keys( $playlistB ) ) {
+				break;
+			}
+		}
+
+		$this->assertEquals( $playlistA, $playlistB, 'Content differs!' );
+		$this->assertNotSame( $playlistA, $playlistB, 'Same order! Note for false positive results. Try again!' );
+		$this->assertEquals( $playlistA[1], $playlistB[1], 'Lost key assigment!' );
+	}
 }
-class Prop
+
+/**
+ * Dummy class to show printing abilities
+ */
+class PrintR
 {
 	public $prop;
 
