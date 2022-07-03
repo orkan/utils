@@ -587,4 +587,27 @@ class Utils
 
 		return true;
 	}
+
+	/**
+	 * Render Progress bar
+	 *
+	 * @param number $current
+	 * @param number $total
+	 * @param number $size
+	 * @param string $cchar
+	 * @param string $tchar
+	 * @return array [ 'bar' => |||-------, 'cent' => 36 ]
+	 */
+	public static function progressBar( int $current, int $total, int $size = 20, string $cchar = '|', string $tchar = '-' ): array
+	{
+		$progres = round( ( 100 / $total ) * $current );
+
+		$_total = $size;
+		$_current = round( ( $size * $current ) / $total );
+
+		$bar = str_repeat( $cchar, $_current );
+		$bar .= str_repeat( $tchar, $_total - $_current );
+
+		return [ 'bar' => $bar, 'cent' => $progres ];
+	}
 }
