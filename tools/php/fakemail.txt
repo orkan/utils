@@ -1,0 +1,7 @@
+PHP (cli)
+sendmail_path = fakemail.bat
+;mail.log = nie trzeba :)
+
+PHP (Apache)
+;sendmail_path = nie dzia³a :(
+mail.log = C:\Users\Orkan\AppData\Local\Temp\php_mail.log

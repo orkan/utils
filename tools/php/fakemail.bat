@@ -6,7 +6,7 @@ rem https://stackoverflow.com/questions/4870284/have-php-mail-function-output-to
 rem https://stackoverflow.com/questions/11438628/replace-php-mail-function-with-customised-version
 
 rem Setup:
-rem php.ini > sendmail_path = sendmail.bat
+rem php.ini > sendmail_path = fakemail.bat
 rem PHP mail() will output email body to STDOUT
 rem the 5th param of mail() is under %1
 
