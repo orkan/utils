@@ -122,19 +122,27 @@ class Utils
 		 * Deprecated due the fact that Utils now are tested from parents projects instead
 		 * and we are unable to locate a writable dir
 		 *
-		if ( defined( 'TESTING' ) ) {
-			$date = \DateTime::createFromFormat( 'U.u', microtime( true ) )->format( 'Y-m-d H:i:s.u' );
-			$line = sprintf( '[%s] %s', $date, $message );
-			file_put_contents( __DIR__ . '/../tests/_cache/TESTING-Orkan-Utils-print.log', $line, FILE_APPEND );
-			return;
-		}
+		 if ( defined( 'TESTING' ) ) {
+		 $date = \DateTime::createFromFormat( 'U.u', microtime( true ) )->format( 'Y-m-d H:i:s.u' );
+		 $line = sprintf( '[%s] %s', $date, $message );
+		 file_put_contents( __DIR__ . '/../tests/_cache/TESTING-Orkan-Utils-print.log', $line, FILE_APPEND );
+		 return;
+		 }
 		 */
 
-		if ( 'cli' === php_sapi_name() ) {
+		/**
+		 * Note:
+		 * In CLI the constants STDIN, STDOUT, STDERR are undefined. A workaround is to re-define them:
+		 * @link https://stackoverflow.com/questions/17769041/notice-use-of-undefined-constant-stdout-assumed-stdout
+		 * if(!defined('STDIN'))  define('STDIN',  fopen('php://stdin',  'rb'));
+		 * if(!defined('STDOUT')) define('STDOUT', fopen('php://stdout', 'wb'));
+		 * if(!defined('STDERR')) define('STDERR', fopen('php://stderr', 'wb'));
+		 */
+		if ( in_array( PHP_SAPI, [ 'cli', 'phpdbg', 'embed' ], true ) ) {
 			fwrite( $is_error ? STDERR : STDOUT, iconv( 'utf-8', $codepage, $message ) );
 		}
 		else {
-			echo $message;
+			echo nl2br( $message );
 		}
 	}
 
