@@ -551,4 +551,22 @@ class Utils
 
 		return [ 'bar' => $bar, 'cent' => $progres ];
 	}
+
+	/**
+	 * Returns an associative array of defined constants in format: [int] => 'CONSTANT_NAME'
+	 * @see get_defined_constants()
+	 *
+	 * @param string $prefix   Regex pattern to match constant names
+	 * @param string $category Lookup in this group only
+	 */
+	public static function getDefinedConstants( string $prefix, string $category = '' ): array
+	{
+		$constants = $category ? get_defined_constants( true )[$category] ?? []: get_defined_constants();
+
+		$keys = preg_grep( "/^{$prefix}/", array_keys( $constants ) );
+		$constants = array_intersect_key( $constants, array_flip( $keys ) );
+		$constants = array_flip( $constants );
+
+		return $constants;
+	}
 }
