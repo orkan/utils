@@ -81,27 +81,38 @@ class Utils
 	}
 
 	/**
-	 * Remove double spaces from PHP::print_r()
+	 * Fancy array print
 	 *
-	 * @param array $array
-	 * @param bool $simple Remove objects?
-	 * @return string
+	 * @param bool  $simple Remove objects?
+	 * @param array $keys   Keys replacements
 	 */
-	public static function print_r( array $array, bool $simple = true ): string
+	public static function print_r( array $array, bool $simple = true, array $keys = [] ): string
 	{
-		/*
-		 * Replace each Object in array with class name string
-		 *
-		 * @formatter:off */
-		if( $simple ) {
-			array_walk_recursive( $array, function( &$val ) {
-				is_object( $val ) && $val = '(Object) ' . get_class( $val );
-			});
+		foreach ( $array as $k => $v ) {
+			// Replace bolean values
+			if ( is_bool( $v ) ) {
+				$array[$k] = $v ? 'true' : 'false';
+			}
+			// Replace each Object in array with class name string
+			else if ( $simple && is_object( $v ) ) {
+				$array[$k] = '(Object) ' . get_class( $v );
+			}
 		}
-		/* @formatter:on */
+
+		// Replace keys
+		if ( $keys ) {
+			$new = [];
+			foreach ( $array as $k => $v ) {
+				$key = $keys[$k] ?? $k; // Missing replacement - use old key!
+				$new[$key] = $v;
+			}
+			$array = $new;
+		}
 
 		$str = print_r( $array, true );
-		return preg_replace( '/[ ]{2,}/', '', $str ); // remove double spacess
+		$str = preg_replace( '/[ ]{2,}/', '', $str ); // remove double spacess
+
+		return $str;
 	}
 
 	/**
