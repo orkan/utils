@@ -1,28 +1,21 @@
-Installation
-------------------
+INSTALLATION:
+-------------
+1. composer require orkan/utils
+2. copy "vendor\orkan\utils\tests\_cmd" to your "vendor\[vendor_name]\[package_name]\tests\_cmd"
+3. in case of different directory layout, correct the paths in:
+	_config.bat
+	phpunit.xml
 
-Require orkan/utils
-Copy this dir [_cmd] to your project tests/[_cmd]
+USAGE:
+------
+Run tests directly from "vendor\[vendor_name]\[package_name]\tests" dir!
 
-Set correct paths in:
-_config.bat
-phpunit.xml
+NOTES:
+------
+To correctly compute absolute paths, use Composer "options": { "symlink": false }
+This package has been imported from [vendor] dir AS-IS, thats why all paths here are relative to external location.
 
-Note:
-The developement is done in the host project (outside of this package).
-Use Composer "options": { "symlink": false } to correctly compute ABS paths in host project location.
-Finally files are imported here as-is, thats why paths here are relative to external location.
-
-Testing
-------------------
-
-[PHPUnit] *.bat
-Double click to run all test suites.
-To test separate files create shortcut in testing dir and drop *Test.php file on it.
-
-After tests
-------------------
-
-composer dump --no-dev
-or
-composer update --no-dev
+TESTING YOUR PACKAGE:
+---------------------
+- double click any of "_cmd\[PHPUnit] *.bat" to run all test suites (in desired output format)
+- to test separate files, create shortcut in testing subdir and drop *Test.php file on it.
