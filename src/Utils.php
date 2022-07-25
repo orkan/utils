@@ -12,6 +12,24 @@ namespace Orkan;
  */
 class Utils
 {
+	/**
+	 * Default global properties.
+	 * @see \Orkan\Utils::setup()
+	 */
+	protected static $timeZone = 'UTC';
+	protected static $dateFormat = 'Y-m-d D H:i';
+
+	/**
+	 * Configure static properties.
+	 */
+	public static function setup( array $cfg = [] )
+	{
+		foreach ( $cfg as $property => $value ) {
+			if ( isset( static::$$property ) ) {
+				static::$$property = $value;
+			}
+		}
+	}
 
 	/**
 	 * Format byte size string
@@ -278,6 +296,30 @@ class Utils
 		$out['diff'] = $final->diff( $begin )->format( $format[2] ?? '%a');
 
 		return $out;
+	}
+
+	/**
+	 * Format date.
+	 */
+	public static function formatDate( float $timestamp, string $format = '', string $zone = '' ): string
+	{
+		if ( !$timestamp ) {
+			return 'n/a';
+		}
+
+		// Remove fractions from timestamp eg. 1588365133[974]
+		if ( strlen( $timestamp ) > $len = strlen( time() ) ) {
+			$timestamp = substr( $timestamp, 0, $len );
+		}
+
+		/* @formatter:off */
+		$date = ( new \DateTime() )
+			->setTimestamp( $timestamp )
+			->setTimezone( new \DateTimeZone( $zone ?: self::$timeZone ) )
+			->format( $format ?: self::$dateFormat );
+		/* @formatter:on */
+
+		return $date;
 	}
 
 	/**
