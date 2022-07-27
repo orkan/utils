@@ -1,5 +1,8 @@
 @echo off
 call %~dp0_config.bat
 
-REM test.bat [vendor_dir] [extra] [infile]
-%RUNNER_DIR%\test.bat %VENDOR_DIR% "" %1
+setlocal
+set INFILE=%~1
+set EXTRAS=%~2
+
+%RUNNER_DIR%\test.bat "%VENDOR_DIR%" "%EXTRAS%" "%INFILE%"

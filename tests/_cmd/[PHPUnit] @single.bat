@@ -1,5 +1,9 @@
 @echo off
 call %~dp0_config.bat
 
-REM testgroup.bat [vendor_dir] [extra] [infile] [group]
-%RUNNER_DIR%\testgroup.bat %VENDOR_DIR% "" single %1
+setlocal
+set INFILE=%~1
+set EXTRAS=%~2
+set TESTGROUP=single
+
+%RUNNER_DIR%\testgroup.bat "%VENDOR_DIR%" "%EXTRAS%" "%TESTGROUP%" "%INFILE%"

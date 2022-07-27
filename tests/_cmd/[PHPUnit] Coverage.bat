@@ -1,5 +1,8 @@
 @echo off
 call %~dp0_config.bat
 
-REM coverage.bat [vendor_dir] [extra] [coverage_dir]
-%RUNNER_DIR%\coverage.bat %VENDOR_DIR% "" ..\_coverage
+setlocal
+set EXTRAS=%~1
+set COVERAGE_DIR=..\_coverage
+
+%RUNNER_DIR%\coverage.bat "%VENDOR_DIR%" "%EXTRAS%" "%COVERAGE_DIR%"
