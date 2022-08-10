@@ -78,8 +78,9 @@ class Utils
 	 */
 	public static function formatTime( float $seconds, bool $fractions = true, int $precision = 6 ): string
 	{
+		$sign = $seconds < 0 ? '-' : '';
 		$d = $h = $m = 0;
-		$s = (int) $seconds; // get int
+		$s = (int) abs( $seconds ); // get int
 		$u = $seconds - $s; // get fractions
 
 		if ( $s >= 86400 ) {
@@ -95,7 +96,7 @@ class Utils
 			$s = floor( $s % 60 );
 		}
 		$s = $fractions ? sprintf( "%.{$precision}f", $s + $u ) : $s;
-		return trim( ( $d ? "{$d}d " : '' ) . ( $h ? "{$h}h " : '' ) . ( $m ? "{$m}m " : '' ) . "{$s}s" );
+		return $sign . trim( ( $d ? "{$d}d " : '' ) . ( $h ? "{$h}h " : '' ) . ( $m ? "{$m}m " : '' ) . "{$s}s" );
 	}
 
 	/**
