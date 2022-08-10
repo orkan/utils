@@ -623,4 +623,35 @@ class Utils
 
 		return $constants;
 	}
+
+	/**
+	 * Get user input or die.
+	 * Modified for unit testing.
+	 *
+	 * @param string $msg    Prompt message to show, ie. "Hit [Enter] to continue..."
+	 * @param bool   $quit   Enable user exit?
+	 * @param string $_input TESTING: Overwrite user input (for testing purposes)
+	 * @throws \Exception    TESTING: Replace exit()
+	 * @return string        User input or [$_input] arg if set
+	 */
+	public static function prompt( string $msg, bool $quit = true, string $_input = '' ): string
+	{
+		if ( defined( 'TESTING' ) ) {
+			if ( $quit ) {
+				throw new \Exception( $msg );
+			}
+			else {
+				return $_input;
+			}
+		}
+
+		printf( "%s\n%s", $msg, $quit ? "Use [Q] to quit.\n" : '' );
+		$input = $_input ?: readline();
+
+		if ( $quit && 'Q' === strtoupper( $input ) ) {
+			exit( 'User exit. Bye!' );
+		}
+
+		return $input;
+	}
 }
