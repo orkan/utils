@@ -302,11 +302,9 @@ class Utils
 	/**
 	 * Format date.
 	 */
-	public static function formatDate( float $timestamp, string $format = '', string $zone = '' ): string
+	public static function formatDate( float $timestamp = 0, string $format = '', string $zone = '' ): string
 	{
-		if ( !$timestamp ) {
-			return 'n/a';
-		}
+		$timestamp = $timestamp ?: time();
 
 		// Remove fractions from timestamp eg. 1588365133[974]
 		if ( strlen( $timestamp ) > $len = strlen( time() ) ) {
