@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-@Year@ Orkan <orkans@gmail.com>
+ * Copyright (c) 2020-@Year@ Orkan <orkans+utilssrc@gmail.com>
  */
 namespace Orkan;
 
@@ -633,7 +633,7 @@ class Utils
 	 */
 	public static function prompt( string $msg, bool $quit = true, string $_input = '' ): string
 	{
-		if ( defined( 'TESTING' ) ) {
+		if ( defined( 'TESTING' ) || getenv( 'APP_TESTING' ) ) {
 			if ( $quit ) {
 				throw new \BadMethodCallException( $msg );
 			}
