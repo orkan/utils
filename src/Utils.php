@@ -633,7 +633,7 @@ class Utils
 	 */
 	public static function prompt( string $msg, bool $quit = true, string $_input = '' ): string
 	{
-		if ( defined( 'TESTING' ) || getenv( 'APP_TESTING' ) ) {
+		if ( defined( 'TESTING' ) ) {
 			if ( $quit ) {
 				throw new \BadMethodCallException( $msg );
 			}
