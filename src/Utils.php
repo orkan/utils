@@ -17,7 +17,7 @@ class Utils
 	 * @see \Orkan\Utils::setup()
 	 */
 	protected static $timeZone = 'UTC';
-	protected static $dateFormat = 'Y-m-d D H:i';
+	protected static $dateFormat = 'D, Y-m-d H:i';
 
 	/**
 	 * Configure static properties.
@@ -278,23 +278,25 @@ class Utils
 	 * @link https://www.php.net/manual/en/dateinterval.format.php
 	 * @return array Formated dates: Array ( 'begin' => ... , 'final' => ..., 'diff' => ... )
 	 */
-	public static function formatDateDiff( int $time, int $stop, string $zone, array $format = [] ): array
+	public static function formatDateDiff( int $time, int $stop = 0, string $zone = '', array $format = [] ): array
 	{
 		$out = [];
 
-		$Tzone = new \DateTimeZone( $zone );
-		$begin = ( new \DateTime() )->setTimestamp( $time )->setTimezone( $Tzone );
-		$final = ( new \DateTime() )->setTimestamp( $stop )->setTimezone( $Tzone );
+		$stop = $stop ?: time();
+		$TZone = new \DateTimeZone( $zone ?: self::$timeZone );
 
-		$out['begin'] = $begin->format( $format[0] ?? 'l, d.m.Y H:i');
-		$out['final'] = $final->format( $format[1] ?? 'l, d.m.Y H:i');
+		$Begin = ( new \DateTime() )->setTimestamp( $time )->setTimezone( $TZone );
+		$Final = ( new \DateTime() )->setTimestamp( $stop )->setTimezone( $TZone );
+
+		$out['begin'] = $Begin->format( $format[0] ?? 'l, d.m.Y H:i');
+		$out['final'] = $Final->format( $format[1] ?? 'l, d.m.Y H:i');
 
 		if ( !isset( $format[2] ) || '%a' === $format[2] ) {
-			$begin->setTime( 0, 0 ); // Count full days!
-			$final->setTime( 0, 0 );
+			$Begin->setTime( 0, 0 ); // Count full days!
+			$Final->setTime( 0, 0 );
 		}
 
-		$out['diff'] = $final->diff( $begin )->format( $format[2] ?? '%a');
+		$out['diff'] = $Final->diff( $Begin )->format( $format[2] ?? '%a');
 
 		return $out;
 	}
