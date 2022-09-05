@@ -17,7 +17,7 @@ class Utils
 	 * @see \Orkan\Utils::setup()
 	 */
 	protected static $timeZone = 'UTC';
-	protected static $dateFormat = 'D, Y-m-d H:i';
+	protected static $dateFormat = 'Y-m-d H:i:s';
 
 	/**
 	 * Configure static properties.
@@ -595,6 +595,7 @@ class Utils
 	 */
 	public static function progressBar( int $current, int $total, int $size = 20, string $cchar = '|', string $tchar = '-' ): array
 	{
+		$current = min( $current, $total );
 		$progres = round( ( 100 / $total ) * $current );
 
 		$_total = $size;
