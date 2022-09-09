@@ -9,8 +9,8 @@
 
 	<php>
 		<!-- <env name="db_user" value="admin" /> -->
-		<const name="DEBUG" value="1"/>
-		<const name="TESTING" value="1"/>
+		<!-- <env name="APP_DEBUG" value="Moved to TestCase class" /> -->
+		<!-- <env name="APP_TESTING" value="Moved to TestCase class" /> -->
 	</php>
 
 	<testsuites>
