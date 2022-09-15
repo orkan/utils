@@ -334,8 +334,7 @@ class Utils
 	/**
 	 * Collator::sort()
 	 *
-	 * @param array $arr
-	 * @param string $locale
+	 * @param string $locale Eg. 'us_US', 'pl_PL'
 	 */
 	public static function sort( array &$arr, string $locale ): void
 	{
@@ -428,6 +427,54 @@ class Utils
 		}
 
 		return $result;
+	}
+
+	public static function getZipError( int $error )
+	{
+		/* @formatter:off */
+		static $zipErrors = [
+			\ZipArchive::ER_MULTIDISK			=> ['ZipArchive::ER_MULTIDISK',	 			'Multi-disk zip archives not supported'],
+			\ZipArchive::ER_RENAME				=> ['ZipArchive::ER_RENAME'	,	 			'Renaming temporary file failed'],
+			\ZipArchive::ER_CLOSE				=> ['ZipArchive::ER_CLOSE',		 			'Multi-disk zip archives not supported'],
+			\ZipArchive::ER_SEEK				=> ['ZipArchive::ER_SEEK',		 			'Seek error'],
+			\ZipArchive::ER_READ				=> ['ZipArchive::ER_READ',		 			'Read error'],
+			\ZipArchive::ER_WRITE				=> ['ZipArchive::ER_WRITE',		 			'Write error'],
+			\ZipArchive::ER_CRC					=> ['ZipArchive::ER_CRC',		 			'CRC error'],
+			\ZipArchive::ER_ZIPCLOSED			=> ['ZipArchive::ER_ZIPCLOSED',	 			'Containing zip archive was close'],
+			\ZipArchive::ER_NOENT				=> ['ZipArchive::ER_NOENT',		 			'No such file'],
+			\ZipArchive::ER_EXISTS				=> ['ZipArchive::ER_EXISTS',	 			'File already exists'],
+			\ZipArchive::ER_OPEN				=> ['ZipArchive::ER_OPEN',		 			'Can\'t open file'],
+			\ZipArchive::ER_TMPOPEN				=> ['ZipArchive::ER_TMPOPEN',	 			'Failure to create temporary file'],
+			\ZipArchive::ER_ZLIB				=> ['ZipArchive::ER_ZLIB',		 			'Zlib error'],
+			\ZipArchive::ER_MEMORY				=> ['ZipArchive::ER_MEMORY',	 			'Memory allocation failure'],
+			\ZipArchive::ER_CHANGED				=> ['ZipArchive::ER_CHANGED',	 			'Entry has been changed '],
+			\ZipArchive::ER_COMPNOTSUPP			=> ['ZipArchive::ER_COMPNOTSUPP',			'Compression method not supported'],
+			\ZipArchive::ER_EOF					=> ['ZipArchive::ER_EOF',		 			'Premature EOF'],
+			\ZipArchive::ER_INVAL				=> ['ZipArchive::ER_INVAL',		 			'Invalid argument'],
+			\ZipArchive::ER_NOZIP				=> ['ZipArchive::ER_NOZIP',		 			'Not a zip archive'],
+			\ZipArchive::ER_INTERNAL			=> ['ZipArchive::ER_INTERNAL',	 			'Internal error '],
+			\ZipArchive::ER_INCONS				=> ['ZipArchive::ER_INCONS',	 			'Zip archive inconsistent'],
+			\ZipArchive::ER_REMOVE				=> ['ZipArchive::ER_REMOVE',	 			'Can\'t remove file' ],
+			\ZipArchive::ER_DELETED				=> ['ZipArchive::ER_DELETED',	 			'Entry has been deleted'],
+			/*
+			 * version_compare( PHP_VERSION, '17.4.3' ) >= 0
+			\ZipArchive::ER_ENCRNOTSUPP 		=> ['ER_ENCRNOTSUPP',			'Encryption method not supported. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
+			\ZipArchive::ER_RDONLY				=> ['ER_RDONLY',				'Read-only archive. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
+			\ZipArchive::ER_NOPASSWD			=> ['ER_NOPASSWD',				'No password provided. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
+			\ZipArchive::ER_WRONGPASSWD			=> ['ER_WRONGPASSWD',			'Wrong password provided. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
+			\ZipArchive::ZIP_ER_OPNOTSUPP		=> ['ZIP_ER_OPNOTSUPP',			'Operation not supported. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.0.0'],
+			\ZipArchive::ZIP_ER_INUSE			=> ['ZIP_ER_INUSE',				'Resource still in use. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.0.0'],
+			\ZipArchive::ZIP_ER_TELL			=> ['ZIP_ER_TELL',				'Tell error. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.0.0'],
+			\ZipArchive::ZIP_ER_COMPRESSED_DATA	=> ['ZIP_ER_COMPRESSED_DATA',	'Compressed data invalid. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.6.0'],
+			\ZipArchive::ER_CANCELLED			=> ['ER_CANCELLED',				'Operation cancelled. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.6.0'],
+			 */
+		];
+		/* @formatter:on */
+
+		$key = $zipErrors[$error][0] ?? 'ZipArchive::???';
+		$msg = $zipErrors[$error][1] ?? 'Definition missing for error #' . $error;
+
+		return "$key $msg";
 	}
 
 	/**
