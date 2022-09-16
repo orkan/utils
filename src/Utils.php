@@ -13,6 +13,16 @@ namespace Orkan;
 class Utils
 {
 	/**
+	 * Time constants
+	 */
+	const MINUTE_IN_SECONDS = 60;
+	const HOUR_IN_SECONDS = 3600;
+	const DAY_IN_SECONDS = 86400;
+	const WEEK_IN_SECONDS = 604800;
+	const MONTH_IN_SECONDS = 2678400;
+	const YEAR_IN_SECONDS = 31536000;
+
+	/**
 	 * Default global properties.
 	 * @see \Orkan\Utils::setup()
 	 */
@@ -270,23 +280,25 @@ class Utils
 	 * Format two timestamps with timezone
 	 * Calculate time diff
 	 *
-	 * @param int $time Timestamp A
-	 * @param int $stop Timestamp B
-	 * @param string $zone @link https://www.php.net/manual/en/timezones.php
-	 * @param array $format['begin', 'final', 'diff']
+	 * @link https://www.php.net/manual/en/timezones.php
 	 * @link https://www.php.net/manual/en/datetime.format.php
 	 * @link https://www.php.net/manual/en/dateinterval.format.php
-	 * @return array Formated dates: Array ( 'begin' => ... , 'final' => ..., 'diff' => ... )
+	 *
+	 * @param int    $begin  Timestamp A
+	 * @param int    $final  Timestamp B
+	 * @param string $tzone  Timezone
+	 * @param array  $format Array ( [begin] => 'l, d.m.Y H:i' , [final] => 'l, d.m.Y H:i', [diff] => '%a' )
+	 * @return array Formated dates: Array ( [begin] => date , [final] => date, [diff] => days )
 	 */
-	public static function formatDateDiff( int $time, int $stop = 0, string $zone = '', array $format = [] ): array
+	public static function formatDateDiff( int $begin, int $final = 0, string $tzone = '', array $format = [] ): array
 	{
 		$out = [];
 
-		$stop = $stop ?: time();
-		$TZone = new \DateTimeZone( $zone ?: self::$timeZone );
+		$final = $final ?: time();
+		$TZone = new \DateTimeZone( $tzone ?: self::$timeZone );
 
-		$Begin = ( new \DateTime() )->setTimestamp( $time )->setTimezone( $TZone );
-		$Final = ( new \DateTime() )->setTimestamp( $stop )->setTimezone( $TZone );
+		$Begin = ( new \DateTime() )->setTimestamp( $begin )->setTimezone( $TZone );
+		$Final = ( new \DateTime() )->setTimestamp( $final )->setTimezone( $TZone );
 
 		$out['begin'] = $Begin->format( $format[0] ?? 'l, d.m.Y H:i');
 		$out['final'] = $Final->format( $format[1] ?? 'l, d.m.Y H:i');
