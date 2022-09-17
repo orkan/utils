@@ -713,4 +713,21 @@ class Utils
 
 		return $input;
 	}
+
+	/**
+	 * Generate BIND array for PDO::execute().
+	 *
+	 * @param  array $data Array ( [name] => value, ... )
+	 * @return array       Array ( [:name] => value, ... )
+	 */
+	public static function pdoExecuteParams( array $data ): array
+	{
+		$bind = [];
+
+		foreach ( $data as $k => $v ) {
+			$bind[":$k"] = $v;
+		}
+
+		return $bind;
+	}
 }
