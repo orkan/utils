@@ -79,34 +79,61 @@ class Utils
 	}
 
 	/**
-	 * Format time
+	 * Format time.
 	 *
-	 * @param float $seconds Time in fractional seconds
-	 * @param bool $fractions Add fractions part?
-	 * @param int $precision How many fractional digits?
-	 * @return string Time in format 18394d 16g 11m 41.589s
+	 * @param float   $seconds   Time in fractional seconds
+	 * @param int     $precision How many fractional digits? 0 == no fractions part
+	 * @return string            Time in format 18394d 16g 11m 41.589s
 	 */
-	public static function formatTime( float $seconds, bool $fractions = true, int $precision = 6 ): string
+	public static function formatTime( float $seconds, ?int $precision = null ): string
 	{
-		$sign = $seconds < 0 ? '-' : '';
-		$d = $h = $m = 0;
-		$s = (int) abs( $seconds ); // get int
-		$u = $seconds - $s; // get fractions
+		$precision = null === $precision ? 3 : $precision;
 
-		if ( $s >= 86400 ) {
-			$d = floor( $s / 86400 );
-			$s = floor( $s % 86400 );
+		$sign = $seconds < 0 ? '-' : '';
+		$seconds = abs( $seconds );
+
+		$d = $h = $m = 0;
+		$s = (int) $seconds; // get natural part
+		$u = $seconds - $s; // get fraction part
+
+		if ( $s >= self::DAY_IN_SECONDS ) {
+			$d = floor( $s / self::DAY_IN_SECONDS );
+			$s = floor( $s % self::DAY_IN_SECONDS );
 		}
-		if ( $s >= 3600 ) {
-			$h = floor( $s / 3600 );
-			$s = floor( $s % 3600 );
+		if ( $s >= self::HOUR_IN_SECONDS ) {
+			$h = floor( $s / self::HOUR_IN_SECONDS );
+			$s = floor( $s % self::HOUR_IN_SECONDS );
 		}
-		if ( $s >= 60 ) {
-			$m = floor( $s / 60 );
-			$s = floor( $s % 60 );
+		if ( $s >= self::MINUTE_IN_SECONDS ) {
+			$m = floor( $s / self::MINUTE_IN_SECONDS );
+			$s = floor( $s % self::MINUTE_IN_SECONDS );
 		}
-		$s = $fractions ? sprintf( "%.{$precision}f", $s + $u ) : $s;
-		return $sign . trim( ( $d ? "{$d}d " : '' ) . ( $h ? "{$h}h " : '' ) . ( $m ? "{$m}m " : '' ) . "{$s}s" );
+
+		$s = sprintf( "%.{$precision}f", $s + $u );
+
+		/* @formatter:off */
+		$masks = [
+			'd' => '%1$sd',
+			'h' => '%2$sh',
+			'm' => '%3$sm',
+			's' => '%4$ss',
+		];
+		/* @formatter:on */
+
+		// Remove '0' elements
+		$mask = [];
+		foreach ( $masks as $k => $v ) {
+			if ( intval( $$k ) ) {
+				$mask[$k] = $v;
+			}
+		}
+
+		// Keep at least seconds!
+		if ( !$mask ) {
+			$mask['s'] = $masks['s'];
+		}
+
+		return $sign . trim( sprintf( implode( ' ', $mask ), $d, $h, $m, $s ) );
 	}
 
 	/**

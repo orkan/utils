@@ -15,17 +15,58 @@ use PHPUnit\Framework\TestCase;
 class UtilsTest extends TestCase
 {
 
-	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers
-	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	protected function setUp(): void
 	{
 	}
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests:
+	// Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	public function sizeStringProvider()
+
+	/**
+	 * Utils::formatTime( $seconds, $precision )
+	 */
+	public function formatTimeProvider()
+	{
+		/* @formatter:off */
+		return [
+			// second
+			'(  0     ,    0 )'      => [  0     ,    0,  '0s'     ],
+			'(  1     ,    0 )'      => [  1     ,    0,  '1s'     ],
+			'(  1     ,    1 )'      => [  1     ,    1,  '1.0s'   ],
+			'(  1.2   ,    1 )'      => [  1.2   ,    1,  '1.2s'   ],
+			'(  1.25  ,    1 )'      => [  1.25  ,    1,  '1.2s'   ], // round down
+			'(  1.26  ,    1 )'      => [  1.26  ,    1,  '1.3s'   ], // round up
+			'( -1.25  ,    1 )'      => [ -1.25  ,    1, '-1.2s'   ], // round down
+			'( -1.26  ,    1 )'      => [ -1.26  ,    1, '-1.3s'   ], // round up
+			'(  1.2345,    0 )'      => [  1.2345,    0,  '1s'     ],
+			'(  1.2345, null )'      => [  1.2345, null,  '1.234s' ], // def. 3
+			'( -3.453 ,    2 )'      => [ -3.453 ,    2, '-3.45s'  ], // round down
+			'( -3.457 ,    2 )'      => [ -3.457 ,    2, '-3.46s'  ], // round up
+			// minute
+			'(  123.45,    0 )'      => [  123.45,    0,  '2m 3s'     ],
+			'(  123.45,    2 )'      => [  123.45,    2,  '2m 3.45s'  ],
+			'( -123.45,    2 )'      => [ -123.45,    2, '-2m 3.45s'  ],
+			'( -123.45,    3 )'      => [ -123.45,    3, '-2m 3.450s' ],
+			'( -123.45, null )'      => [ -123.45, null, '-2m 3.450s' ], // def. 3
+			// hour
+			'( 3600   , 0 )'         => [ 3600   ,    0,  '1h'       ],
+			'( 3601   , 1 )'         => [ 3601   ,    1,  '1h 1.0s'  ],
+			'( 3601.51, 2 )'         => [ 3601.51,    2,  '1h 1.51s' ],
+			// day
+			'( 86400   ,    0 )'     => [ 86400   ,    0,  '1d'              ],
+			'( 86401   ,    1 )'     => [ 86401   ,    1,  '1d 1.0s'         ],
+			'( 86401   ,    2 )'     => [ 86401   ,    2,  '1d 1.00s'        ],
+			'( 88560   ,    2 )'     => [ 88560   ,    2,  '1d 36m'          ],
+			'( 88564   ,    2 )'     => [ 88564   ,    2,  '1d 36m 4.00s'    ],
+			'( 93784   ,    0 )'     => [ 93784   ,    0,  '1d 2h 3m 4s'     ],
+			'( 93784   , null )'     => [ 93784   , null,  '1d 2h 3m 4.000s' ],  // def. 3
+			'( 86402.34, null )'     => [ 86402.34, null,  '1d 2.340s'       ],  // def. 3
+		];
+		/* @formatter:on */
+	}
+
+	public function toBytesProvider()
 	{
 		/* @formatter:off */
 		return [
@@ -45,15 +86,37 @@ class UtilsTest extends TestCase
 		/* @formatter:on */
 	}
 
+	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests:
+	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	/**
-	 * Convert size string to bytes
-	 * @dataProvider sizeStringProvider
+	 * Convert size string to bytes.
+	 *
+	 * @dataProvider formatTimeProvider
 	 * @group single
 	 */
-	public function testConvertToBytes( $str, $expected )
+	public function testFormatTime( $seconds, $precision, $expect )
+	{
+		if ( null === $precision ) {
+			$actual = Utils::formatTime( $seconds );
+		}
+		else {
+			$actual = Utils::formatTime( $seconds, $precision );
+		}
+
+		$this->assertSame( $expect, $actual );
+	}
+
+	/**
+	 * Convert size string to bytes.
+	 *
+	 * @dataProvider toBytesProvider
+	 */
+	public function testToBytes( $str, $expect )
 	{
 		$actual = Utils::toBytes( $str );
-		$this->assertSame( $expected, $actual );
+		$this->assertSame( $expect, $actual );
 	}
 
 	/**
