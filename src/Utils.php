@@ -137,7 +137,7 @@ class Utils
 	}
 
 	/**
-	 * Fancy array print
+	 * Fancy array print.
 	 *
 	 * @param bool  $simple Remove objects?
 	 * @param array $keys   Keys replacements
@@ -166,7 +166,8 @@ class Utils
 		}
 
 		$str = print_r( $array, true );
-		$str = preg_replace( '/[ ]{2,}/', '', $str ); // remove double spacess
+		$str = str_replace( [ "\r", "\n" ], ' ', $str ); // remove line breaks
+		$str = preg_replace( '/[ ]{2,}/', ' ', $str ); // remove double spacess
 
 		return $str;
 	}
