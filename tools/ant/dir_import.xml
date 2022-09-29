@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<!--
+	1. Delete all files and subdirectories from [TargetDir]
+	2. Copy all files and subdirectories from [SourceDir]
+	
+	!!! except default excludes !!!
+-->
 <project name="dir_import" default="main" basedir=".">
 
 	<target name="main">
@@ -28,13 +34,13 @@
 			</condition>
 		</fail>
 
+		<!--
+			Delete all files and subdirectories from [TargetDir]
+			except:
+				- [TargetDir] itself
+				- default excludes, https://ant.apache.org/manual/dirtasks.html#defaultexcludes
+		-->
 		<delete includeEmptyDirs="true" verbose="false">
-			<!--
-				Delete all files and subdirectories from [TargetDir]
-				except:
-					- [TargetDir] itself
-					- default excludes, https://ant.apache.org/manual/dirtasks.html#defaultexcludes
-			-->
 			<fileset dir="${TargetDir}" defaultExcludes="true">
 				<include name="**/*" />
 			</fileset>
@@ -42,19 +48,18 @@
 
 		<!-- <defaultexcludes remove="**/.gitkeep"/> -->
 
+		<!--
+			Copy all files and subdirectories from [SourceDir]
+			except:
+				- default excludes
+				- custom excludes
+		-->
 		<copy toDir="${TargetDir}" includeEmptyDirs="true" preserveLastModified="true" verbose="false">
 			<fileset dir="${SourceDir}" includes="${Includes}" excludes="${Excludes}" defaultExcludes="true">
-			<!--
-				Copy all files and subdirectories from [SourceDir]
-				except:
-					- default excludes
-					- custom excludes
-			-->
 				<exclude name="**/*.bak"/>
 				<exclude name="**/*.cache"/>
 				<exclude name="**/_cache/**"/>
 				<exclude name="**/_coverage/**"/>
-
 			</fileset>
 		</copy>
 

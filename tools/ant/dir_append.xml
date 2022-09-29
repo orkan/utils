@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-	1. Delete all files and subdirectories from [TargetDir]
-	2. Copy all files and subdirectories from [SourceDir]
+	1. Copy all files and subdirectories from [SourceDir]
 -->
-<project name="dir_copy" default="main" basedir=".">
+<project name="dir_append" default="main" basedir=".">
 
 	<target name="main">
 		
-		<echo>Copy [SourceDir] to [TargetDir] (ignore defaultExcludes)</echo>
+		<echo>Append items from [SourceDir] to [TargetDir]</echo>
 		<echo>SourceDir: ${SourceDir}</echo>
 		<echo>TargetDir: ${TargetDir}</echo>
 		<echo>Excludes : ${Excludes}</echo>
@@ -32,12 +31,8 @@
 			</condition>
 		</fail>
 
-		<delete includeEmptyDirs="true" verbose="false">
-			<fileset dir="${TargetDir}" includes="**/*" defaultExcludes="false"/>
-		</delete>
-
-		<copy toDir="${TargetDir}" preserveLastModified="true" verbose="false">
-			<fileset dir="${SourceDir}" includes="${Includes}" excludes="${Excludes}" defaultExcludes="false"/>
+		<copy toDir="${TargetDir}" preserveLastModified="true" overwrite="true" force="true" verbose="false">
+			<fileset dir="${SourceDir}" includes="${Includes}" excludes="${Excludes}"/>
 		</copy>
 
 	</target>
