@@ -10,14 +10,8 @@ set EXCLUDES=%~5
 set INCLUDES=%~6
 
 REM Confirm: -------------------------------------------
-if "%CONTINUE%" NEQ "" (
-	set /p ANSWER=%CONTINUE% [y/N]:
-)
-if "%CONTINUE%" NEQ "" (
-	if "%ANSWER%" NEQ "y" (
-		goto :end
-	)
-)
+if "%CONTINUE%" NEQ "" set /p ANSWER=%CONTINUE% [y/N]:
+if "%CONTINUE%" NEQ "" if "%ANSWER%" NEQ "y" goto :end
 
 REM Command: -------------------------------------------
 set COMMAND=ant -DSourceDir="%SOURCE%" -DTargetDir="%TARGET%" -DExcludes="%EXCLUDES%" -DIncludes="%INCLUDES%" -f "%~dpn0.xml"
