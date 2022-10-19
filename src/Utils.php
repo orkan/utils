@@ -24,10 +24,16 @@ class Utils
 
 	/**
 	 * Default global properties.
-	 * @see \Orkan\Utils::setup()
+	 * @see Utils::setup()
 	 */
 	protected static $timeZone = 'UTC';
 	protected static $dateFormat = 'Y-m-d H:i:s';
+
+	/**
+	 * ErrorException code
+	 * @see Utils::errorHandler()
+	 */
+	protected static $errorExceptionCode = 0;
 
 	/**
 	 * Configure static properties.
@@ -39,6 +45,35 @@ class Utils
 				static::$$property = $value;
 			}
 		}
+	}
+
+	/**
+	 * Turn PHP error message into ErrorException.
+	 *
+	 * NOTE:
+	 * In case of error it will self-restore previous error handler!
+	 *
+	 * Use case:
+	 * set_error_handler( [ Utils:class, 'errorHandler' ] );
+	 * ... risky code ...
+	 * restore_error_handler(); // no errors, so restore handler manually or keep?!?
+	 *
+	 * @link https://www.php.net/manual/en/class.errorexception.php
+	 * @link https://www.php.net/manual/en/language.exceptions.php
+	 * @link https://stackoverflow.com/questions/1241728/can-i-try-catch-a-warning
+	 */
+	public static function errorHandler( $severity, $message, $filename, $lineno )
+	{
+		/**
+		 * This error code is not included in error_reporting
+		 * or error was suppressed with the @-operator
+		 */
+		if ( !( error_reporting() & $severity ) ) {
+			return;
+		}
+
+		restore_error_handler();
+		throw new \ErrorException( $message, static::$errorExceptionCode, $severity, $filename, $lineno );
 	}
 
 	/**
