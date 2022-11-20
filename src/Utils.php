@@ -317,7 +317,7 @@ class Utils
 	 *
 	 * @param string $path Relative path
 	 * @param string $base Base dir for $path
-	 * @return string|bool Realpath or false if not found
+	 * @return string|bool Absolute or false if not found
 	 */
 	public static function pathToAbs( string $path, string $base )
 	{
@@ -325,7 +325,28 @@ class Utils
 		chdir( $base );
 		$result = realpath( $path );
 		chdir( $old );
+
 		return $result;
+	}
+
+	/**
+	 * Convert absolute path to relative from root.
+	 *
+	 * @param string $path Absolute path
+	 * @param string $root Root path to remove
+	 * @return string      Relative path
+	 */
+	public static function pathToRel( string $path, string $root ): string
+	{
+		$path = str_replace( '\\', '/', $path );
+		$root = str_replace( '\\', '/', $root );
+
+		$rel = $path;
+		if ( 0 === strpos( $rel, $root ) ) {
+			$rel = substr( $rel, strlen( $root ) );
+		}
+
+		return $rel;
 	}
 
 	/**
