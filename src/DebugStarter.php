@@ -4,11 +4,13 @@
  * Copyright (c) 2020-@Year@ Orkan <orkans+utilssrc@gmail.com>
  */
 
- /**
+/**
  * Eclipse Debug Starter.
  *
  * @author Orkan <orkans+utilssrc@gmail.com>
  */
+namespace Orkan;
+
 class DebugStarter
 {
 	const APP_NAME = 'Eclipse DEBUG starter';
@@ -31,6 +33,7 @@ class DebugStarter
 		return sprintf(
 			"\n%1\$s" .
 			"\n%2\$s - %3\$s" .
+			"\nLoaded: %5\$s (<a href=\"%6\$s\">refresh</a>)" .
 			"\n\nUsage:\n" .
 			"\t%4\$s[?switch=1&switch=1&etc=...]\n" .
 			"Switches:\n" .
@@ -43,6 +46,8 @@ class DebugStarter
 			/*2*/ self::APP_NAME,
 			/*3*/ self::APP_DESC,
 			/*4*/ self::getUrl(),
+			/*5*/ Utils::formatDate(),
+			/*6*/ $_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING'],
 		);
 		/* @formatter:on */
 	}
@@ -58,14 +63,16 @@ class DebugStarter
 		/* @formatter:on */
 	}
 
-	public static function run()
+	public static function run( $timeZone = 'UTC', $dateFormat = DATE_RFC822 )
 	{
-		echo '<pre>';
-		echo DebugStarter::getHelp();
+		Utils::setup( [ 'timeZone' => $timeZone, 'dateFormat' => $dateFormat ] );
 
 		$switches = [];
 		parse_str( $_SERVER['QUERY_STRING'], $switches );
-		$logMsg = sprintf( "[%s] [%s] Log cleared by: %s\n", date( 'd-M-Y H:i:s T' ), DebugStarter::APP_NAME, DebugStarter::getUrl() );
+		$logMsg = sprintf( "[%s] [%s] Log cleared by: %s\n", date( 'Y-m-d H:i:s' ), DebugStarter::APP_NAME, DebugStarter::getUrl() );
+
+		echo '<pre>';
+		echo DebugStarter::getHelp();
 
 		if ( $switches['clearlog_sapi'] ?? false) {
 			echo 'Clear Apache error log: ';
