@@ -792,7 +792,7 @@ class Utils
 		$input = $_input ?: readline();
 
 		if ( $quit && 'Q' === strtoupper( $input ) ) {
-			exit( 'User exit. Bye!' );
+			exit( "User exit. Bye!\n" );
 		}
 
 		return $input;
