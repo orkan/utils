@@ -15,12 +15,12 @@ class Utils
 	/**
 	 * Time constants
 	 */
-	const MINUTE_IN_SECONDS = 60;
-	const HOUR_IN_SECONDS = 3600;
-	const DAY_IN_SECONDS = 86400;
-	const WEEK_IN_SECONDS = 604800;
-	const MONTH_IN_SECONDS = 2678400;
-	const YEAR_IN_SECONDS = 31536000;
+	const MINUTE = 60;
+	const HOUR = 3600;
+	const DAY = 86400;
+	const WEEK = 604800;
+	const MONTH = 2678400;
+	const YEAR = 31536000;
 
 	/**
 	 * Default global properties.
@@ -131,17 +131,17 @@ class Utils
 		$s = (int) $seconds; // get natural part
 		$u = $seconds - $s; // get fraction part
 
-		if ( $s >= self::DAY_IN_SECONDS ) {
-			$d = floor( $s / self::DAY_IN_SECONDS );
-			$s = floor( $s % self::DAY_IN_SECONDS );
+		if ( $s >= self::DAY ) {
+			$d = floor( $s / self::DAY );
+			$s = floor( $s % self::DAY );
 		}
-		if ( $s >= self::HOUR_IN_SECONDS ) {
-			$h = floor( $s / self::HOUR_IN_SECONDS );
-			$s = floor( $s % self::HOUR_IN_SECONDS );
+		if ( $s >= self::HOUR ) {
+			$h = floor( $s / self::HOUR );
+			$s = floor( $s % self::HOUR );
 		}
-		if ( $s >= self::MINUTE_IN_SECONDS ) {
-			$m = floor( $s / self::MINUTE_IN_SECONDS );
-			$s = floor( $s % self::MINUTE_IN_SECONDS );
+		if ( $s >= self::MINUTE ) {
+			$m = floor( $s / self::MINUTE );
+			$s = floor( $s % self::MINUTE );
 		}
 
 		$s = sprintf( "%.{$precision}f", $s + $u );
