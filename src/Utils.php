@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-@Year@ Orkan <orkans+utilssrc@gmail.com>
+ * Copyright (c) 2020-2022 Orkan <orkans+utilssrc@gmail.com>
  */
 namespace Orkan;
 
@@ -205,6 +205,20 @@ class Utils
 		$str = preg_replace( '/[ ]{2,}/', ' ', $str ); // remove double spacess
 
 		return $str;
+	}
+
+	/**
+	 * Append new lines to string
+	 */
+	public static function writeln( string $text, int $addLines = 0, bool $echo = true ): string
+	{
+		if ( $text ) {
+			$text .= str_repeat( "\n", $addLines );
+		}
+
+		$echo && print ( $text ) ;
+
+		return $text;
 	}
 
 	/**

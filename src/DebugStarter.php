@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-@Year@ Orkan <orkans+utilssrc@gmail.com>
+ * Copyright (c) 2020-2022 Orkan <orkans+utilssrc@gmail.com>
  */
 
 /**
