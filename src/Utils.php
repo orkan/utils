@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2022 Orkan <orkans+utilssrc@gmail.com>
+ * Copyright (c) 2020-2022 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
@@ -54,7 +54,7 @@ class Utils
 	 * In case of error it will self-restore previous error handler!
 	 *
 	 * Use case:
-	 * set_error_handler( [ Utils:class, 'errorHandler' ] );
+	 * set_error_handler( [ Utils::class, 'errorHandler' ] );
 	 * ... risky code ...
 	 * restore_error_handler(); // no errors, so restore handler manually or keep?!?
 	 *

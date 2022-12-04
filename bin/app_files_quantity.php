@@ -31,10 +31,10 @@ $App = new App( $Factory );
  */
 if ( null === $cfgFile = $Factory->argGet( 'user-config' ) ) {
 	echo $App->getHelp();
-	throw new InvalidArgumentException( sprintf( 'Use --user-config <config.php> to load user settings.' ) );
+	throw new InvalidArgumentException( 'Use --user-config <config.php> to load user settings.' );
 }
 elseif ( !is_file( $cfgFile ) ) {
-	throw new InvalidArgumentException( sprintf( 'Config file not found: ' . $cfgFile ) );
+	throw new InvalidArgumentException( 'Config file not found: ' . $cfgFile );
 }
 
 $Factory->merge( require $cfgFile, true );
@@ -43,7 +43,7 @@ $Utils = $Factory->Utils();
 $Logger = $Factory->Logger();
 
 // Clear log
-RESET && file_put_contents( $Logger->getFilename(), '' );
+getenv( 'APP_RESET' ) && file_put_contents( $Logger->getFilename(), '' );
 $Logger->info( sprintf( "================[%s]================", $title = $Factory->get( 'app_title' ) ) );
 cli_set_process_title( $title );
 
@@ -174,7 +174,8 @@ if ( $countFilesSkip ) {
 	));
 	/* @formatter:on */
 	foreach ( $filesSkip as $k => $file ) {
-		$Logger->debug( sprintf( '%d. %s', $k + 1, $file ) );
+		$size = filesize( $dirSrc . '/' . $file );
+		$Logger->debug( sprintf( '%1$d. %2$s (%3$s)', $k + 1, $file, $Utils->formatBytes( $size ) ) );
 	}
 }
 

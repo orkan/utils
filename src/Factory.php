@@ -1,14 +1,14 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2022 Orkan <orkans+utilssrc@gmail.com>
+ * Copyright (c) 2020-2022 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
 /**
  * App Factory.
  *
- * @author Orkan <orkans+utilssrc@gmail.com>
+ * @author Orkan <orkans+utils@gmail.com>
  */
 class Factory
 {
@@ -128,35 +128,22 @@ class Factory
 	/**
 	 * Merge config array.
 	 *
-	 * @param array   $options Low priority config - will NOT replace self::cfg
-	 * @param boolean $force   Hight priority config - will replace self::cfg
-	 * @return self
-	 */
-	public function merge( array $options, bool $force = false ): self
-	{
-		$this->cfg = $force ? array_merge( $this->cfg, $options ) : array_merge( $options, $this->cfg );
-		return $this;
-	}
-
-	/**
-	 * Merge multi dimensional config array.
-	 *
-	 * Example:
+	 * ---------------------------------------
+	 * Multi-dimensional config array example:
 	 * $this->cfg = Array ( 'moduleA' => [ 'opt1' => 1, 'opt2' => 2 ], 'moduleB' => [ 'opt1' => 1 ] )
-	 * $options   = Array ( 'moduleA' => [ 'opt3' => 3 ] )
+	 * $defaults  = Array ( 'moduleA' => [ 'opt3' => 3 ] )
 	 * $result    = Array ( 'moduleA' => [ 'opt1' => 1, 'opt2' => 2, 'opt3' => 3 ], 'moduleB' => [ 'opt1' => 1 ] )
 	 *
-	 * Note:
-	 * To clear an array of options use [''] instead of [] !
+	 * Note: To clear [moduleA] use [''] instead of [], ie. merge( [ 'moduleA' => [''] ] )
+	 * ---------------------------------------
 	 *
-	 * @param array   $options Low priority config - will NOT replace self::cfg
-	 * @param boolean $force   Hight priority config - will replace self::cfg
+	 * @param array   $defaults Low priority config - will NOT replace $this->cfg
+	 * @param boolean $force    Hight priority config - will replace $this->cfg
 	 * @return self
 	 */
-	public function mergeOptions( array $options, bool $force = false ): self
+	public function merge( array $defaults, bool $force = false ): self
 	{
-		// Just a shorthand for standard PHP function...
-		$this->cfg = $force ? array_replace_recursive( $this->cfg, $options ) : array_replace_recursive( $options, $this->cfg );
+		$this->cfg = $force ? array_replace_recursive( $this->cfg, $defaults ) : array_replace_recursive( $defaults, $this->cfg );
 		return $this;
 	}
 

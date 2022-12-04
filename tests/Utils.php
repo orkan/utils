@@ -1,9 +1,17 @@
 <?php
-
+/*
+ * This file is part of the orkan/utils package.
+ * Copyright (c) 2020-2022 Orkan <orkans+utils@gmail.com>
+ */
 namespace Orkan\Tests;
 
 use ReflectionClass;
 
+/**
+ * Test case helper functions.
+ *
+ * @author Orkan <orkans@gmail.com>
+ */
 class Utils
 {
 

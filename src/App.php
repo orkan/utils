@@ -1,20 +1,20 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2022 Orkan <orkans+utilssrc@gmail.com>
+ * Copyright (c) 2020-2022 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
 /**
  * Console app.
  *
- * @author Orkan <orkans+utilssrc@gmail.com>
+ * @author Orkan <orkans+utils@gmail.com>
  */
 class App
 {
 	const APP_NAME = 'CLI App Framework by Orkan';
-	const APP_VERSION = 'v1.8.5';
-	const APP_DATE = 'Fri, 02 Dec 2022 21:47:15 +01:00';
+	const APP_VERSION = 'v1.8.6';
+	const APP_DATE = 'Sun, 04 Dec 2022 17:59:47 +01:00';
 
 	/* @formatter:off */
 
@@ -66,9 +66,8 @@ class App
 	public function __construct( Factory $Factory )
 	{
 		!defined( 'DEBUG' ) && define( 'DEBUG', getenv( 'APP_DEBUG' ) );
-		!defined( 'RESET' ) && define( 'RESET', getenv( 'APP_RESET' ) );
 
-		$this->Factory = $Factory->mergeOptions( $this->defaults() );
+		$this->Factory = $Factory->merge( $this->defaults() );
 		$this->Utils = $this->Factory->Utils();
 	}
 
@@ -119,10 +118,13 @@ class App
 	 */
 	public function run()
 	{
-		/*
+		/**
 		 * -------------------------------------------------------------------------------------------------------------
 		 * Exceptions
+		 * @see Utils::errorHandler()
 		 */
+		set_error_handler( [ get_class( $this->Utils ), 'errorHandler' ] );
+
 		set_exception_handler( function ( \Throwable $E ) {
 
 			// Print all saved history logs

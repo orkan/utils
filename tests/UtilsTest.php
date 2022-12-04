@@ -1,14 +1,14 @@
 <?php
 /*
- * This file is part of the orkan/tvguide package.
- *
- * Copyright (c) 2020 Orkan <orkans@gmail.com>
+ * This file is part of the orkan/utils package.
+ * Copyright (c) 2020-2022 Orkan <orkans+utils@gmail.com>
  */
-use Orkan\Utils;
+namespace Orkan;
+
 use PHPUnit\Framework\TestCase;
 
 /**
- * Importers test suite
+ * Test Utils.
  *
  * @author Orkan <orkans@gmail.com>
  */
@@ -94,7 +94,6 @@ class UtilsTest extends TestCase
 	 * Convert size string to bytes.
 	 *
 	 * @dataProvider formatTimeProvider
-	 * @group single
 	 */
 	public function testFormatTime( $seconds, $precision, $expect )
 	{
