@@ -741,16 +741,19 @@ class Utils
 	}
 
 	/**
-	 * Render Progress bar
+	 * Render Progress bar.
 	 *
-	 * @param number $current
-	 * @param number $total
-	 * @param number $size
-	 * @param string $cchar
-	 * @param string $tchar
-	 * @return array [ 'bar' => |||-------, 'cent' => 36 ]
+	 * @param number $current  Current item
+	 * @param number $total    Total items
+	 * @param number $size     Bar length
+	 * @param string $cCurrent Proggres char
+	 * @param string $cFill    Fill char
+	 * @return Array (
+	 *  [bar]  => |||-------
+	 *  [cent] => 36
+	 * )
 	 */
-	public static function progressBar( int $current, int $total, int $size = 20, string $cchar = '|', string $tchar = '-' ): array
+	public static function progressBar( int $current, int $total, int $size = 20, string $cCurrent = '|', string $cFill = '-' ): array
 	{
 		$current = min( $current, $total );
 		$progres = round( ( 100 / $total ) * $current );
@@ -758,8 +761,8 @@ class Utils
 		$_total = $size;
 		$_current = round( ( $size * $current ) / $total );
 
-		$bar = str_repeat( $cchar, $_current );
-		$bar .= str_repeat( $tchar, $_total - $_current );
+		$bar = str_repeat( $cCurrent, $_current );
+		$bar .= str_repeat( $cFill, $_total - $_current );
 
 		return [ 'bar' => $bar, 'cent' => $progres ];
 	}

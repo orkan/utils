@@ -13,8 +13,8 @@ namespace Orkan;
 class App
 {
 	const APP_NAME = 'CLI App Framework by Orkan';
-	const APP_VERSION = 'v1.8.6';
-	const APP_DATE = 'Sun, 04 Dec 2022 17:59:47 +01:00';
+	const APP_VERSION = 'v1.8.7';
+	const APP_DATE = 'Mon, 05 Dec 2022 21:13:27 +01:00';
 
 	/* @formatter:off */
 
@@ -78,8 +78,9 @@ class App
 	{
 		/* @formatter:off */
 		return [
-			'app_args'  => self::ARGUMENTS,
+			'app_args'  => static::ARGUMENTS,
 			'app_usage' => 'app.php [options]',
+			'cli_title' => static::APP_NAME,
 		];
 		/* @formatter:on */
 	}
@@ -111,6 +112,18 @@ class App
 	public function getVersion(): string
 	{
 		return sprintf( '%s %s (%s)', static::APP_NAME, static::APP_VERSION, static::APP_DATE );
+	}
+
+
+	/**
+	 * Set cli window title.
+	 *
+	 * @param string $title String to append
+	 */
+	public function setCliTitle( string $title = '' ): void
+	{
+		$text = $title ? " $title" : '';
+		cli_set_process_title( sprintf( '%s %s', $this->Factory->get( 'cli_title' ), $text ) );
 	}
 
 	/**
@@ -156,6 +169,9 @@ class App
 
 			exit( $E->getCode() ?: 1 );
 		} );
+
+		// Set CLI window title
+		$this->setCliTitle();
 
 		/*
 		 * -------------------------------------------------------------------------------------------------------------

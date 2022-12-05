@@ -153,7 +153,8 @@ class Factory
 	public function getHistoryLogs(): array
 	{
 		$out = [];
-		foreach ( $this->Logger()->getHistory() as $log ) {
+
+		foreach ( $this->Logger()->getHistory() ?: [] as $log ) {
 			$out[] = sprintf( '%s: %s', Logger::getLevelName( $log['level'] ), $log['message'] );
 		}
 
@@ -200,13 +201,26 @@ class Factory
 }
 
 /**
- * Noop Logger class if logging is disabled.
+ * Dummy Logger.
  */
 class LoggerNoop
 {
+	/* @formatter:off */
+	const DEBUG     = Logger::DEBUG;
+	const INFO      = Logger::INFO;
+	const NOTICE    = Logger::NOTICE;
+	const WARNING   = Logger::WARNING;
+	const ERROR     = Logger::ERROR;
+	const CRITICAL  = Logger::CRITICAL;
+	const ALERT     = Logger::ALERT;
+	const EMERGENCY = Logger::EMERGENCY;
+	/* @formatter:on */
 
+	/**
+	 * Do nothing if if logging is disabled.
+	 */
 	public function __call( $name, $arguments )
 	{
-		// Do nothing...
+		return;
 	}
 }
