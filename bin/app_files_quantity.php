@@ -1,20 +1,19 @@
 <?php
-use Orkan\App;
+use Orkan\Application;
 use Orkan\Factory;
-use Orkan\Logger;
 
 require dirname( __DIR__, 3 ) . '/autoload.php';
 
 /* @formatter:off */
 $Factory = new Factory([
-	'app_title'     => 'Copy random files [src_dir] => [out_dir] with quantity limit and priority',
-	'app_usage'     => sprintf( '%s --user-config="user-config.php" [options]', basename( __FILE__ ) ),
-	'app_args'      => [
-		'user-config' => [ 'short' => 'u:', 'long' => 'user-config::', 'desc' => 'Load additional config from file' ],
+	'cli_title'   => 'Copy random files [src_dir] => [out_dir] with quantity limit and priority',
+	'app_usage'   => sprintf( '%s --user-config="user-config.php" [options]', basename( __FILE__ ) ),
+	'app_args'    => [
+		'user-config' => [ 'short' => 'u:', 'long' => 'user-config:', 'desc' => 'Load additional config from file' ],
 	],
-	'log_file'      => sprintf( '%s/%s.log', __DIR__, basename( __FILE__ , '.php' ) ),
-	'log_level'     => Logger::DEBUG,
-	'log_verbosity' => Logger::INFO,
+	'log_file'    => sprintf( '%s/%s.log', __DIR__, basename( __FILE__ , '.php' ) ),
+	'log_level'   => \Orkan\Logger::DEBUG,
+	'log_verbose' => \Orkan\Logger::INFO,
 	// Module
 	'file_types'         => [ 'jpg', 'gif' ],
 	'file_priority_mask' => '^_.*',
@@ -23,13 +22,13 @@ $Factory = new Factory([
 ]);
 /* @formatter:on */
 
-$App = new App( $Factory );
+$App = new Application( $Factory );
 
 /*
  * ---------------------------------------------------------------------------------------------------------------------
  * Start App with user config
  */
-if ( null === $cfgFile = $Factory->argGet( 'user-config' ) ) {
+if ( null === $cfgFile = $App->getArg( 'user-config' ) ) {
 	echo $App->getHelp();
 	throw new InvalidArgumentException( 'Use --user-config <config.php> to load user settings.' );
 }
@@ -44,8 +43,7 @@ $Logger = $Factory->Logger();
 
 // Clear log
 getenv( 'APP_RESET' ) && file_put_contents( $Logger->getFilename(), '' );
-$Logger->info( sprintf( "================[%s]================", $title = $Factory->get( 'app_title' ) ) );
-cli_set_process_title( $title );
+$Logger->info( sprintf( "================[%s]================", $Factory->get( 'app_title' ) ) );
 
 /*
  * ---------------------------------------------------------------------------------------------------------------------
@@ -188,7 +186,7 @@ DEBUG && print ( '$filesOut: ' . print_r( $filesOut, true ) ) ;
 $Logger->notice( sprintf( 'Ready to copy files to "%s"', $dirOut ) );
 $Utils->prompt( 'Erase destination dir? Press any key to continue...' );
 
-if ( !$isDryRun = null !== $Factory->argGet( 'dry-run' ) ) {
+if ( !$isDryRun = null !== $App->getArg( 'dry-run' ) ) {
 	$Logger->debug( sprintf( 'Erase cfg[dir_out]: "%s"', $dirOut ) );
 	$Utils->clearDirectory( $dirOut );
 	$dirSrc = realpath( $dirSrc );
@@ -208,7 +206,7 @@ foreach ( $filesOut as $k => $file ) {
 	 ));
 	/* @formatter:on */
 
-	cli_set_process_title( $title );
+	$App->setCliTitle( $title );
 	!$isDryRun && copy( $src, $dst );
 }
 

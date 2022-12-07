@@ -8,9 +8,9 @@ namespace Orkan;
 use Monolog\Logger as Monolog;
 
 /**
- * Logging class.
+ * Factory Logger.
  *
- * @author Orkan <orkans+tlcsrc@gmail.com>
+ * @author Orkan <orkans+utils@gmail.com>
  */
 class Logger
 {
@@ -26,28 +26,24 @@ class Logger
 	/* @formatter:on */
 
 	/**
-	 * Cache results of Monolog::isHandling($level)
-	 *
-	 * @var array
+	 * Cache results of Monolog::isHandling($level).
 	 */
 	private $handling = [];
 
 	/**
-	 * Cached log records
-	 *
-	 * @var array
+	 * Cached log records from cfg[log_history].
 	 */
 	private $history = [];
 
 	/**
-	 * Logger instance
+	 * Monolog instance.
 	 *
 	 * @var \Monolog\Logger
 	 */
 	private $Logger;
 
 	/**
-	 * Logger handler instance
+	 * Handler instance.
 	 *
 	 * @var \Monolog\Handler\RotatingFileHandler
 	 */
@@ -58,7 +54,10 @@ class Logger
 	 */
 	protected $Factory;
 
-	public function __construct( Factory $Factory )
+	/**
+	 * Build Factory Logger.
+	 */
+	public function __construct( FactoryInterface $Factory )
 	{
 		$this->Factory = $Factory->merge( $this->defaults() );
 
@@ -80,32 +79,30 @@ class Logger
 	}
 
 	/**
-	 * Get default config.
-	 *
-	 * [log_format]
-	 * Default: [%datetime%] %channel%.%level_name%: %message% %context% %extra%\n
-	 *
-	 * [log_datetime]
-	 * Default: Y-m-d\TH:i:s.uP
-	 *
-	 * [log_keep]
-	 * @see \Monolog\Handler\RotatingFileHandler::__construct( $maxFiles )
-	 *
-	 * [log_history]
-	 * Min. log level to save in history. 0 == OFF
-	 * Array (
-	 *   Array ( [level] => self::DEBUG, [message] => 'message 1' ] ),
-	 *   Array ( [level] => self::ERROR, [message] => 'message 2' ] ),
-	 * )
-	 *
-	 * [log_verbosity]
-	 * Min. log level to echo. 0 == OFF
-	 *
-	 * @return array Default config
+	 * Get defaults.
 	 */
-	private function defaults()
+	protected function defaults()
 	{
-		/* @formatter:off */
+		/**
+		 * [log_format]
+		 * Default: [%datetime%] %channel%.%level_name%: %message% %context% %extra%\n
+		 *
+		 * [log_datetime]
+		 * Default: Y-m-d\TH:i:s.uP
+		 *
+		 * [log_keep]
+		 * @see \Monolog\Handler\RotatingFileHandler::__construct( $maxFiles )
+		 *
+		 * [log_history]
+		 * Min. log level to save in history. 0 == OFF
+		 * Array (
+		 *   Array ( [level] => self::DEBUG, [message] => 'message 1' ] ),
+		 *   Array ( [level] => self::ERROR, [message] => 'message 2' ] ),
+		 * )
+		 *
+		 * [log_verbose]
+		 * Min. log level to echo. 0 == OFF
+		 * @formatter:off */
 		return [
 			'log_channel'   => __CLASS__,
 			'log_timezone'  => date_default_timezone_get(),
@@ -114,13 +111,13 @@ class Logger
 			'log_keep'      => 5,
 			'log_level'     => self::INFO,
 			'log_history'   => 0,
-			'log_verbosity' => 0,
+			'log_verbose'   => 0,
 		];
 		/* @formatter:on */
 	}
 
 	/**
-	 * Check if given level is currently handled
+	 * Check if given level is currently handled.
 	 *
 	 * @param mixed $level Level name ie. 'debug' or Level constant ie. Logger::DEBUG
 	 */
@@ -198,7 +195,7 @@ class Logger
 		}
 
 		// Echo?
-		if ( $this->Factory->cfg( 'log_verbosity' ) && $this->Factory->cfg( 'log_verbosity' ) <= $level ) {
+		if ( $this->Factory->cfg( 'log_verbose' ) && $this->Factory->cfg( 'log_verbose' ) <= $level ) {
 			!defined( 'TESTING' ) && printf( "%s\n", $message );
 		}
 

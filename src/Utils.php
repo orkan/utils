@@ -210,7 +210,7 @@ class Utils
 	/**
 	 * Append new lines to string
 	 */
-	public static function writeln( string $text, int $addLines = 0, bool $echo = true ): string
+	public static function writeln( string $text, int $addLines = 1, bool $echo = true ): string
 	{
 		if ( $text ) {
 			$text .= str_repeat( "\n", $addLines );

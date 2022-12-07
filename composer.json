@@ -10,7 +10,7 @@
 		{
 			"name": "Orkan",
 			"role": "Lead",
-			"email": "orkans+utilsproject@gmail.com"
+			"email": "orkans+utils@gmail.com"
 		}
 	],
 	"config": {
@@ -34,8 +34,8 @@
 	},
 	"extra": {
 		"branch-alias": {
-			"dev-master": "1.8.x-dev",
-			"dev-develop": "1.8.x-dev"
+			"dev-master": "2.0.x-dev",
+			"dev-develop": "2.0.x-dev"
 		}
 	}
 }
