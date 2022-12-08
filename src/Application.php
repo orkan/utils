@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = 'v2.1.0';
-	const APP_DATE = 'Thu, 08 Dec 2022 01:03:21 +01:00';
+	const APP_VERSION = 'v2.2.0';
+	const APP_DATE = 'Thu, 08 Dec 2022 22:20:03 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -57,11 +57,11 @@ class Application
 		//'name' => (bool) verify?
 	];
 
-	/**
-	 * Verbosity levels.
+	/*
+	 * Translate Verbosity levels from cmd line.
 	 */
 	const VERBOSITY_QUIET        = -1; // -q, --quite
-	const VERBOSITY_NORMAL       =  0; // none, --verbose=0
+	const VERBOSITY_NORMAL       =  0; // default
 	const VERBOSITY_VERBOSE      =  1; // -v,   --verbose=1
 	const VERBOSITY_VERY_VERBOSE =  2; // -vv,  --verbose=2
 	const VERBOSITY_DEBUG        =  3; // -vvv, --verbose=3
@@ -72,11 +72,11 @@ class Application
 	 * @see Application::setVerbosity()
 	 */
 	const VERBOSITY = [
-		self::VERBOSITY_QUIET        => Logger::ERROR,
+		self::VERBOSITY_QUIET        => Logger::ERROR,  // 400
 		self::VERBOSITY_NORMAL       => Logger::NOTICE,
 		self::VERBOSITY_VERBOSE      => Logger::INFO,
 		self::VERBOSITY_VERY_VERBOSE => Logger::DEBUG,
-		self::VERBOSITY_DEBUG        => Logger::DEBUG,
+		self::VERBOSITY_DEBUG        => Logger::DEBUG,  // 100
 	];
 
 	/* @formatter:on */
@@ -149,7 +149,7 @@ class Application
 	public function setVerbosity( array $map = [] )
 	{
 		$map = $map ?: static::VERBOSITY;
-		$level = null === $this->getArg( 'quiet' ) ? min( max( 0, $this->getArg( 'verbose' ) ), 3 ) : static::VERBOSITY_QUIET;
+		$level = null !== $this->getArg( 'quiet' ) ? static::VERBOSITY_QUIET : min( max( 0, $this->getArg( 'verbose' ) ), 3 );
 		$this->Factory->cfg( 'log_verbose', $map[$level] );
 	}
 
@@ -383,8 +383,8 @@ class Application
 			 *
 			 * @link https://symfony.com/doc/current/console/verbosity.html
 			 */
-			$this->Factory->cfg( 'log_verbose', 0 );
-			$this->Factory->Logger()->error( $E );
+			$this->Factory->cfg( 'log_verbose', $this->Logger::NONE );
+			$this->Logger->error( $E );
 
 			if ( DEBUG ) {
 				print $E;
@@ -406,6 +406,7 @@ class Application
 
 		$this->Logger = $this->Factory->Logger();
 		$this->setCliTitle();
+		$this->setVerbosity();
 		$this->checkExtensions();
 
 		/*

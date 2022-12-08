@@ -15,6 +15,15 @@ use Monolog\Logger as Monolog;
 class Logger
 {
 	/* @formatter:off */
+
+	/**
+	 * Special level to disable logging features.
+	 */
+	const NONE = 0;
+
+	/*
+	 * Map Monolog levels.
+	 */
 	const DEBUG     = Monolog::DEBUG;
 	const INFO      = Monolog::INFO;
 	const NOTICE    = Monolog::NOTICE;
@@ -23,6 +32,7 @@ class Logger
 	const CRITICAL  = Monolog::CRITICAL;
 	const ALERT     = Monolog::ALERT;
 	const EMERGENCY = Monolog::EMERGENCY;
+
 	/* @formatter:on */
 
 	/**
@@ -110,14 +120,14 @@ class Logger
 			'log_datetime'  => 'Y-m-d H:i:s',
 			'log_keep'      => 5,
 			'log_level'     => self::INFO,
-			'log_history'   => 0,
-			'log_verbose'   => 0,
+			'log_history'   => self::NONE,
+			'log_verbose'   => self::NONE,
 		];
 		/* @formatter:on */
 	}
 
 	/**
-	 * Check if given level is currently handled.
+	 * Check if given level is currently handled, aka: $level >= cfg[log_level].
 	 *
 	 * @param mixed $level Level name ie. 'debug' or Level constant ie. Logger::DEBUG
 	 */
@@ -127,6 +137,17 @@ class Logger
 		$this->handling[$level] = $this->handling[$level] ?? $this->Logger->isHandling( $level );
 
 		return $this->handling[$level];
+	}
+
+	/**
+	 * Check if given level is currently handled by extra cfg level.
+	 *
+	 * @param int $cfgLevel Extra feature level, like: log_verbose, log_history, etc...
+	 * @param int $level    Current level
+	 */
+	protected static function isHandling( int $cfgLevel, int $level ): bool
+	{
+		return self::NONE !== $cfgLevel && $cfgLevel <= $level;
 	}
 
 	/**
@@ -190,12 +211,12 @@ class Logger
 	public function addRecord( int $level, string $message, int $backtrace = 0 ): bool
 	{
 		// Save history?
-		if ( $this->Factory->cfg( 'log_history' ) && $this->Factory->cfg( 'log_history' ) <= $level ) {
+		if ( self::isHandling( $this->Factory->cfg( 'log_history' ), $level ) ) {
 			$this->history[] = [ 'level' => $level, 'message' => $message ];
 		}
 
 		// Echo?
-		if ( $this->Factory->cfg( 'log_verbose' ) && $this->Factory->cfg( 'log_verbose' ) <= $level ) {
+		if ( self::isHandling( $this->Factory->cfg( 'log_verbose' ), $level ) ) {
 			!defined( 'TESTING' ) && printf( "%s\n", $message );
 		}
 

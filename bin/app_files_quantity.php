@@ -13,7 +13,6 @@ $Factory = new Factory([
 	],
 	'log_file'    => sprintf( '%s/%s.log', __DIR__, basename( __FILE__ , '.php' ) ),
 	'log_level'   => \Orkan\Logger::DEBUG,
-	'log_verbose' => \Orkan\Logger::INFO,
 	// Module
 	'file_types'         => [ 'jpg', 'gif' ],
 	'file_priority_mask' => '^_.*',
