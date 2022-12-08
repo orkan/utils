@@ -711,6 +711,14 @@ class Utils
 	}
 
 	/**
+	 * Flatten multi-dimensional array.
+	 */
+	public static function flattenArray( array $a ): array
+	{
+		return iterator_to_array( new \RecursiveIteratorIterator( new \RecursiveArrayIterator( $a ) ), false );
+	}
+
+	/**
 	 * Sorts multi-dimensional array by sub-array key
 	 * Maintains key assigments!
 	 *

@@ -57,7 +57,7 @@ class Logger
 	/**
 	 * Build Factory Logger.
 	 */
-	public function __construct( FactoryInterface $Factory )
+	public function __construct( Factory $Factory )
 	{
 		$this->Factory = $Factory->merge( $this->defaults() );
 

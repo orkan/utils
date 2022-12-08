@@ -10,7 +10,7 @@ namespace Orkan;
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
-class Factory implements FactoryInterface
+class Factory
 {
 	protected $Utils;
 	protected $Logger;

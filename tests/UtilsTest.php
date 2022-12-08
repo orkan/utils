@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Test Utils.
  *
- * @author Orkan <orkans@gmail.com>
+ * @author Orkan <orkans+utils@gmail.com>
  */
 class UtilsTest extends TestCase
 {

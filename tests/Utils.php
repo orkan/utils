@@ -10,7 +10,7 @@ use ReflectionClass;
 /**
  * Test case helper functions.
  *
- * @author Orkan <orkans@gmail.com>
+ * @author Orkan <orkans+utils@gmail.com>
  */
 class Utils
 {
