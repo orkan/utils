@@ -5,8 +5,7 @@ REM Config: --------------------------------------------
 set SOURCE=%~1
 set INCLUDES=%~2
 set EXTRAS=%~3
-set CONTINUE=%~4
-set TOKENS=%~5
+set TOKENS=%~4
 
 REM Validate: ------------------------------------------
 if not exist %SOURCE% (
@@ -18,16 +17,6 @@ echo %CD%
 
 REM Tokens file must be set! Use default if none provided.
 if not exist "%TOKENS%" set TOKENS=%~dpn0.propdef
-
-REM Confirm: -------------------------------------------
-if "%CONTINUE%" NEQ "" (
-	set /p ANSWER=%CONTINUE% [y/N]:
-)
-if "%CONTINUE%" NEQ "" (
-	if "%ANSWER%" NEQ "y" (
-		goto :eof
-	)
-)
 
 REM echo Last commit:
 REM git rev-parse --short HEAD

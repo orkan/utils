@@ -8,19 +8,16 @@ set EXTRAS=%2
 REM Command: --------------------------------------------------
 set COMMAND=php -f %INFILE%
 
-REM Switch: ---------------------------------------------------
+REM Window mode: ---------------------------------------------
 if "%EXTRAS%" == "nowait" (
-	set SWITCH=/c
+	set MODE=/c
 ) else (
-	set SWITCH=/k
-	echo.
-	echo ====================================
-	echo Use right mouse button to run again!
-	echo %COMMAND%| clip
+	call %~dp0..\phpunit\_clip.bat %COMMAND%
+	set MODE=/k
 )
 
 REM Run: ------------------------------------------------------
 echo.
-cmd %SWITCH% %COMMAND%
+cmd %MODE% %COMMAND%
 
 popd
