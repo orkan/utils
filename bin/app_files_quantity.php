@@ -7,9 +7,9 @@ require dirname( __DIR__, 3 ) . '/autoload.php';
 /* @formatter:off */
 $Factory = new Factory([
 	'cli_title'   => 'Copy random files [src_dir] => [out_dir] with quantity limit and priority',
-	'app_usage'   => sprintf( '%s --user-config="user-config.php" [options]', basename( __FILE__ ) ),
+	'app_usage'   => sprintf( '%s --config <user-config.php> [options]', basename( __FILE__ ) ),
 	'app_args'    => [
-		'user-config' => [ 'short' => 'u:', 'long' => 'user-config:', 'desc' => 'Load additional config from file' ],
+		'config' => [ 'short' => 'c:', 'long' => 'config:', 'desc' => 'Load additional config from file' ],
 	],
 	'log_file'    => sprintf( '%s/%s.log', __DIR__, basename( __FILE__ , '.php' ) ),
 	'log_level'   => \Orkan\Logger::DEBUG,
@@ -27,9 +27,9 @@ $App = new Application( $Factory );
  * ---------------------------------------------------------------------------------------------------------------------
  * Start App with user config
  */
-if ( null === $cfgFile = $App->getArg( 'user-config' ) ) {
+if ( null === $cfgFile = $App->getArg( 'config' ) ) {
 	echo $App->getHelp();
-	throw new InvalidArgumentException( 'Use --user-config <config.php> to load user settings.' );
+	throw new InvalidArgumentException( 'Use --config <config.php> to load user settings.' );
 }
 elseif ( !is_file( $cfgFile ) ) {
 	throw new InvalidArgumentException( 'Config file not found: ' . $cfgFile );
@@ -55,7 +55,7 @@ elseif ( !is_dir( $dirSrc ) ) {
 	throw new InvalidArgumentException( sprintf( 'Source dir not found! cfg[dir_src] = "%s"', $dirSrc ) );
 }
 
-if ( !$dirOut = $Factory->get( 'dir_out' ) ) {
+if ( !$dirOut = $Utils->pathFix( $Factory->get( 'dir_out' ) ) ) {
 	throw new InvalidArgumentException( 'Empty cfg[dir_out]' );
 }
 
@@ -79,7 +79,7 @@ DEBUG && print ( '$filesType: ' . print_r( $filesType, true ) ) ;
 
 // Shuffle now, so when usort() returns 0 for equal priority, then values will stay unsorted within each group
 // shuffle( $filesType );
-$Utils->shuffleArray( $filesType );
+$Utils->arrayShuffle( $filesType );
 DEBUG && print ( 'shuffle($filesType): ' . print_r( $filesType, true ) ) ;
 
 /*
@@ -97,14 +97,14 @@ usort( $filesType, function ( $fileA, $fileB ) use ($priorityMask ) {
 } );
 DEBUG && print ( 'usort($filesType): ' . print_r( $filesType, true ) ) ;
 
-$sizeMax = $Utils->toBytes( $Factory->get( 'file_quantity' ) );
-$quoteTotal = $sizeMax ? $Utils->formatBytes( $sizeMax ) : 'none';
+$sizeMax = $Utils->byteNumber( $Factory->get( 'file_quantity' ) );
+$quoteTotal = $sizeMax ? $Utils->byteString( $sizeMax ) : 'none';
 $Logger->notice( sprintf( 'Quantity limit: %s', $quoteTotal ) );
 
 $sizeOut = $countFilesOut = $sizeSkip = $countFilesSkip = 0;
 $filesOut = [];
 $filesSkip = [];
-$sizeDelta = $Utils->toBytes( $Factory->get( 'limit_delta' ) );
+$sizeDelta = $Utils->byteNumber( $Factory->get( 'limit_delta' ) );
 
 foreach ( $filesType as $file ) {
 	$size = filesize( $dirSrc . '/' . $file );
@@ -118,8 +118,8 @@ foreach ( $filesType as $file ) {
 		/* @formatter:off */
 		$Logger->debug( sprintf( 'File oversized: %1$s (%2$s --> %3$s)',
 			/*1*/ $file,
-			/*1*/ $Utils->formatBytes( $size ),
-			/*1*/ $Utils->formatBytes( $sizeNext ),
+			/*1*/ $Utils->byteString( $size ),
+			/*1*/ $Utils->byteString( $sizeNext ),
 		));
 		/* @formatter:on */
 
@@ -128,9 +128,9 @@ foreach ( $filesType as $file ) {
 			/* @formatter:off */
 			$Logger->debug( sprintf( 'Quantity limit: %1$s. Current size: %2$s. Left: %3$s. Delta: %4$s. Continue...',
 				/*1*/ $quoteTotal,
-				/*2*/ $Utils->formatBytes( $sizeOut ),
-				/*3*/ $Utils->formatBytes( $sizeLeft ),
-				/*4*/ $Utils->formatBytes( $sizeDelta ),
+				/*2*/ $Utils->byteString( $sizeOut ),
+				/*3*/ $Utils->byteString( $sizeLeft ),
+				/*4*/ $Utils->byteString( $sizeDelta ),
 			));
 			/* @formatter:on */
 			continue;
@@ -138,8 +138,8 @@ foreach ( $filesType as $file ) {
 
 		/* @formatter:off */
 		$Logger->debug( sprintf( 'Size left: %1$s < Delta: %2$s. Aborting...',
-			$Utils->formatBytes( $sizeLeft ),
-			$Utils->formatBytes( $sizeDelta ),
+			$Utils->byteString( $sizeLeft ),
+			$Utils->byteString( $sizeDelta ),
 		));
 		/* @formatter:on */
 		break;
@@ -152,8 +152,8 @@ foreach ( $filesType as $file ) {
 	$Logger->notice( sprintf( '%1$d. %2$s (%3$s --> %4$s)',
 		/*1*/ $countFilesOut,
 		/*2*/ $file,
-		/*3*/ $Utils->formatBytes( $size ),
-		/*4*/ $Utils->formatBytes( $sizeOut ),
+		/*3*/ $Utils->byteString( $size ),
+		/*4*/ $Utils->byteString( $sizeOut ),
 		/*5*/ $quoteTotal,
 	));
 	/* @formatter:on */
@@ -162,17 +162,17 @@ foreach ( $filesType as $file ) {
 if ( $countFilesSkip ) {
 	/* @formatter:off */
 	$Logger->notice( sprintf( 'Quantity limit reached (with delta: %1$s). Files skiped: %2$d',
-		/*1*/ $Utils->formatBytes( $sizeDelta ),
+		/*1*/ $Utils->byteString( $sizeDelta ),
 		/*2*/ $countFilesType - $countFilesOut,
 	));
 	$Logger->debug( sprintf( 'Rejected files: %1$d (%2$s)',
 		/*1*/ $countFilesSkip,
-		/*2*/ $Utils->formatBytes( $sizeSkip ),
+		/*2*/ $Utils->byteString( $sizeSkip ),
 	));
 	/* @formatter:on */
 	foreach ( $filesSkip as $k => $file ) {
 		$size = filesize( $dirSrc . '/' . $file );
-		$Logger->debug( sprintf( '%1$d. %2$s (%3$s)', $k + 1, $file, $Utils->formatBytes( $size ) ) );
+		$Logger->debug( sprintf( '%1$d. %2$s (%3$s)', $k + 1, $file, $Utils->byteString( $size ) ) );
 	}
 }
 
@@ -187,7 +187,7 @@ $Utils->prompt( 'Erase destination dir? Press any key to continue...' );
 
 if ( !$isDryRun = null !== $App->getArg( 'dry-run' ) ) {
 	$Logger->debug( sprintf( 'Erase cfg[dir_out]: "%s"', $dirOut ) );
-	$Utils->clearDirectory( $dirOut );
+	$Utils->dirClear( $dirOut );
 	$dirSrc = realpath( $dirSrc );
 	$dirOut = realpath( $dirOut );
 }
@@ -201,7 +201,7 @@ foreach ( $filesOut as $k => $file ) {
 		/*2*/ $countFilesOut,
 		/*3*/ $file,
 		/*4*/ $isDryRun ? '*' : '',
-		/*5*/ $Utils->formatBytes( filesize( $src ) ),
+		/*5*/ $Utils->byteString( filesize( $src ) ),
 	 ));
 	/* @formatter:on */
 

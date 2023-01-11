@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2022 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020-2023 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = 'v2.3.0';
-	const APP_DATE = 'Fri, 16 Dec 2022 06:36:36 +01:00';
+	const APP_VERSION = 'v3.0.0';
+	const APP_DATE = 'Wed, 11 Jan 2023 14:04:17 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -40,7 +40,7 @@ class Application
 	 * c::     config:: => optional value. Can't use space in between, use either: -cvalue|-c=value
 	 */
 	const ARGUMENTS = [
-		'config'  => [ 'short' => 'c', 'long' => 'config' , 'desc' => 'Display App config'  ],
+		'setup'   => [ 'short' => 's', 'long' => 'setup'  , 'desc' => 'Display App config'  ],
 		'version' => [ 'short' => 'V', 'long' => 'version', 'desc' => 'Display App version' ],
 		'help'    => [ 'short' => 'h', 'long' => 'help'   , 'desc' => 'Display App help'    ],
 		'dry-run' => [ 'short' => 'd', 'long' => 'dry-run', 'desc' => 'Do not make changes in filesystem' ],
@@ -192,7 +192,7 @@ class Application
 
 		if ( null === $cmdArgs = $this->Factory->cfg( 'cmd_args' ) ) {
 			$optS = array_column( $appArgs, 'short' );
-			$optS = Utils::flattenArray( $optS );
+			$optS = Utils::arrayFlat( $optS );
 			$optS = implode( '', $optS );
 			$optL = array_column( $appArgs, 'long' );
 			$cmdArgs = getopt( $optS, $optL );
@@ -423,7 +423,7 @@ class Application
 			exit();
 		}
 
-		if ( null !== $this->getArg( 'config' ) ) {
+		if ( null !== $this->getArg( 'setup' ) ) {
 			print_r( $this->Factory->cfg() );
 			exit();
 		}

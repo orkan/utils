@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2022 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020-2023 Orkan <orkans+utils@gmail.com>
  */
 
 /**
@@ -46,7 +46,7 @@ class DebugStarter
 			/*2*/ self::APP_NAME,
 			/*3*/ self::APP_DESC,
 			/*4*/ self::getUrl(),
-			/*5*/ Utils::formatDate(),
+			/*5*/ Utils::dateString(),
 			/*6*/ $_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING'],
 		);
 		/* @formatter:on */

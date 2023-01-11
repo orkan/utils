@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2022 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020-2023 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
@@ -24,7 +24,7 @@ class UtilsTest extends TestCase
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Utils::formatTime( $seconds, $precision )
+	 * @see Utils::timeString( $seconds, $precision )
 	 */
 	public function formatTimeProvider()
 	{
@@ -98,10 +98,10 @@ class UtilsTest extends TestCase
 	public function testFormatTime( $seconds, $precision, $expect )
 	{
 		if ( null === $precision ) {
-			$actual = Utils::formatTime( $seconds );
+			$actual = Utils::timeString( $seconds );
 		}
 		else {
-			$actual = Utils::formatTime( $seconds, $precision );
+			$actual = Utils::timeString( $seconds, $precision );
 		}
 
 		$this->assertSame( $expect, $actual );
@@ -114,7 +114,7 @@ class UtilsTest extends TestCase
 	 */
 	public function testToBytes( $str, $expect )
 	{
-		$actual = Utils::toBytes( $str );
+		$actual = Utils::byteNumber( $str );
 		$this->assertSame( $expect, $actual );
 	}
 
@@ -170,13 +170,13 @@ class UtilsTest extends TestCase
 		/* @formatter:on */
 
 		// Reverse: by name, asc
-		Utils::sortMultiArray( $playlistB, 'name', 'asc' );
+		Utils::arraySortMulti( $playlistB, 'name', 'asc' );
 		$this->assertEquals( $playlistA, $playlistB, 'Content differs!' );
 		$this->assertNotSame( $playlistA, $playlistB, 'Same order!' );
 		$this->assertEquals( $playlistA[1], $playlistB[1], 'Lost key assigment!' );
 
 		// Re-create order: by name, desc
-		Utils::sortMultiArray( $playlistB, 'name', 'desc' );
+		Utils::arraySortMulti( $playlistB, 'name', 'desc' );
 		$this->assertEquals( $playlistA, $playlistB, 'Content differs!' );
 		$this->assertSame( $playlistA, $playlistB, 'Not same order!' );
 		$this->assertEquals( $playlistA[1], $playlistB[1], 'Lost key assigment!' );
@@ -198,7 +198,7 @@ class UtilsTest extends TestCase
 
 		// Two chances to randomize array!
 		for ( $i = 0; $i < 2; $i++ ) {
-			Utils::shuffleArray( $playlistB );
+			Utils::arrayShuffle( $playlistB );
 			if ( array_keys( $playlistA ) != array_keys( $playlistB ) ) {
 				break;
 			}

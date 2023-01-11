@@ -1,0 +1,27 @@
+===================================================================================================
+v3.0.0
+Renamed methods:
+--------------
+flattenArray()        > arrayFlat()
+implode()             > arrayImplode()
+keyIncrement()        > arrayInc()
+lastKey()             > arrayLastKey()
+shuffleArray()        > arrayShuffle()
+sort()                > arraySort()
+ksort()               > arraySortKey()
+sortMultiArray()      > arraySortMulti()
+toBytes()             > byteNumber()
+formatBytes()         > byteString()
+getDefinedConstants() > constants()
+formatDate()          > dateString()
+formatDateDiff()      > dateStringDiff()
+clearDirectory()      > dirClear()
+copyDirectory()       > dirCopy()
+removeDirectory()     > dirRemove()
+checkError()          > errorCheck()
+getJsonLastError()    > errorJson()
+getZipError()         > errorZip()
+removeFile()          > fileRemove()
+formatNumber()        > numberString()
+buildPath()           > pathBuild()
+formatTime()          > timeString()

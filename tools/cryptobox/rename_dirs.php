@@ -13,7 +13,7 @@ Example: {$batFile} X:\\ALIDVRS2
 	error( sprintf( 'DVR dir not found "%s"', $dvrDir ) );
 }
 
-printf( 'Looking for DVR sub-dirs in "%s"%s', $dvrDir, "\n" );
+printf( 'Looking for DVR subdirs in "%s"%s', $dvrDir, "\n" );
 
 // =====================================================================================================================
 // Create new path names
@@ -53,7 +53,7 @@ foreach ( $Dir as $Item ) {
 }
 
 if ( empty( $paths ) ) {
-	error( 'No DVR sub-dirs found!' );
+	error( 'No DVR subdirs found!' );
 }
 
 printf( "Found %d dirs.\n\n", count( $paths ) );
