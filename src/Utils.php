@@ -26,6 +26,7 @@ class Utils
 	 * Default global properties.
 	 * @see Utils::setup()
 	 */
+	protected static $execTime = 0;
 	protected static $timeZone = 'UTC';
 	protected static $dateFormat = 'Y-m-d H:i:s';
 
@@ -34,6 +35,11 @@ class Utils
 	 * @see Utils::errorHandler()
 	 */
 	protected static $errorExceptionCode = 0;
+
+	public function __construct()
+	{
+		static::$execTime = static::exectime();
+	}
 
 	/**
 	 * Configure static properties.
@@ -351,7 +357,7 @@ class Utils
 	 * @link https://www.php.net/manual/en/language.exceptions.php
 	 * @link https://stackoverflow.com/questions/1241728/can-i-try-catch-a-warning
 	 */
-	public static function errorHandler( $severity, $message, $filename, $lineno )
+	public static function errorHandler( $severity, $message, $filename, $lineno ): void
 	{
 		/**
 		 * This error code is not included in error_reporting
@@ -449,21 +455,49 @@ class Utils
 	}
 
 	/**
+	 * Print exception message and write to php error log.
+	 */
+	public static function exceptionHandler( \Throwable $E ): void
+	{
+		if ( defined( 'DEBUG' ) && DEBUG ) {
+			print $E;
+		}
+		else {
+			/* @formatter:off */
+			printf( "\nIn %s line %d:\n\n  [%s]\n  %s\n\n",
+				basename( $E->getFile() ),
+				$E->getLine(),
+				get_class( $E ),
+				trim( $E->getMessage() ), // prefixed with new line!
+			);
+			/* @formatter:on */
+		}
+
+		error_log( $E );
+		exit( $E->getCode() ?: 1 );
+	}
+
+	/**
 	 * Compute execution time.
 	 *
-	 * @param  int|float $start Previous time in nanoseconds or leave empty to get new one
-	 * @return float            Time diff in frac seconds
+	 * @param  float|null $start Previous time in nanoseconds, 0: get current time, null: diff to instance creation time
+	 * @return float             Time diff in frac seconds
 	 */
-	public static function exectime( $start = 0 )
+	public static function exectime( ?float $start = 0 ): float
 	{
 		$time = hrtime( true );
 
-		if ( 0 == $start ) {
+		if ( 0.0 === $start ) {
 			return $time;
+		}
+
+		if ( null === $start ) {
+			$start = static::$execTime; // get instance creation time
 		}
 
 		$end = $time - $start;
 		$end = $end / 1e+9; // nanoseconds to seconds 0.123456789
+
 		return $end;
 	}
 
@@ -503,6 +537,33 @@ class Utils
 		}
 
 		return null;
+	}
+
+	/**
+	 * Read JSON array from file.
+	 */
+	public static function jsonLoad( string $file )
+	{
+		return is_file( $file ) ? json_decode( file_get_contents( $file ), true ) : [];
+	}
+
+	/**
+	 * Save JSON array to file.
+	 */
+	public static function jsonSave( string $file, array $data = [], bool $sort = false )
+	{
+		$sort && ksort( $data );
+		return file_put_contents( $file, json_encode( $data, JSON_PRETTY_PRINT ) );
+	}
+
+	/**
+	 * Send array as JSON.
+	 */
+	public static function jsonSend( array $data, string $error = '', bool $exit = true ): void
+	{
+		header( 'Content-Type: application/json; charset=UTF-8' );
+		echo json_encode( [ 'error' => $error, 'data' => $data ] );
+		$exit && exit();
 	}
 
 	/**

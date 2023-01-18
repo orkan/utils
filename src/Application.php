@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = 'v3.0.0';
-	const APP_DATE = 'Wed, 11 Jan 2023 14:04:17 +01:00';
+	const APP_VERSION = 'v3.1.0';
+	const APP_DATE = 'Wed, 18 Jan 2023 19:14:37 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -114,10 +114,46 @@ class Application
 	{
 		!defined( 'DEBUG' ) && define( 'DEBUG', getenv( 'APP_DEBUG' ) );
 		$this->Factory = $Factory->merge( $this->defaults() );
+
+		// PHP setup
+		foreach ( $this->Factory->get( 'php' ) as $k => $v ) {
+			isset( $v ) && ini_set( $k, $v );
+		}
 	}
 
 	/**
 	 * Get default config.
+	 *
+	 * -----------------------------------------------------------------------------------------------------------------
+	 * PHP: Prepare for CLI
+	 * @link https://www.php.net/manual/en/errorfunc.configuration.php
+	 * -----------------------------------------------------------------------------------------------------------------
+	 *
+	 * [max_execution_time]
+	 * Maximum script execution time. Default: 30 -OR- 0 in CLI mode!
+	 *
+	 * [error_reporting]
+	 * Show errors, warnings and notices. Default: E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED
+	 * Suggested on PROD: E_ALL & ~E_DEPRECATED & ~E_STRICT
+	 *
+	 * [log_errors]
+	 * Log PHP errors?
+	 *
+	 * [log_errors_max_len]
+	 * Max length of php error messages. Default: 1024, 0: disable.
+	 *
+	 * [ignore_repeated_errors]
+	 * Repeated errors must occur in same file on same line unless ignore_repeated_source is set true.
+	 *
+	 * [ignore_repeated_source]
+	 * Do not log errors with repeated messages from different source lines.
+	 *
+	 * [html_errors]
+	 * Format the error message as HTML?
+	 *
+	 * [error_log]
+	 * Path to php_error.log
+	 *
 	 */
 	protected function defaults()
 	{
@@ -139,6 +175,16 @@ class Application
 			'log_format'   => "[%datetime%] [%channel%] %level_name%: %message%\n",
 			'dir_package'  => $packageDir,
 			'extensions'   => self::EXTENSIONS,
+			'php' => [
+				'max_execution_time'     => null,
+				'error_reporting'        => E_ALL,
+				'log_errors'             => 'On',
+				'log_errors_max_len'     => 0,
+				'ignore_repeated_errors' => 'On',
+				'ignore_repeated_source' => 'Off',
+				'html_errors'            => 'Off',
+				'error_log'              => null,
+			],
 		];
 		/* @formatter:on */
 	}
@@ -179,9 +225,8 @@ class Application
 
 	/**
 	 * Get cmd line arg or NULL if not present.
-	 * Note: the found options with no value have boolean false assigned by PHP :(
 	 *
-	 * @param  string $name Option name (short|long) or empty to get all parsed options
+	 * @param  string           $name Defined app_args[name] or empty string to get all parsed options
 	 * @return array|NULL|mixed
 	 */
 	public function getArg( string $name = '' )
@@ -235,7 +280,17 @@ class Application
 		$nameS = rtrim( $appArgs[$name]['short'] ?? '', ':' );
 		$nameL = rtrim( $appArgs[$name]['long'] ?? '', ':' );
 
-		return $cmdArgs[$nameS] ?? $cmdArgs[$nameL] ?? $appArgs[$name]['default'] ?? null;
+		$value = $cmdArgs[$nameS] ?? $cmdArgs[$nameL] ?? $appArgs[$name]['default'] ?? null;
+
+		/*
+		 * CAUTION:
+		 * Option switches (without value) have [false] assigned by PHP.
+		 * Lets convert it to [true] so we can use it in IF clause as:
+		 * if( Application->getArg('switch') )
+		 */
+		$value = is_bool( $value ) ? true : $value;
+
+		return $value;
 	}
 
 	/**
@@ -384,24 +439,9 @@ class Application
 			 * @link https://symfony.com/doc/current/console/verbosity.html
 			 */
 			$this->Factory->cfg( 'log_verbose', $this->Logger::NONE );
-			$this->Logger->error( $E );
+			$this->Logger->error( sprintf( '[%s] %s', get_class( $E ), $E->getMessage() ) );
 
-			if ( DEBUG ) {
-				print $E;
-			}
-			else {
-				/* @formatter:off */
-				printf( "%s\n\nIn %s line %d:\n\n  [%s]\n  %s\n\n",
-					$E->getMessage(),
-					basename( $E->getFile() ),
-					$E->getLine(),
-					get_class( $E ),
-					$E->getMessage()
-				);
-				/* @formatter:on */
-			}
-
-			exit( $E->getCode() ?: 1 );
+			$this->Utils->exceptionHandler( $E );
 		} );
 
 		$this->Logger = $this->Factory->Logger();
