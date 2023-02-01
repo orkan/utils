@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = 'v3.1.0';
-	const APP_DATE = 'Wed, 18 Jan 2023 19:14:37 +01:00';
+	const APP_VERSION = 'v3.2.0';
+	const APP_DATE = 'Wed, 01 Feb 2023 16:42:57 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -153,12 +153,11 @@ class Application
 	 *
 	 * [error_log]
 	 * Path to php_error.log
-	 *
 	 */
 	protected function defaults()
 	{
 		$baseName = basename( static::class );
-		$packageDir = dirname( ( new \ReflectionClass( static::class ) )->getFileName(), 3 ); // vendor/orkan/[project]
+		$packageDir = dirname( ( new \ReflectionClass( static::class ) )->getFileName(), 2 ); // vendor/orkan/[project]
 
 		/* @formatter:off */
 		return [

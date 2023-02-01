@@ -2,7 +2,7 @@
 use Orkan\Application;
 use Orkan\Factory;
 
-require dirname( __DIR__, 3 ) . '/autoload.php';
+require $_composer_autoload_path ?? dirname( __DIR__, 3 ) . '/autoload.php';
 
 /* @formatter:off */
 $Factory = new Factory([

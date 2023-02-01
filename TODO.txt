@@ -1,0 +1,5 @@
+===================================================================================================
+Rename methods:
+---------------
+Application::getArg()     => Application::arg()
+Application::getArgHelp() => Application::argHelp()

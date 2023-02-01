@@ -11,7 +11,7 @@ Bunch of scripts collected from all around the HDD
 ## About
 ### Requirements
 - Main:
-  - PHP ^5.3
+  - PHP ^7
 - Tools:
   - ANT ^1.9.4
   - DOS

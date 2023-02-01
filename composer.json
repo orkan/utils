@@ -3,7 +3,10 @@
 	"description": "Helper functions",
 	"homepage": "https://github.com/orkan/utils",
 	"keywords": [
-		"php"
+		"php",
+		"ant",
+		"git",
+		"bat"
 	],
 	"license": "MIT",
 	"authors": [
@@ -17,6 +20,7 @@
 		"vendor-dir": "../vendor"
 	},
 	"require": {
+		"composer-runtime-api": "^2.2",
 		"monolog/monolog": "^2.8"
 	},
 	"require-dev": {
@@ -32,10 +36,14 @@
 			"Orkan\\Tests\\": "tests/"
 		}
 	},
+	"bin": [
+		"ork-env-switch",
+		"ork-files-quantity"
+	],
 	"extra": {
 		"branch-alias": {
-			"dev-master": "3.1.x-dev",
-			"dev-develop": "3.1.x-dev"
+			"dev-master": "3.2.x-dev",
+			"dev-develop": "3.2.x-dev"
 		}
 	}
 }

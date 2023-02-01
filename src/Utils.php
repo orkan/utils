@@ -588,13 +588,18 @@ class Utils
 
 	/**
 	 * Convert dir separators in $path to current OS.
+	 *
+	 * @param bool $trim Remove trailing /
 	 */
-	public static function pathFix( string $path ): string
+	public static function pathFix( string $path, bool $trim = true ): string
 	{
 		$find = '/' === DIRECTORY_SEPARATOR ? '\\' : '/';
 		$repl = '/' === $find ? '\\' : '/';
 
-		return str_replace( $find, $repl, $path );
+		$path = str_replace( $find, $repl, $path );
+		$trim && $path = rtrim( $path, $repl );
+
+		return $path;
 	}
 
 	/**
