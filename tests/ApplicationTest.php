@@ -3,12 +3,12 @@
  * This file is part of the orkan/utils package.
  * Copyright (c) 2020-2023 Orkan <orkans+utils@gmail.com>
  */
-namespace Orkan;
+namespace Orkan\Tests;
 
-use PHPUnit\Framework\TestCase;
+use Orkan\Application;
 
 /**
- * Test Utils\Factory.
+ * Test Application.
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
@@ -36,7 +36,7 @@ class ApplicationTest extends TestCase
 			'app_args' => [
 				'arg1' => [ 'short' => "{$nameS}:", 'long' => "{$nameL}", 'desc' => "Testing --$nameL=$value" ],
 			],
-		]));
+		], $this ));
 		/* @formatter:on */
 
 		/**
@@ -77,7 +77,7 @@ class ApplicationTest extends TestCase
 			 * ini_set()
 			 * @see Application::__construct()
 			 */
-			new Application( new Factory( [ 'php' => $php ] ) );
+			new Application( new Factory( [ 'php' => $php ], $this ) );
 
 			foreach ( $php as $k => $v ) {
 				$this->assertEquals( $v, ini_get( $k ) ); // dont check types!
@@ -102,7 +102,7 @@ class ApplicationTest extends TestCase
 			$actual[$k] = null;
 		}
 
-		new Application( new Factory( [ 'php' => $actual ] ) );
+		new Application( new Factory( [ 'php' => $actual ], $this ) );
 
 		foreach ( $expect as $k => $v ) {
 			$this->assertEquals( $v, ini_get( $k ) ); // dont check types!

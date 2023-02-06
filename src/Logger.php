@@ -71,6 +71,12 @@ class Logger
 	{
 		$this->Factory = $Factory->merge( $this->defaults() );
 
+		// Provide at least verbose output if no logging to file available
+		if ( !class_exists( Monolog::class ) || !$Factory->get( 'log_file' ) ) {
+			$this->Logger = new LoggerNoop();
+			return;
+		}
+
 		$Format = new \Monolog\Formatter\LineFormatter( $Factory->cfg( 'log_format' ), $Factory->cfg( 'log_datetime' ) );
 		$DTZone = new \DateTimeZone( $Factory->cfg( 'log_timezone' ) );
 
@@ -131,7 +137,7 @@ class Logger
 	 *
 	 * @param mixed $level Level name ie. 'debug' or Level constant ie. Logger::DEBUG
 	 */
-	public function is( $level ): bool
+	public function is( $level ): ?bool
 	{
 		$level = $this->Logger->toMonologLevel( $level );
 		$this->handling[$level] = $this->handling[$level] ?? $this->Logger->isHandling( $level );
@@ -155,7 +161,9 @@ class Logger
 	 */
 	public function getFilename(): string
 	{
-		foreach ( $this->Logger->getHandlers() as $Handler ) {
+		$handlers = (array) $this->Logger->getHandlers();
+
+		foreach ( $handlers as $Handler ) {
 			if ( $Handler instanceof \Monolog\Handler\RotatingFileHandler ) {
 				return $Handler->getUrl();
 			}
@@ -217,7 +225,11 @@ class Logger
 
 		// Echo?
 		if ( self::isHandling( $this->Factory->cfg( 'log_verbose' ), $level ) ) {
-			!defined( 'TESTING' ) && printf( "%s\n", $message );
+			if ( defined( 'TESTING' ) ) {
+				throw new \LogicException( $message );
+			}
+
+			printf( "%s\n", $message );
 		}
 
 		// Add to log file?
@@ -277,5 +289,30 @@ class Logger
 	public function error( string $message, int $backtrace = 0 ): bool
 	{
 		return $this->addRecord( self::ERROR, $message, $backtrace );
+	}
+}
+
+/**
+ * Dummy Logger.
+ */
+class LoggerNoop
+{
+	/* @formatter:off */
+	const DEBUG     = Logger::DEBUG;
+	const INFO      = Logger::INFO;
+	const NOTICE    = Logger::NOTICE;
+	const WARNING   = Logger::WARNING;
+	const ERROR     = Logger::ERROR;
+	const CRITICAL  = Logger::CRITICAL;
+	const ALERT     = Logger::ALERT;
+	const EMERGENCY = Logger::EMERGENCY;
+	/* @formatter:on */
+
+	/**
+	 * Do nothing if if logging is disabled.
+	 */
+	public function __call( $name, $arguments )
+	{
+		return;
 	}
 }

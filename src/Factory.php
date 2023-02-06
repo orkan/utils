@@ -43,12 +43,7 @@ class Factory
 	 */
 	public function Logger()
 	{
-		if ( !isset( $this->Logger ) ) {
-			$Logger = $this->get( 'log_file' ) ? Logger::class : LoggerNoop::class;
-			$this->Logger = new $Logger( $this );
-		}
-
-		return $this->Logger;
+		return $this->Logger ?? $this->Logger = new Logger( $this );
 	}
 
 	/*
@@ -103,32 +98,5 @@ class Factory
 	{
 		$this->cfg = $force ? array_replace_recursive( $this->cfg, $defaults ) : array_replace_recursive( $defaults, $this->cfg );
 		return $this;
-	}
-}
-
-/**
- * Dummy Logger.
- *
- * Used when logging is disabled (no log file provided)
- */
-class LoggerNoop
-{
-	/* @formatter:off */
-	const DEBUG     = Logger::DEBUG;
-	const INFO      = Logger::INFO;
-	const NOTICE    = Logger::NOTICE;
-	const WARNING   = Logger::WARNING;
-	const ERROR     = Logger::ERROR;
-	const CRITICAL  = Logger::CRITICAL;
-	const ALERT     = Logger::ALERT;
-	const EMERGENCY = Logger::EMERGENCY;
-	/* @formatter:on */
-
-	/**
-	 * Do nothing if if logging is disabled.
-	 */
-	public function __call( $name, $arguments )
-	{
-		return;
 	}
 }

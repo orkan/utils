@@ -1,5 +1,9 @@
-===================================================================================================
-Rename methods:
+Application:
 ---------------
-Application::getArg()     => Application::arg()
-Application::getArgHelp() => Application::argHelp()
+Rename: getArg()     => arg()
+Rename: getArgHelp() => argHelp()
+
+Factory:
+---------------
+Move cfg() to Utils/Cfg as Trait
+https://www.php.net/manual/en/language.oop5.traits.php

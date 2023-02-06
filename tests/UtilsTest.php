@@ -3,9 +3,9 @@
  * This file is part of the orkan/utils package.
  * Copyright (c) 2020-2023 Orkan <orkans+utils@gmail.com>
  */
-namespace Orkan;
+namespace Orkan\Tests;
 
-use PHPUnit\Framework\TestCase;
+use Orkan\Utils;
 
 /**
  * Test Utils.
@@ -114,22 +114,12 @@ class UtilsTest extends TestCase
 	 */
 	public function testToBytes( $str, $expect )
 	{
-		$actual = Utils::byteNumber( $str );
-		$this->assertSame( $expect, $actual );
+		$this->assertSame( $expect, Utils::byteNumber( $str ) );
 	}
 
 	/**
-	 * Print message to log file if defined( 'TESTING' )
-	 * See: ./_cmd/phpunit.xml for defined constants
-	 * See: ../src/TESTING-Orkan-Utils-print.log for output
+	 * Fancy print_r().
 	 */
-	public function testCanPrint()
-	{
-		Utils::print( sprintf( "Hello from %s() in %s, line: %d\n", __METHOD__, __FILE__, __LINE__ ) );
-
-		$this->assertTrue( true );
-	}
-
 	public function testCanPrintR()
 	{
 		$needle = 'Hello World!';
@@ -196,8 +186,8 @@ class UtilsTest extends TestCase
 		];
 		/* @formatter:on */
 
-		// Two chances to randomize array!
-		for ( $i = 0; $i < 2; $i++ ) {
+		// More chances to randomize array!
+		for ( $i = 0; $i < 10; $i++ ) {
 			Utils::arrayShuffle( $playlistB );
 			if ( array_keys( $playlistA ) != array_keys( $playlistB ) ) {
 				break;

@@ -291,8 +291,11 @@ class Utils
 	 */
 	public static function dirClear( string $dir ): bool
 	{
-		self::dirRemove( $dir );
-		return mkdir( $dir, 0777, true );
+		if( self::dirRemove( $dir ) ) {
+			return mkdir( $dir, 0777, true );
+		}
+
+		return false;
 	}
 
 	/**
@@ -455,9 +458,20 @@ class Utils
 	}
 
 	/**
-	 * Print exception message and write to php error log.
+	 * Handle Exceptions.
 	 */
 	public static function exceptionHandler( \Throwable $E ): void
+	{
+		static::exceptionPrint( $E );
+		exit( $E->getCode() ?: 1 );
+	}
+
+	/**
+	 * Print formated Exception message.
+	 *
+	 * @param bool $log Write error log file?
+	 */
+	public static function exceptionPrint( \Throwable $E, bool $log = true ): void
 	{
 		if ( defined( 'DEBUG' ) && DEBUG ) {
 			print $E;
@@ -473,8 +487,7 @@ class Utils
 			/* @formatter:on */
 		}
 
-		error_log( $E );
-		exit( $E->getCode() ?: 1 );
+		$log && error_log( $E );
 	}
 
 	/**
@@ -693,49 +706,6 @@ class Utils
 	}
 
 	/**
-	 * Print message to standard output or STDERR if in CLI mode.
-	 *
-	 * Note:
-	 * STDOUT and echo both seems to work in CLI
-	 * STDERR is buffered and displayed last
-	 *
-	 * @codeCoverageIgnore
-	 *
-	 * @param string $message
-	 * @param bool $is_error Choose the right I/O stream for outputing errors
-	 * @param string $codepage
-	 */
-	public static function print( string $message, bool $is_error = false, string $codepage = 'cp852' ): void
-	{
-		/*
-		 * Deprecated due the fact that Utils now are tested from parents projects instead
-		 * and we are unable to locate a writable dir
-		 *
-		 if ( defined( 'TESTING' ) ) {
-		 $date = \DateTime::createFromFormat( 'U.u', microtime( true ) )->format( 'Y-m-d H:i:s.u' );
-		 $line = sprintf( '[%s] %s', $date, $message );
-		 file_put_contents( __DIR__ . '/../tests/_cache/TESTING-Orkan-Utils-print.log', $line, FILE_APPEND );
-		 return;
-		 }
-		 */
-
-		/**
-		 * Note:
-		 * In CLI the constants STDIN, STDOUT, STDERR are undefined. A workaround is to re-define them:
-		 * @link https://stackoverflow.com/questions/17769041/notice-use-of-undefined-constant-stdout-assumed-stdout
-		 * if(!defined('STDIN'))  define('STDIN',  fopen('php://stdin',  'rb'));
-		 * if(!defined('STDOUT')) define('STDOUT', fopen('php://stdout', 'wb'));
-		 * if(!defined('STDERR')) define('STDERR', fopen('php://stderr', 'wb'));
-		 */
-		if ( in_array( PHP_SAPI, [ 'cli', 'phpdbg', 'embed' ], true ) ) {
-			fwrite( $is_error ? STDERR : STDOUT, iconv( 'utf-8', $codepage, $message ) );
-		}
-		else {
-			echo nl2br( $message );
-		}
-	}
-
-	/**
 	 * Render Progress bar.
 	 *
 	 * @param number $current  Current item
@@ -767,14 +737,14 @@ class Utils
 	 *
 	 * @throws \BadMethodCallException In TESTING mode throws some exotic Exception instead of exit()
 	 *
-	 * @param string $msg    Prompt message to show, ie. "Hit [Enter] to continue..."
-	 * @param bool   $quit   Enable user exit?
-	 * @param string $_input TESTING: Overwrite user input (for testing purposes)
-	 * @return string        User input or [$_input] arg if set
+	 * @param  string $msg    Prompt message to show, ie. "Hit [Enter] to continue..."
+	 * @param  bool   $quit   Enable user exit?
+	 * @param  string $_input TESTING: Overwrite user input (for testing purposes)
+	 * @return string User input or [$_input] arg if set
 	 */
 	public static function prompt( string $msg, bool $quit = true, string $_input = '' ): string
 	{
-		if ( defined( 'TESTING' ) ) {
+		if ( defined( 'APP_TESTING' ) ) {
 			if ( $quit ) {
 				throw new \BadMethodCallException( $msg );
 			}

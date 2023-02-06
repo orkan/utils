@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = 'v3.2.0';
-	const APP_DATE = 'Wed, 01 Feb 2023 16:42:57 +01:00';
+	const APP_VERSION = 'v3.3.0';
+	const APP_DATE = 'Tue, 07 Feb 2023 00:36:02 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -106,13 +106,15 @@ class Application
 
 	/**
 	 * Create Factory App.
-	 *
-	 * WARNING:
-	 * Don't initialize Services here, sice the config isn't fully loaded yet!
 	 */
 	public function __construct( Factory $Factory )
 	{
 		!defined( 'DEBUG' ) && define( 'DEBUG', getenv( 'APP_DEBUG' ) );
+
+		/*
+		 * WARNING:
+		 * Don't initialize Services here cos the config isn't fully loaded yet!
+		 */
 		$this->Factory = $Factory->merge( $this->defaults() );
 
 		// PHP setup
@@ -124,10 +126,15 @@ class Application
 	/**
 	 * Get default config.
 	 *
+	 * [err_handle]
+	 * Handle errors?
+	 *
+	 * [exc_handle]
+	 * Handle exceptions?
+	 *
 	 * -----------------------------------------------------------------------------------------------------------------
-	 * PHP: Prepare for CLI
+	 * PHP INI: Prepare for CLI
 	 * @link https://www.php.net/manual/en/errorfunc.configuration.php
-	 * -----------------------------------------------------------------------------------------------------------------
 	 *
 	 * [max_execution_time]
 	 * Maximum script execution time. Default: 30 -OR- 0 in CLI mode!
@@ -153,6 +160,7 @@ class Application
 	 *
 	 * [error_log]
 	 * Path to php_error.log
+	 * -----------------------------------------------------------------------------------------------------------------
 	 */
 	protected function defaults()
 	{
@@ -166,9 +174,10 @@ class Application
 			'app_args'     => static::ARGUMENTS,
 			'app_usage'    => 'app.php [options]',
 			'app_timezone' => date_default_timezone_get(),
+			'err_handle'   => true,
+			'exc_handle'   => true,
 			'date_short'   => 'Y-m-d',
 			'date_long'    => 'l, Y-m-d H:i',
-			'log_file'     => "$packageDir/$baseName.log", // vendor/orkan/[project]/Application.php
 			'log_level'    => DEBUG ? Logger::DEBUG : Logger::INFO,
 			'log_channel'  => DEBUG ? "$baseName/DEBUG" : $baseName,
 			'log_format'   => "[%datetime%] [%channel%] %level_name%: %message%\n",
@@ -403,6 +412,37 @@ class Application
 	}
 
 	/**
+	 * Print exception message and write to php error log.
+	 */
+	public function exceptionHandler( \Throwable $E ): void
+	{
+		static::exceptionPrint( $E );
+		exit( $E->getCode() ?: 1 );
+	}
+
+	/**
+	 * Print formated Exception message.
+	 *
+	 * @param bool $log Write error log file?
+	 */
+	public function exceptionPrint( \Throwable $E, bool $log = true ): void
+	{
+		// Print all saved history logs
+		$this->Utils->writeln( implode( "\n", $this->getHistoryLogs() ), 2 );
+
+		/**
+		 * 1. Turn OFF printing log messages since we're going to print Exception anyway!
+		 * 2. Log full error + stack trace.
+		 *
+		 * @link https://symfony.com/doc/current/console/verbosity.html
+		 */
+		$this->Factory->cfg( 'log_verbose', $this->Logger::NONE );
+		$this->Logger->error( sprintf( '[%s] %s', get_class( $E ), $E->getMessage() ) );
+
+		$this->Utils->exceptionPrint( $E );
+	}
+
+	/**
 	 * Initialize.
 	 *
 	 * Also initialize services now. For reason why so late:
@@ -421,27 +461,16 @@ class Application
 
 		/**
 		 * -------------------------------------------------------------------------------------------------------------
-		 * Exceptions
+		 * Errors & Exceptions
 		 * @see Utils::errorHandler()
+		 * @see Application::exceptionHandler()
 		 */
-		set_error_handler( [ get_class( $this->Utils ), 'errorHandler' ] );
-
-		set_exception_handler( function ( \Throwable $E ) {
-
-			// Print all saved history logs
-			$this->Utils->writeln( implode( "\n", $this->getHistoryLogs() ), 2 );
-
-			/**
-			 * 1. Turn OFF printing log messages since we're going to print Exception anyway!
-			 * 2. Log full error + stack trace.
-			 *
-			 * @link https://symfony.com/doc/current/console/verbosity.html
-			 */
-			$this->Factory->cfg( 'log_verbose', $this->Logger::NONE );
-			$this->Logger->error( sprintf( '[%s] %s', get_class( $E ), $E->getMessage() ) );
-
-			$this->Utils->exceptionHandler( $E );
-		} );
+		if ( $this->Factory->get( 'err_handle' ) ) {
+			set_error_handler( [ get_class( $this->Utils ), 'errorHandler' ] );
+		}
+		if ( $this->Factory->get( 'exc_handle' ) ) {
+			set_exception_handler( [ static::class, 'exceptionHandler' ] );
+		}
 
 		$this->Logger = $this->Factory->Logger();
 		$this->setCliTitle();
