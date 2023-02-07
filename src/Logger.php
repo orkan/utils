@@ -24,14 +24,14 @@ class Logger
 	/*
 	 * Map Monolog levels.
 	 */
-	const DEBUG     = Monolog::DEBUG;
-	const INFO      = Monolog::INFO;
-	const NOTICE    = Monolog::NOTICE;
-	const WARNING   = Monolog::WARNING;
-	const ERROR     = Monolog::ERROR;
-	const CRITICAL  = Monolog::CRITICAL;
-	const ALERT     = Monolog::ALERT;
-	const EMERGENCY = Monolog::EMERGENCY;
+	const DEBUG     = LoggerNoop::DEBUG;
+	const INFO      = LoggerNoop::INFO;
+	const NOTICE    = LoggerNoop::NOTICE;
+	const WARNING   = LoggerNoop::WARNING;
+	const ERROR     = LoggerNoop::ERROR;
+	const CRITICAL  = LoggerNoop::CRITICAL;
+	const ALERT     = LoggerNoop::ALERT;
+	const EMERGENCY = LoggerNoop::EMERGENCY;
 
 	/* @formatter:on */
 
@@ -72,7 +72,7 @@ class Logger
 		$this->Factory = $Factory->merge( $this->defaults() );
 
 		// Provide at least verbose output if no logging to file available
-		if ( !class_exists( Monolog::class ) || !$Factory->get( 'log_file' ) ) {
+		if ( !class_exists( '\\Monolog\\Logger' ) || !$Factory->get( 'log_file' ) ) {
 			$this->Logger = new LoggerNoop();
 			return;
 		}
@@ -298,14 +298,14 @@ class Logger
 class LoggerNoop
 {
 	/* @formatter:off */
-	const DEBUG     = Logger::DEBUG;
-	const INFO      = Logger::INFO;
-	const NOTICE    = Logger::NOTICE;
-	const WARNING   = Logger::WARNING;
-	const ERROR     = Logger::ERROR;
-	const CRITICAL  = Logger::CRITICAL;
-	const ALERT     = Logger::ALERT;
-	const EMERGENCY = Logger::EMERGENCY;
+	const DEBUG     = 100;
+	const INFO      = 200;
+	const NOTICE    = 250;
+	const WARNING   = 300;
+	const ERROR     = 400;
+	const CRITICAL  = 500;
+	const ALERT     = 550;
+	const EMERGENCY = 600;
 	/* @formatter:on */
 
 	/**

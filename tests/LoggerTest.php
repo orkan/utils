@@ -62,6 +62,10 @@ class LoggerTest extends TestCase
 	 */
 	public function testCanFileWrite()
 	{
+		if ( !class_exists( '\\Monolog\\Logger' ) ) {
+			$this->markTestSkipped( 'The Monolog class is not available.' );
+		}
+
 		$logFile = sprintf( '%s/%s.log', self::DIR_TEMP, __FUNCTION__ );
 
 		$Factory = new Factory( [ 'log_file' => $logFile ] );
