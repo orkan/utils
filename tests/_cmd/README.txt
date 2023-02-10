@@ -1,4 +1,4 @@
-INSTALLATION v3.3.1:
+INSTALLATION v3.3.2:
 -------------
 1. composer require orkan/utils
 2. copy "vendor\orkan\utils\tests\_cmd" to your "vendor\[vendor_name]\[package_name]\tests\_cmd"

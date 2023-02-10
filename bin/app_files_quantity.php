@@ -41,7 +41,7 @@ $Utils = $Factory->Utils();
 $Logger = $Factory->Logger();
 
 // Clear log
-getenv( 'APP_RESET' ) && file_put_contents( $Logger->getFilename(), '' );
+getenv( 'APP_RESET' ) && @file_put_contents( $Logger->getFilename(), '' );
 $Logger->info( sprintf( "================[%s]================", $Factory->get( 'app_title' ) ) );
 
 /*

@@ -24,14 +24,14 @@ class Logger
 	/*
 	 * Map Monolog levels.
 	 */
-	const DEBUG     = LoggerNoop::DEBUG;
-	const INFO      = LoggerNoop::INFO;
-	const NOTICE    = LoggerNoop::NOTICE;
-	const WARNING   = LoggerNoop::WARNING;
-	const ERROR     = LoggerNoop::ERROR;
-	const CRITICAL  = LoggerNoop::CRITICAL;
-	const ALERT     = LoggerNoop::ALERT;
-	const EMERGENCY = LoggerNoop::EMERGENCY;
+	const DEBUG     = 100;
+	const INFO      = 200;
+	const NOTICE    = 250;
+	const WARNING   = 300;
+	const ERROR     = 400;
+	const CRITICAL  = 500;
+	const ALERT     = 550;
+	const EMERGENCY = 600;
 
 	/* @formatter:on */
 
@@ -169,7 +169,7 @@ class Logger
 			}
 		}
 
-		return 'n/a';
+		return '';
 	}
 
 	/**
@@ -297,17 +297,6 @@ class Logger
  */
 class LoggerNoop
 {
-	/* @formatter:off */
-	const DEBUG     = 100;
-	const INFO      = 200;
-	const NOTICE    = 250;
-	const WARNING   = 300;
-	const ERROR     = 400;
-	const CRITICAL  = 500;
-	const ALERT     = 550;
-	const EMERGENCY = 600;
-	/* @formatter:on */
-
 	/**
 	 * Do nothing if if logging is disabled.
 	 */
