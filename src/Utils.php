@@ -91,6 +91,40 @@ class Utils
 	}
 
 	/**
+	 * Merge exploded values.
+	 *
+	 * This is mainly used for HTTP headers created in format: 'key: value'.
+	 * If two or more headers starts with 'key: ...' the resulting header is: 'key: val1, val2, ...'
+	 * This method preserves only the last value, eg. 'key: val2'
+	 *
+	 * Example: arrayMergeValues(': ', Array( 'a: aaa', 'b: bbb' ), Array( 'a: xxx' ) )
+	 * Results: Array( 'a:xxx', 'b:bbb' )
+	 */
+	public static function arrayMergeValues( array $a1, array $a2, string $delimiter = ': ' ): array
+	{
+		if ( !$a1 ) {
+			return $a2;
+		}
+
+		if ( !$a2 ) {
+			return $a1;
+		}
+
+		$tmp = $out = [];
+
+		foreach ( array_merge( $a1, $a2 ) as $value ) {
+			$a = explode( $delimiter, $value );
+			$tmp[$a[0]] = $a[1] ?? '';
+		}
+
+		foreach ( $tmp as $k => $v ) {
+			$out[] = $k . $delimiter . $v;
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Randomize array (preserve keys).
 	 *
 	 * @link https://www.php.net/manual/en/function.uniqid.php
@@ -291,7 +325,7 @@ class Utils
 	 */
 	public static function dirClear( string $dir ): bool
 	{
-		if( self::dirRemove( $dir ) ) {
+		if ( self::dirRemove( $dir ) ) {
 			return mkdir( $dir, 0777, true );
 		}
 

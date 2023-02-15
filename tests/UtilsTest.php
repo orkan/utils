@@ -23,10 +23,14 @@ class UtilsTest extends TestCase
 	// Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests:
+	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 * @see Utils::timeString( $seconds, $precision )
 	 */
-	public function formatTimeProvider()
+	public function provideTimes()
 	{
 		/* @formatter:off */
 		return [
@@ -66,7 +70,24 @@ class UtilsTest extends TestCase
 		/* @formatter:on */
 	}
 
-	public function toBytesProvider()
+	/**
+	 * Convert size string to bytes.
+	 *
+	 * @dataProvider provideTimes
+	 */
+	public function testFormatTime( $seconds, $precision, $expect )
+	{
+		if ( null === $precision ) {
+			$actual = Utils::timeString( $seconds );
+		}
+		else {
+			$actual = Utils::timeString( $seconds, $precision );
+		}
+
+		$this->assertSame( $expect, $actual );
+	}
+
+	public function provideBytes()
 	{
 		/* @formatter:off */
 		return [
@@ -86,31 +107,10 @@ class UtilsTest extends TestCase
 		/* @formatter:on */
 	}
 
-	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests:
-	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 	/**
 	 * Convert size string to bytes.
 	 *
-	 * @dataProvider formatTimeProvider
-	 */
-	public function testFormatTime( $seconds, $precision, $expect )
-	{
-		if ( null === $precision ) {
-			$actual = Utils::timeString( $seconds );
-		}
-		else {
-			$actual = Utils::timeString( $seconds, $precision );
-		}
-
-		$this->assertSame( $expect, $actual );
-	}
-
-	/**
-	 * Convert size string to bytes.
-	 *
-	 * @dataProvider toBytesProvider
+	 * @dataProvider provideBytes
 	 */
 	public function testToBytes( $str, $expect )
 	{
@@ -197,6 +197,31 @@ class UtilsTest extends TestCase
 		$this->assertEquals( $playlistA, $playlistB, 'Content differs!' );
 		$this->assertNotSame( $playlistA, $playlistB, 'Same order! Note for false positive results. Try again!' );
 		$this->assertEquals( $playlistA[1], $playlistB[1], 'Lost key assigment!' );
+	}
+
+	/**
+	 *
+	 */
+	public function provideHttpHeaders()
+	{
+		/* @formatter:off */
+		return [
+			[ [ 'a: aaa', 'b: bbb' ],           [ 'a: xxx' ],   ': ',        [ 'a: xxx', 'b: bbb' ] ],
+			[   [ 'a=aaa', 'b=bbb' ],   [ 'b=xxx', 'c=ccc' ],    '=', [ 'a=aaa', 'b=xxx', 'c=ccc' ] ],
+			[ [ 'a -> 1', 'b -> 2' ],                     [], ' -> ',        [ 'a -> 1', 'b -> 2' ] ],
+			[                     [], [ 'a -> 1', 'b -> 2' ], ' -> ',        [ 'a -> 1', 'b -> 2' ] ],
+		];
+		/* @formatter:on */
+	}
+
+	/**
+	 * Merge exploded values.
+	 *
+	 * @dataProvider provideHttpHeaders
+	 */
+	public function testArrayMergeValues( $a1, $a2, $delimiter, $expect )
+	{
+		$this->assertSame( $expect, Utils::arrayMergeValues( $a1, $a2, $delimiter ) );
 	}
 }
 

@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = 'v3.3.2';
-	const APP_DATE = 'Fri, 10 Feb 2023 15:05:51 +01:00';
+	const APP_VERSION = 'v3.4.0';
+	const APP_DATE = 'Wed, 15 Feb 2023 17:14:12 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -52,10 +52,10 @@ class Application
 
 	/**
 	 * Required PHP extensions.
+	 *
+	 * @var array Array ( [extension_name] => (bool) verify, ... )
 	 */
-	const EXTENSIONS = [
-		//'name' => (bool) verify?
-	];
+	const EXTENSIONS = [];
 
 	/*
 	 * Translate Verbosity levels from cmd line.
@@ -203,7 +203,13 @@ class Application
 	public function setVerbosity( array $map = [] )
 	{
 		$map = $map ?: static::VERBOSITY;
-		$level = null !== $this->getArg( 'quiet' ) ? static::VERBOSITY_QUIET : min( max( 0, $this->getArg( 'verbose' ) ), 3 );
+
+		/* @formatter:off */
+		$level = null !== $this->getArg( 'quiet' ) ?
+			static::VERBOSITY_QUIET :
+			min( max( static::VERBOSITY_NORMAL, $this->getArg( 'verbose' ) ), static::VERBOSITY_DEBUG );
+		/* @formatter:on */
+
 		$this->Factory->cfg( 'log_verbose', $map[$level] );
 	}
 
@@ -416,17 +422,22 @@ class Application
 	 */
 	public function exceptionHandler( \Throwable $E ): void
 	{
+		$this->exceptionPrintLog( $E );
 		$this->exceptionPrint( $E );
+
 		exit( $E->getCode() ?: 1 );
 	}
 
 	/**
-	 * Print formated Exception message.
-	 *
-	 * @param bool $log Write error log file?
+	 * Print Logger saved extra logs and write current Exception.
 	 */
-	public function exceptionPrint( \Throwable $E, bool $log = true ): void
+	public function exceptionPrintLog( \Throwable $E ): void
 	{
+		// Return if no services available
+		if ( !$this->Utils || !$this->Logger ) {
+			return;
+		}
+
 		// Print all saved history logs
 		$this->Utils->writeln( implode( "\n", $this->getHistoryLogs() ), 2 );
 
@@ -438,8 +449,38 @@ class Application
 		 */
 		$this->Factory->cfg( 'log_verbose', $this->Logger::NONE );
 		$this->Logger->error( sprintf( '[%s] %s', get_class( $E ), $E->getMessage() ) );
+	}
 
-		$this->Utils->exceptionPrint( $E );
+	/**
+	 * Print formated Exception message.
+	 *
+	 * NOTE:
+	 * This is a copy of Utils::exceptionPrint() hardcoded here
+	 * since $this->Utils might not be available at early stages of App init.
+	 * @see Utils::exceptionPrint()
+	 *
+	 * @param bool $log Write error log file?
+	 */
+	public function exceptionPrint( \Throwable $E, bool $log = true ): void
+	{
+		if ( defined( 'DEBUG' ) && DEBUG ) {
+			print $E;
+		}
+		else {
+			$projectDir = dirname( __DIR__, 4 );
+			$srcFile = substr( $E->getFile(), strlen( $projectDir ) );
+
+			/* @formatter:off */
+			printf( "\nIn ...%s:%d\n\n  [%s]\n  %s\n\n",
+				$srcFile,
+				$E->getLine(),
+				get_class( $E ),
+				trim( $E->getMessage() ), // prefixed with new line!
+			);
+			/* @formatter:on */
+		}
+
+		$log && error_log( $E );
 	}
 
 	/**
