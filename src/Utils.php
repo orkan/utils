@@ -549,6 +549,61 @@ class Utils
 	}
 
 	/**
+	 * Convert EXIF gps data to decimal location.
+	 *
+	 * This method expects flatten EXIF results (no sections)
+	 * @see exif_read_data()
+	 *
+	 * @return Array ( [lat] => 12.567, [lon] => -34.567 )
+	 */
+	public static function exifGpsToLoc( array $exif ): array
+	{
+		/* @formatter:off */
+		$gps = [
+			// Latitude: N, S
+			'lat'   => strtoupper( trim( $exif['GPSLatitudeRef'] ?? null ) ),
+			'lat_d' => explode( '/', $exif['GPSLatitude'][0] ?? null ),
+			'lat_m' => explode( '/', $exif['GPSLatitude'][1] ?? null ),
+			'lat_s' => explode( '/', $exif['GPSLatitude'][2] ?? null ),
+			// Longitude: W, E
+			'lon'   => strtoupper( trim( $exif['GPSLongitudeRef'] ?? null ) ),
+			'lon_d' => explode( '/', $exif['GPSLongitude'][0] ?? null ),
+			'lon_m' => explode( '/', $exif['GPSLongitude'][1] ?? null ),
+			'lon_s' => explode( '/', $exif['GPSLongitude'][2] ?? null ),
+		];
+		/* @formatter:on */
+
+		foreach ( $gps as $k => $v ) {
+			if ( is_string( $v ) && in_array( $v, [ 'N', 'E' ] ) ) {
+				$gps[$k] = 1;
+			}
+			elseif ( is_string( $v ) && in_array( $v, [ 'S', 'W' ] ) ) {
+				$gps[$k] = -1;
+			}
+			elseif ( is_array( $v ) && 2 === count( $v ) ) {
+				$gps[$k] = $v[0] / $v[1];
+			}
+			else {
+				return []; // invalid entry!
+			}
+		}
+
+		/**
+		 * NOTE:
+		 * 4 decimal places is accurate to 11.1  meters (+/- 5.55 m) at the equator.
+		 * 5 decimal places is accurate to  1.11 meters at the equator.
+		 * 6 decimal places is accurate to 0.111 meters at the equator.
+		 * @link http://wiki.gis.com/wiki/index.php/Decimal_degrees
+		 *
+		 * formatter:off */
+		return [
+			'lat' => round( $gps['lat'] * ( $gps['lat_d'] + $gps['lat_m'] / 60 + $gps['lat_s'] / 3600 ), 6 ),
+			'lon' => round( $gps['lon'] * ( $gps['lon_d'] + $gps['lon_m'] / 60 + $gps['lon_s'] / 3600 ), 6 ),
+		];
+		/* @formatter:on */
+	}
+
+	/**
 	 * Get file extension.
 	 *
 	 * @param  string $file Name / path
@@ -704,35 +759,39 @@ class Utils
 	}
 
 	/**
-	 * Fancy array print.
+	 * Fancy expression print.
 	 *
+	 * @param mixed $exp    Expression to print: array|object|string|float|etc...
 	 * @param bool  $simple Remove objects?
 	 * @param array $keys   Keys replacements
 	 */
-	public static function print_r( array $array, bool $simple = true, array $keys = [] ): string
+	public static function print_r( $exp, bool $simple = true, array $keys = [] ): string
 	{
-		foreach ( $array as $k => $v ) {
-			// Replace bolean values
-			if ( is_bool( $v ) ) {
-				$array[$k] = $v ? 'true' : 'false';
+		if ( is_array( $exp ) ) {
+
+			foreach ( $exp as $k => $v ) {
+				// Replace bolean values
+				if ( is_bool( $v ) ) {
+					$exp[$k] = $v ? 'true' : 'false';
+				}
+				// Replace each Object in array with class name string
+				else if ( $simple && is_object( $v ) ) {
+					$exp[$k] = '(Object) ' . get_class( $v );
+				}
 			}
-			// Replace each Object in array with class name string
-			else if ( $simple && is_object( $v ) ) {
-				$array[$k] = '(Object) ' . get_class( $v );
+
+			// Replace keys
+			if ( $keys ) {
+				$new = [];
+				foreach ( $exp as $k => $v ) {
+					$key = $keys[$k] ?? $k; // Missing replacement - use old key!
+					$new[$key] = $v;
+				}
+				$exp = $new;
 			}
 		}
 
-		// Replace keys
-		if ( $keys ) {
-			$new = [];
-			foreach ( $array as $k => $v ) {
-				$key = $keys[$k] ?? $k; // Missing replacement - use old key!
-				$new[$key] = $v;
-			}
-			$array = $new;
-		}
-
-		$str = print_r( $array, true );
+		$str = print_r( $exp, true );
 		$str = str_replace( [ "\r", "\n" ], ' ', $str ); // remove line breaks
 		$str = preg_replace( '/[ ]{2,}/', ' ', $str ); // remove double spacess
 

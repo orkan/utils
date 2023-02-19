@@ -223,6 +223,92 @@ class UtilsTest extends TestCase
 	{
 		$this->assertSame( $expect, Utils::arrayMergeValues( $a1, $a2, $delimiter ) );
 	}
+
+	/**
+	 * exif[GPS]
+	 * @link https://www.gps-coordinates.net/gps-coordinates-converter
+	 */
+	public function provideExifGps()
+	{
+		/* @formatter:off */
+		return [
+			'N 54, E 18' => [
+				[
+					'GPSLatitudeRef'  => 'N', 'GPSLatitude'  => [ '54/1', '24/1', '29/1' ],
+					'GPSLongitudeRef' => 'E', 'GPSLongitude' => [ '18/1', '37/1', '12/1' ],
+				],
+				[ 'lat' => 54.408056, 'lon' => 18.62 ],
+			],
+			'N 56, W 158' => [
+				[
+					'GPSLatitudeRef'  => 'N', 'GPSLatitude'  => [  '56/1', '59/1', '45865/1000' ],
+					'GPSLongitudeRef' => 'W', 'GPSLongitude' => [ '158/1', '44/1', '1607/1000' ],
+				],
+				[ 'lat' => 56.996074, 'lon' => -158.733780 ],
+			],
+			'S 0, e 2' => [
+				[
+					'GPSLatitudeRef'  => 'S', 'GPSLatitude'  => [ '0/1', '28/1', '761/100'    ],
+					'GPSLongitudeRef' => 'e', 'GPSLongitude' => [ '2/1', '38/1', '267/1000' ],
+				],
+				[ 'lat' => -0.468781, 'lon' => 2.633408 ],
+			],
+			's 35, E 146' => [
+				[
+					'GPSLatitudeRef'  => 's', 'GPSLatitude'  => [  '35/1', '19/1', '10726/1000' ],
+					'GPSLongitudeRef' => 'E', 'GPSLongitude' => [ '146/1',  '4/1', '15267/1000' ],
+				],
+				[ 'lat' => -35.319646, 'lon' => 146.070908 ],
+			],
+			'S 51, W 71' => [
+				[
+					'GPSLatitudeRef'  => 'S', 'GPSLatitude'  => [ '51/1', '53/1', '17387/1000' ],
+					'GPSLongitudeRef' => 'W', 'GPSLongitude' => [ '71/1', '43/1', '19419/1000' ],
+				],
+				[ 'lat' => -51.888163, 'lon' => -71.722061 ],
+			],
+		];
+		/* @formatter:on */
+	}
+
+	/**
+	 * Convert EXIF gps data to decimal location.
+	 *
+	 * @dataProvider provideExifGps
+	 */
+	public function testExifGpsToLoc( $gps, $expect )
+	{
+		$this->assertSame( $expect, Utils::exifGpsToLoc( $gps ) );
+	}
+
+	/**
+	 * Convert EXIF with invalid gps data.
+	 */
+	public function testExifGpsInvalid()
+	{
+		$exif = [ 'TestCase' => __METHOD__ ];
+		$this->assertSame( [], Utils::exifGpsToLoc( $exif ) );
+
+		$exif['GPSLatitude'] = [ '54/1', '24/1', '29/1' ];
+		$this->assertSame( [], Utils::exifGpsToLoc( $exif ) );
+
+		$exif['GPSLongitude'] = [ '5/4/1', '24/1', '29/1' ];
+		$this->assertSame( [], Utils::exifGpsToLoc( $exif ) );
+
+		$exif['GPSLongitude'] = [ '54/1' ];
+		$this->assertSame( [], Utils::exifGpsToLoc( $exif ) );
+
+		$exif['GPSLatitudeRef'] = 'U';
+		$this->assertSame( [], Utils::exifGpsToLoc( $exif ) );
+
+		$exif = $this->provideExifGps()['S 51, W 71'][0];
+		unset( $exif['GPSLongitude'][1] );
+		$this->assertSame( [], Utils::exifGpsToLoc( $exif ) );
+
+		$exif = $this->provideExifGps()['N 54, E 18'][0];
+		$exif['GPSLatitudeRef'] = 'X';
+		$this->assertSame( [], Utils::exifGpsToLoc( $exif ) );
+	}
 }
 
 /**

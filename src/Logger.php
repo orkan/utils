@@ -92,6 +92,11 @@ class Logger
 				return $entry;
 			} );
 		}
+
+		// Reset log file
+		if ( $Factory->cfg( 'log_reset' ) ) {
+			@unlink( $this->getFilename() );
+		}
 	}
 
 	/**
@@ -109,6 +114,9 @@ class Logger
 		 * [log_keep]
 		 * @see \Monolog\Handler\RotatingFileHandler::__construct( $maxFiles )
 		 *
+		 * [log_reset]
+		 * Empty previous log file
+		 *
 		 * [log_history]
 		 * Min. log level to save in history. 0 == OFF
 		 * Array (
@@ -125,6 +133,7 @@ class Logger
 			'log_format'    => "[%datetime%] %level_name%: %message%\n",
 			'log_datetime'  => 'Y-m-d H:i:s',
 			'log_keep'      => 5,
+			'log_reset'     => false,
 			'log_level'     => self::INFO,
 			'log_history'   => self::NONE,
 			'log_verbose'   => self::NONE,
@@ -297,6 +306,7 @@ class Logger
  */
 class LoggerNoop
 {
+
 	/**
 	 * Do nothing if if logging is disabled.
 	 */
