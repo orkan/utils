@@ -595,7 +595,8 @@ class Utils
 		 * 6 decimal places is accurate to 0.111 meters at the equator.
 		 * @link http://wiki.gis.com/wiki/index.php/Decimal_degrees
 		 *
-		 * formatter:off */
+		 */
+		/* @formatter:off */
 		return [
 			'lat' => round( $gps['lat'] * ( $gps['lat_d'] + $gps['lat_m'] / 60 + $gps['lat_s'] / 3600 ), 6 ),
 			'lon' => round( $gps['lon'] * ( $gps['lon_d'] + $gps['lon_m'] / 60 + $gps['lon_s'] / 3600 ), 6 ),
@@ -767,7 +768,9 @@ class Utils
 	 */
 	public static function print_r( $exp, bool $simple = true, array $keys = [] ): string
 	{
-		if ( is_array( $exp ) ) {
+		if ( is_array( $exp ) || is_object( $exp ) ) {
+
+			$exp = (array) $exp;
 
 			foreach ( $exp as $k => $v ) {
 				// Replace bolean values
