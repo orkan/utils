@@ -71,62 +71,77 @@ class InputTest extends \PHPUnit\Framework\TestCase
 	/**
 	 * @see Input::filterText()
 	 * @see Input::filterTextarea()
+	 *
+	 * \PC  : visible characters
+	 * \PCc : control characters
+	 * \PCn : unassigned characters
+	 * \PCs : UTF-8-invalid characters
+	 * \PCf : formatting characters
+	 *
+	 * @link https://en.wikipedia.org/wiki/List_of_Unicode_characters
+	 * @link https://www.regular-expressions.info/unicode.html#category
 	 */
 	public function valueProvider()
 	{
 		/* @formatter:off */
 		return [
 			// alpha
-			'text: [abc]'     => [ 'text'    , 'abc', 'abc' ],
+			'text:     [abc]' => [ 'text'    , 'abc', 'abc' ],
 			'textarea: [abc]' => [ 'textarea', 'abc', 'abc' ],
 			// non-alpha
-			'text: [<a>-b|c&nbsp;]'     => [ 'text'    , '<a>-b|c&nbsp;]', '<a>-b|c&nbsp;]' ],
+			'text:     [<a>-b|c&nbsp;]' => [ 'text'    , '<a>-b|c&nbsp;]', '<a>-b|c&nbsp;]' ],
 			'textarea: [<a>-b|c&nbsp;]' => [ 'textarea', '<a>-b|c&nbsp;]', '<a>-b|c&nbsp;]' ],
 			// numbers
-			'text: [123]'     => [ 'text'    , '123', '123' ],
+			'text:     [123]' => [ 'text'    , '123', '123' ],
 			'textarea: [123]' => [ 'textarea', '123', '123' ],
 			// alpha+num
-			'text: [a1b2c3]'     => [ 'text'    , 'a1b2c3', 'a1b2c3' ],
+			'text:     [a1b2c3]' => [ 'text'    , 'a1b2c3', 'a1b2c3' ],
 			'textarea: [a1b2c3]' => [ 'textarea', 'a1b2c3', 'a1b2c3' ],
 			// trim
-			'text: [ abc ]'     => [ 'text'    , ' a1c ', 'a1c' ],
+			'text:     [ abc ]' => [ 'text'    , ' a1c ', 'a1c' ],
 			'textarea: [ abc ]' => [ 'textarea', ' a1c ', 'a1c' ],
+			'text:     [\x0A\x0D]'  => [ 'text'    , "\x0A\x0D", '' ],
+			'textarea: [\x0A\x0D]'  => [ 'textarea', "\x0A\x0D", '' ],
 			// html
-			'text: [<a>bc]'     => [ 'text'    , '<a>bc', '<a>bc' ],
+			'text:     [<a>bc]' => [ 'text'    , '<a>bc', '<a>bc' ],
 			'textarea: [<a>bc]' => [ 'textarea', '<a>bc', '<a>bc' ],
 			// new line
-			'text: [a{\n}bc]'     => [ 'text'    , "a\nbc", 'a bc'   ],
-			'textarea: [a{\n}bc]' => [ 'textarea', "a\nbc", "a\nbc" ],
+			'text:     [a\nbc]' => [ 'text'    , "a\nbc", 'a bc'   ],
+			'textarea: [a\nbc]' => [ 'textarea', "a\nbc", "a\nbc" ],
 			// tab
-			'text: [a{\t}bc]'     => [ 'text'    , "a\tbc", 'a bc'   ],
-			'textarea: [a{\t}bc]' => [ 'textarea', "a\tbc", "a\tbc" ],
-			// special
-			'text: [a\u{0019}bc]'     => [ 'text'    , "a\u{0019}bc", 'abc' ],
-			'textarea: [a\u{0019}bc]' => [ 'textarea', "a\u{0019}bc", 'abc' ],
-			// mix
-			'text: [ a\u{00D8}b\t\t\n c]'     => [ 'text'    , "a\u{00D8}b c", "a\u{00D8}b c" ],
-			'textarea: [ a\u{00D8}b\t\t\n c]' => [ 'textarea', "a\u{00D8}b c", "a\u{00D8}b c" ],
+			'text:     [a\tbc]' => [ 'text'    , "a\tbc", 'a bc'  ],
+			'textarea: [a\tbc]' => [ 'textarea', "a\tbc", "a\tbc" ],
+			// double spaces
+			'text:     [a  b]' => [ 'text'    , "a  b", 'a b'  ],
+			'textarea: [a  b]' => [ 'textarea', "a  b", 'a  b' ],
+			'text:     [a\r\nb]' => [ 'text'    , "a\r\nb", 'a b'    ],
+			'textarea: [a\r\nb]' => [ 'textarea', "a\r\nb", "a\r\nb" ],
 			/*
-			 * Control chars. Note for trim()'ing !
-			 * [Keep]
+			 * Latin-1 Supplement
+			 * \u{00D8} - Ã?
+			 */
+			'text:     [a\u{00D8}b c]' => [ 'text'    , "a\u{00D8}b c", "a\u{00D8}b c" ],
+			'textarea: [a\u{00D8}b c]' => [ 'textarea', "a\u{00D8}b c", "a\u{00D8}b c" ],
+			'text:     [ a\u{00D8}b\t\t\n c]' => [ 'text'    , " a\u{00D8}b\t\t\n c", "a\u{00D8}b c" ],
+			'textarea: [ a\u{00D8}b\t\t\n c]' => [ 'textarea', " a\u{00D8}b\t\t\n c", "a\u{00D8}b\t\t\n c" ],
+			/*
+			 * Formating characters
 			 * \x0A - Line Feed
 			 * \x0D - Carriage Return
 			 * \x0B - Vertical Tab
 			 */
-			'text: [[\x0A\x0D]]'     => [ 'text'    , "[\x0A\x0D]", "[ ]" ],
-			'textarea: [[\x0A\x0D]]' => [ 'textarea', "[\x0A\x0D]", "[\x0A\x0D]" ],
+			'text:     [\x0A\x0D]' => [ 'text'    , "[\x0A\x0D]", "[ ]" ],
+			'textarea: [\x0A\x0D]' => [ 'textarea', "[\x0A\x0D]", "[\x0A\x0D]" ],
 			/*
-			 * [Skip]
+			 * Control characters
 			 * \x00 - Null char
 			 * \x10 - Back Space
+			 * \u{0019} - Ctrl-Y
 			 */
-			'text: [[\x00\x10]]'     => [ 'text'    , "[\x00\x10]", "[]" ],
-			'textarea: [[\x00\x10]]' => [ 'textarea', "[\x00\x10]", "[]" ],
-			/*
-			 * [Trim]
-			 */
-			'text: [\x0A\x0D]'     => [ 'text'    , "\x0A\x0D", '' ],
-			'textarea: [\x0A\x0D]' => [ 'textarea', "\x0A\x0D", '' ],
+			'text:     [\x00\x10]'    => [ 'text'    , "[\x00\x10]", "[]" ],
+			'textarea: [\x00\x10]'    => [ 'textarea', "[\x00\x10]", "[]" ],
+			'text:     [a\u{0019}bc]' => [ 'text'    , "a\u{0019}bc", 'abc' ],
+			'textarea: [a\u{0019}bc]' => [ 'textarea', "a\u{0019}bc", 'abc' ],
 		];
 		/* @formatter:on */
 	}

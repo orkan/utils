@@ -1096,27 +1096,20 @@ class Input
 	}
 
 	/**
-	 * Remove all white space characters (including line breaks).
+	 * Remove all non printable characters. Replace formating characters to spaces.
 	 * @link https://stackoverflow.com/questions/1497885/remove-control-characters-from-php-string
-	 *
-	 * \PC  : visible characters
-	 * \PCc : control characters
-	 * \PCn : unassigned characters
-	 * \PCs : UTF-8-invalid characters
-	 * \PCf : formatting characters
 	 */
 	public static function filterText( string $value ): string
 	{
+		$value = preg_replace( '~[^\PC\s]~u', '', $value );
 		$value = str_replace( [ "\r", "\n", "\t" ], ' ', $value );
-		$value = preg_replace( '~[^\PCc\PCn\PCs ]~u', '', $value );
 		$value = preg_replace( '~ +~', ' ', $value );
 		$value = trim( $value );
 		return $value;
 	}
 
 	/**
-	 * Remove all control characters (except white spaces).
-	 * @link https://stackoverflow.com/questions/1497885/remove-control-characters-from-php-string
+	 * Remove all non printable characters. Keep formating characters.
 	 */
 	public static function filterTextarea( string $value ): string
 	{

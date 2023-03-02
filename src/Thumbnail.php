@@ -818,7 +818,7 @@ class Thumbnail
 		if ( !isset( $this->cache['image'] ) ) {
 			/*
 			 * ---------------------------------------------------------------------------------------------------------
-			 * Get Orig stream
+			 * Get stream
 			 */
 			if ( is_file( $file = $this->path( self::TYPE_ORIG ) ) ) {
 				$Stream = fopen( $file, 'r+' ); // file://path
@@ -826,14 +826,13 @@ class Thumbnail
 			elseif ( is_callable( $filter = $this->get( 'filter_orig_get' ) ) ) {
 				$Stream = $filter( $this->idx(), [ 'stream' => true ] )['stream']; // php://memory
 			}
-
-			if ( !isset( $Stream ) ) {
-				throw new \RuntimeException( sprintf( 'Empty orig Stream #%s', $this->idx() ) );
+			else {
+				throw new \RuntimeException( sprintf( 'Orig stream not found for IDX: %s', $this->idx() ) );
 			}
 
 			/*
 			 * ---------------------------------------------------------------------------------------------------------
-			 * Save Orig data
+			 * Create image
 			 */
 			rewind( $Stream );
 			$this->cache['image'] = imageCreateFromString( stream_get_contents( $Stream ) );
