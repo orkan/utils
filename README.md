@@ -1,4 +1,4 @@
-# Utils `v3.7.0`
+# Utils `v3.8.0`
 Bunch of scripts collected from all around the HDD
 
 # Console app
@@ -18,14 +18,14 @@ $App = new Application( $Factory );
 $App->run();
 
 // Do something!
-$Factory->Logger->notice( 'Hello from ' . $Factory->get( 'app_title' ) );
+$Factory->Logger()->notice( 'Hello from ' . $Factory->get( 'app_title' ) );
 ```
 See included tools in /bin dir for more examples.
 
-# FORM Input
+# FORM Input generator
 `src/Input.php`
 
-HTML/PHP `<form>` inputs parser.
+HTML/PHP `<form>` input parser.
 Allows automatic import of values form POST like data arrays with value filtering.
 Allows rendering html input elements straight from php array.
 
@@ -87,4 +87,4 @@ foreach ( $fields as $name => $field ) {
 [Orkan](https://github.com/orkan)
 
 ### Updated
-Thu, 02 Mar 2023 18:13:56 +01:00
+Sun, 05 Mar 2023 17:31:18 +01:00

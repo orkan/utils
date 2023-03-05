@@ -79,11 +79,11 @@ class Inputs
 	}
 
 	/**
-	 * Get Input from collection.
+	 * Find Input in collection.
 	 */
 	public function get( string $name ): ?Input
 	{
-		return $this->Inputs[$name] ?? null;
+		return Input::inputsFind( $name, $this->Inputs );
 	}
 
 	/**

@@ -12,7 +12,7 @@ namespace Orkan;
  */
 trait Config
 {
-	protected $cfg;
+	protected $cfg = [];
 
 	/**
 	 * Set/Get config value.

@@ -118,7 +118,7 @@ class InputTest extends \PHPUnit\Framework\TestCase
 			'textarea: [a\r\nb]' => [ 'textarea', "a\r\nb", "a\r\nb" ],
 			/*
 			 * Latin-1 Supplement
-			 * \u{00D8} - Ã?
+			 * \u{00D8} - ï¿½?
 			 */
 			'text:     [a\u{00D8}b c]' => [ 'text'    , "a\u{00D8}b c", "a\u{00D8}b c" ],
 			'textarea: [a\u{00D8}b c]' => [ 'textarea', "a\u{00D8}b c", "a\u{00D8}b c" ],
@@ -202,6 +202,46 @@ class InputTest extends \PHPUnit\Framework\TestCase
 
 		// Not found
 		$this->assertSame( [], Input::fieldFind( 'name3', $fields ) );
+	}
+
+	/**
+	 * Recursively find Input by name.
+	 */
+	public function canFindInputByName()
+	{
+		/* @formatter:off */
+		$fields = [
+			'name1' => [
+				'type'  => 'text',
+				'order' => 200,
+			],
+			'name2' => [
+				'type'  => 'group',
+				'order' => 100,
+				'items' => [
+					'name21' => [
+						'type'  => 'checkbox',
+						'label' => 'Name 21',
+					],
+					'name22' => [
+						'type' => 'checkbox',
+						'label' => 'Name 22',
+					],
+				],
+			],
+		];
+
+		$inputs = [
+			'name1' => new Input( $fields['name1'] ),
+			'name2' => new Input( $fields['name2'] ),
+		];
+		/* @formatter:on */
+
+		$this->assertSame( $inputs['name1'], Input::inputsFind( 'name1', $inputs ) );
+		$this->assertSame( $inputs['name2'], Input::inputsFind( 'name2', $inputs ) );
+		$this->assertSame( $inputs['name2']->elements()['name21'], Input::inputsFind( 'name21', $inputs ) );
+		$this->assertSame( $inputs['name2']->elements()['name22'], Input::inputsFind( 'name22', $inputs ) );
+		$this->assertNull( Input::inputsFind( 'miss', $inputs ) );
 	}
 
 	/**

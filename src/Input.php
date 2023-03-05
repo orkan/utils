@@ -1047,7 +1047,7 @@ class Input
 	public static function inputsFind( string $name, array $inputs ): ?self
 	{
 		foreach ( $inputs as $Input ) {
-			$elements = self::inputsAll( $Input->elements( false ), false );
+			$elements = self::inputsAll( $Input->elements( true ), true );
 			foreach ( $elements as $Element ) {
 				if ( $Element->name() === $name ) {
 					return $Element;
