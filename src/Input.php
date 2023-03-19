@@ -99,8 +99,14 @@ class Input
 				$value = $values[$nameP] ?? $values[$nameH] ?? null;
 			}
 
+			// Verify item exists
+			if ( isset( $value ) && isset( $this->attr['items'] ) ) {
+				$value = isset( $this->attr['items'][$value] ) ? $value : null;
+			}
+
 			$defVal = $this->attr['defval'] = (array) ( $attr['defval'] ?? []);
 			$defKey = array_key_first( $this->attr['items'] ?? []) ?? '';
+
 			$this->attr['value'] = $value ?? $defVal[0] ?? $defKey;
 		}
 
@@ -241,7 +247,7 @@ class Input
 	/**
 	 * Set/Get input value.
 	 *
-	 * Value is always build before returning it.
+	 * Value is always build before is returned.
 	 * The setter returns old value.
 	 */
 	public function val( $val = null )
@@ -1259,85 +1265,6 @@ class Input
 			'<div id="%1$s_div"></div>',
 			/*1*/ $this->get( 'id' ),
 			/*2*/ self::escHtml( $this->get( 'button', 'Start' ) ), // Button title!
-		);
-		/* @formatter:on */
-	}
-
-	/**
-	 * <input type="text"> <button></button>
-	 */
-	protected function inputAutofill()
-	{
-		/* @formatter:off */
-		return sprintf(
-			'<input type="text" id="%1$s" name="%2$s" placeholder="%3$s"%5$s> ' .
-			'<button id="%1$s_button" type="button" class="button">%4$s</button> ' .
-			'<span id="%1$s_spin" class="spinner inline"></span> ' .
-			'<span id="%1$s_ajax"></span>',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ '', // Do NOT include in POST data!
-			/*3*/ self::escAttr( $this->get( 'hint' ) ),
-			/*4*/ self::escHtml( $this->get( 'button', 'Search' ) ), // Button title!
-			/*5*/ $this->getAttr( 'class', 'regular-text code' ),
-		);
-		/* @formatter:on */
-	}
-
-	/**
-	 * <input Autocomplete> || <span Show> <button Edit>
-	 *
-	 * Tips:
-	 * @link https://stackoverflow.com/questions/574941/best-way-to-track-onchange-as-you-type-in-input-type-text
-	 * <input onChange="alert('onChange!')" onKeyPress="this.onChange()" onPaste="this.onChange()" onInput="this.onChange()">
-	 * $().on('change keydown paste input', function() {})
-	 */
-	protected function inputAutoterm()
-	{
-		$isEdit = empty( $this->get( 'link' ) );
-
-		/* @formatter:off */
-		return sprintf(
-			'<input type="text" id="%1$s" name="%2$s" value="%3$s" placeholder="%6$s"%8$s%9$s>' .
-			'<input type="hidden" id="%1$s_slug" name="%2$s_slug" value="%4$s"> ' .
-			'<span id="%1$s_link"%10$s>%5$s</span> ' .
-			'<button id="%1$s_button" type="button"%10$s>%7$s</button> ' .
-			'<span id="%1$s_ajax"></span>',
-			/* 1*/ $this->get( 'id' ),
-			/* 2*/ $this->name(),
-			/* 3*/ self::escAttr( $this->val() ),
-			/* 4*/ self::escAttr( $this->get( 'slug' ) ),
-			/* 5*/ $this->get( 'link' ),
-			/* 6*/ self::escAttr( $this->get( 'hint' ) ),
-			/* 7*/ self::escHtml( $this->get( 'button', 'Edit' ) ),
-			/* 8*/ $this->getAttr( 'class', 'regular-text code' ),
-			/* 9*/ $isEdit ? '' : ' style="display:none"', // style: input
-			/*10*/ $isEdit ? ' style="display:none"' : '', // style: link, button
-		);
-		/* @formatter:on */
-	}
-
-	/**
-	 * <div><attachment>, <attachment>, ... </div>
-	 * <button></button> <input type="hidden">
-	 */
-	protected function inputAttachment()
-	{
-		/* @formatter:off */
-		return sprintf( '
-<div class="media-frame wp-core-ui mode-grid">
-	<div class="media-frame-content" data-columns="6">
-		<ul id="%1$s_attachments" class="attachments"></ul>
-	</div>
-</div>
-<div class="adb-media-toolbar">
-	<button id="%1$s_button" type="button" class="button">%3$s</button>
-	<input type="hidden" id="%1$s" name="%2$s" value="%4$s">
-</div>
-',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ $this->name(),
-			/*3*/ self::escHtml( $this->get( 'button', 'Open' ) ),
-			/*4*/ self::escAttr( $this->val() ),
 		);
 		/* @formatter:on */
 	}

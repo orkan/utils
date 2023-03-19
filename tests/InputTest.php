@@ -644,4 +644,59 @@ class InputTest extends \PHPUnit\Framework\TestCase
 
 		$this->assertSame( $expect, $actual );
 	}
+
+	/**
+	 * Validate select|radio value present as items key when guessing from values array.
+	 *
+	 */
+	public function testCanVerifyItemsValue()
+	{
+		/* @formatter:off */
+		$field = [
+			'type'   => 'group',
+			'name'   => 'sortby',
+			'items'  => [
+				'sort' => [
+					'type'   => 'select',
+					'items'  => [
+						'id'   => 'Image ID',
+						'user' => 'User ID',
+						'date' => 'Date published',
+					],
+				],
+				'order' => [
+					'type'   => 'radio',
+					'items'  => [
+						'asc'  => 'Asc',
+						'desc' => 'Desc',
+					],
+				],
+			],
+		];
+		/* @formatter:on */
+
+		// Guess default values
+		$Input = new Input( $field );
+		$this->assertSame( 'id', Input::inputsFind( 'sort', $Input->elements() )->val() );
+		$this->assertSame( 'asc', Input::inputsFind( 'order', $Input->elements() )->val() );
+
+		// Valid values
+		$Input = new Input( $field, [ 'sort' => 'user', 'order' => 'desc' ] );
+		$this->assertSame( 'user', Input::inputsFind( 'sort', $Input->elements() )->val() );
+		$this->assertSame( 'desc', Input::inputsFind( 'order', $Input->elements() )->val() );
+
+		// Invalid values - fall back to default (first key)
+		$Input = new Input( $field, [ 'sort' => 'user2', 'order' => 'desc2' ] );
+		$this->assertSame( 'id', Input::inputsFind( 'sort', $Input->elements() )->val() );
+		$this->assertSame( 'asc', Input::inputsFind( 'order', $Input->elements() )->val() );
+
+		// Group: Invalid value - fall back to default (first item name)
+		$Input = new Input( $field, [ 'sortby' => 'all' ] );
+		$this->assertSame( 'sort', $Input->val() );
+
+		// Hardcoded value - pass!
+		$field['value'] = 'let me go!';
+		$Input = new Input( $field );
+		$this->assertSame( $field['value'], $Input->val() );
+	}
 }
