@@ -563,6 +563,7 @@ class Input
 				case 'textarea':
 				case 'number':
 				case 'date':
+				case 'datetime':
 					$val = addslashes( $defVal );
 					$js = sprintf( 'jQuery( "#%s" ).val( "%s" )', $this->get( 'id' ), $val );
 					break;
@@ -1447,6 +1448,27 @@ class Input
 		/* @formatter:off */
 		return sprintf(
 			'<input type="date" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s%6$s%7$s%8$s>%9$s',
+			/*1*/ $this->get( 'id' ),
+			/*2*/ $this->name(),
+			/*3*/ self::escAttr( $this->val() ),
+			/*4*/ $this->getAttr( 'min' ),
+			/*5*/ $this->getAttr( 'max' ),
+			/*6*/ $this->getAttr( 'step' ),
+			/*7*/ $this->getAttr( 'class' ),
+			/*8*/ $this->getAttr( 'disabled' ),
+			/*9*/ self::escHtml( $this->get( 'tag' ) ),
+		);
+		/* @formatter:on */
+	}
+
+	/**
+	 * <input type="datetime-local">
+	 */
+	protected function inputDateTime()
+	{
+		/* @formatter:off */
+		return sprintf(
+			'<input type="datetime-local" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s%6$s%7$s%8$s>%9$s',
 			/*1*/ $this->get( 'id' ),
 			/*2*/ $this->name(),
 			/*3*/ self::escAttr( $this->val() ),

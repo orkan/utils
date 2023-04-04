@@ -99,7 +99,7 @@ class DebugStarter
 		}
 
 		if ( $switches['server_info'] ?? false) {
-			print_r( $_SERVER );
+			echo '$_SERVER: ' . print_r( $_SERVER, true );
 		}
 
 		if ( $switches['php_info'] ?? false) {
