@@ -838,7 +838,7 @@ class Utils
 	 * @param  string $_input TESTING: Overwrite user input (for testing purposes)
 	 * @return string User input or [$_input] arg if set
 	 */
-	public static function prompt( string $msg, bool $quit = true, string $_input = '' ): string
+	public static function prompt( string $msg = '', bool $quit = true, string $_input = '' ): string
 	{
 		if ( defined( 'APP_TESTING' ) ) {
 			if ( $quit ) {

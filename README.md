@@ -1,4 +1,4 @@
-# Utils `v3.10.0`
+# Utils `v3.10.1`
 Bunch of scripts collected from all around the HDD
 
 # Console app
@@ -86,5 +86,8 @@ foreach ( $fields as $name => $field ) {
 ### Author
 [Orkan](https://github.com/orkan)
 
+### License
+MIT
+
 ### Updated
-Tue, 04 Apr 2023 15:44:31 +02:00
+Sun, 06 Aug 2023 16:54:44 +02:00
