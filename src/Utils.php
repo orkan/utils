@@ -127,27 +127,28 @@ class Utils
 	/**
 	 * Randomize array (preserve keys).
 	 *
-	 * @link https://www.php.net/manual/en/function.uniqid.php
+	 * Algorithm: Fisher-Yates (aka Knuth) Shuffle
+	 * Visualization: http://bost.ocks.org/mike/shuffle/
+	 * @link https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
 	 */
 	public static function arrayShuffle( array &$arr ): bool
 	{
-		if ( empty( $arr ) ) {
-			return false;
-		}
-
 		$out = [];
-
-		// Generate qnique keys
 		foreach ( $arr as $k => $v ) {
-			$key = random_bytes( 8 );
-			$key = bin2hex( $key );
-			$out[$key] = [ $k, $v ];
+			$out[] = [ $k, $v ];
 		}
 
-		// Sort == randomize ;)
-		ksort( $out );
+		// Swap: out[i] <==> out[j]
+		for ( $i = count( $out ) - 1; $i > 0; $i-- ) {
+			$j = rand( 0, $i );
+			if ( $j !== $i ) {
+				$tmp = $out[$j];
+				$out[$j] = $out[$i];
+				$out[$i] = $tmp;
+			}
+		}
 
-		// Recreate key assigments
+		// Restore keys
 		$arr = [];
 		foreach ( $out as $v ) {
 			$arr[$v[0]] = $v[1];
