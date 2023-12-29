@@ -851,7 +851,7 @@ class Utils
 		}
 
 		printf( "%s\n%s", $msg, $quit ? "Use [Q] to quit.\n" : '' );
-		$input = $_input ?: readline();
+		$input = $_input ?: self::stdin();
 
 		if ( $quit && 'Q' === strtoupper( $input ) ) {
 			exit( "User exit. Bye!\n" );
@@ -904,6 +904,30 @@ class Utils
 	public static function stderr( string $message, string $codepage = 'cp852' ): void
 	{
 		self::print( $message, true, $codepage );
+	}
+
+	/**
+	 * Get user input.
+	 *
+	 * @codeCoverageIgnore
+	 *
+	 * @param int $length Chars limit
+	 */
+	public static function stdin( int $length = 4096 ): string
+	{
+		if ( $isWin = defined( 'PHP_WINDOWS_VERSION_MAJOR' ) ) {
+			$codepage = sapi_windows_cp_get();
+			sapi_windows_cp_set( $cp = sapi_windows_cp_get( 'oem' ) );
+		}
+
+		$line = fgets( STDIN, $length );
+
+		if ( $isWin ) {
+			sapi_windows_cp_set( $codepage );
+			$line = iconv( "cp{$cp}", 'UTF-8', $line );
+		}
+
+		return $line;
 	}
 
 	/**
