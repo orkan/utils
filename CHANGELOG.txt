@@ -1,27 +1,39 @@
 ===================================================================================================
+v5.0.0
+Func args update:
+  - Utils::arraySortMulti( array &$arr, string $sort = 'name', string $dir = 'asc' )
+  + Utils::arraySortMulti( array &$arr, string $sort = 'name', bool $asc = true )
+===================================================================================================
+v4.0.0
+Removed methods:
+--------------
+Logger::pushHandler() > Logger::Monolog()->pushHandler()
+Logger::getHandlers() > Logger::Monolog()->getHandlers()
+
+===================================================================================================
 v3.0.0
 Renamed methods:
 --------------
-buildPath()           > pathBuild()
-checkError()          > errorCheck()
-clearDirectory()      > dirClear()
-copyDirectory()       > dirCopy()
-flattenArray()        > arrayFlat()
-formatBytes()         > byteString()
-formatDate()          > dateString()
-formatDateDiff()      > dateStringDiff()
-formatNumber()        > numberString()
-formatTime()          > timeString()
-getDefinedConstants() > constants()
-getJsonLastError()    > errorJson()
-getZipError()         > errorZip()
-implode()             > arrayImplode()
-keyIncrement()        > arrayInc()
-ksort()               > arraySortKey()
-lastKey()             > arrayLastKey()
-removeDirectory()     > dirRemove()
-removeFile()          > fileRemove()
-shuffleArray()        > arrayShuffle()
-sort()                > arraySort()
-sortMultiArray()      > arraySortMulti()
-toBytes()             > byteNumber()
+Utils::buildPath()           > pathBuild()
+Utils::checkError()          > errorCheck()
+Utils::clearDirectory()      > dirClear()
+Utils::copyDirectory()       > dirCopy()
+Utils::flattenArray()        > arrayFlat()
+Utils::formatBytes()         > byteString()
+Utils::formatDate()          > dateString()
+Utils::formatDateDiff()      > dateStringDiff()
+Utils::formatNumber()        > numberString()
+Utils::formatTime()          > timeString()
+Utils::getDefinedConstants() > constants()
+Utils::getJsonLastError()    > errorJson()
+Utils::getZipError()         > errorZip()
+Utils::implode()             > arrayImplode()
+Utils::keyIncrement()        > arrayInc()
+Utils::ksort()               > arraySortKey()
+Utils::lastKey()             > arrayLastKey()
+Utils::removeDirectory()     > dirRemove()
+Utils::removeFile()          > fileRemove()
+Utils::shuffleArray()        > arrayShuffle()
+Utils::sort()                > arraySort()
+Utils::sortMultiArray()      > arraySortMulti()
+Utils::toBytes()             > byteNumber()

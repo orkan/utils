@@ -54,11 +54,19 @@ trait Config
 	 *
 	 * @param array   $defaults Low priority config - will NOT replace $this->cfg
 	 * @param boolean $force    Hight priority config - will replace $this->cfg
-	 * @return self
 	 */
 	public function merge( array $defaults, bool $force = false ): self
 	{
 		$this->cfg = $force ? array_replace_recursive( $this->cfg, $defaults ) : array_replace_recursive( $defaults, $this->cfg );
+		return $this;
+	}
+
+	/**
+	 * Replace all config.
+	 */
+	public function reset( array $cfg ): self
+	{
+		$this->cfg = $cfg;
 		return $this;
 	}
 }

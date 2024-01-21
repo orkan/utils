@@ -190,26 +190,25 @@ class Utils
 	 * Sort multi-dimensional array by sub-array key (preserve keys).
 	 *
 	 * @param  string $sort Field name to sort by (orig|path|name)
-	 * @param  string $dir  Sort direction: asc|desc
-	 * @return bool
+	 * @param  bool   $asc  Ascending direction
 	 */
-	public static function arraySortMulti( array &$arr, string $sort = 'name', string $dir = 'asc' ): bool
+	public static function arraySortMulti( array &$arr, string $sort = 'name', bool $asc = true ): bool
 	{
 		if ( empty( $arr ) || !isset( current( $arr )[$sort] ) ) {
 			return false;
 		}
 
-		return uasort( $arr, function ( $a, $b ) use ($sort, $dir ) {
+		return uasort( $arr, function ( $a, $b ) use ($sort, $asc ) {
 
-			if ( is_int( $a[$sort] ) ) {
-				$cmp = $a[$sort] < $b[$sort] ? -1 : 1;
+			if ( is_int( $a[$sort] ) || is_bool( $a[$sort] ) ) {
+				$cmp = $a[$sort] - $b[$sort];
 			}
 			else {
 				$cmp = strcasecmp( $a[$sort], $b[$sort] );
 			}
 
 			// Keep ASC sorting for unknown [dir]
-			return 'desc' == $dir ? -$cmp : $cmp;
+			return $asc ? $cmp : -$cmp;
 		} );
 	}
 
@@ -219,8 +218,8 @@ class Utils
 	 *
 	 * @link https://stackoverflow.com/questions/11807115/php-convert-kb-mb-gb-tb-etc-to-bytes
 	 *
-	 * @param  int    $bytes Size in bytes
-	 * @return string        Byte size string
+	 * @param  string $str Byte size string
+	 * @return int Size in bytes
 	 */
 	public static function byteNumber( string $str ): int
 	{
@@ -233,8 +232,8 @@ class Utils
 	 * Format byte size string.
 	 * Examples: 361 bytes | 1016.1 kB | 14.62 Mb | 2.81 GB
 	 *
-	 * @param  int    $bytes Size in bytes
-	 * @return string        Byte string formated
+	 * @param  int $bytes Size in bytes
+	 * @return string Byte string formated
 	 */
 	public static function byteString( int $bytes = 0 ): string
 	{
@@ -848,7 +847,7 @@ class Utils
 	 */
 	public static function prompt( string $msg = '', bool $quit = true, string $_input = '' ): string
 	{
-		if ( defined( 'APP_TESTING' ) ) {
+		if ( defined( 'TESTING' ) ) {
 			if ( $quit ) {
 				throw new \BadMethodCallException( $msg );
 			}
@@ -922,14 +921,14 @@ class Utils
 	 */
 	public static function stdin( int $length = 4096 ): string
 	{
-		if ( $isWin = defined( 'PHP_WINDOWS_VERSION_MAJOR' ) ) {
+		if ( function_exists( 'sapi_windows_cp_set' ) ) {
 			$codepage = sapi_windows_cp_get();
 			sapi_windows_cp_set( $cp = sapi_windows_cp_get( 'oem' ) );
 		}
 
 		$line = fgets( STDIN, $length );
 
-		if ( $isWin ) {
+		if ( function_exists( 'sapi_windows_cp_set' ) ) {
 			sapi_windows_cp_set( $codepage );
 			$line = iconv( "cp{$cp}", 'UTF-8', $line );
 		}

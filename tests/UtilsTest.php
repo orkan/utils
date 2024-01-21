@@ -147,9 +147,9 @@ class UtilsTest extends TestCase
 	}
 
 	/**
-	 * Randomize multi-dimensional array and maintain key assigment
+	 * Sort multi-dimensional array by string value and maintain key assigment.
 	 */
-	public function testCanSortMultiArray()
+	public function testCanSortMultiArrayByStringValue()
 	{
 		/* @formatter:off */
 		$playlistA = $playlistB = [
@@ -160,16 +160,48 @@ class UtilsTest extends TestCase
 		/* @formatter:on */
 
 		// Reverse: by name, asc
-		Utils::arraySortMulti( $playlistB, 'name', 'asc' );
+		Utils::arraySortMulti( $playlistB, 'name' );
 		$this->assertEquals( $playlistA, $playlistB, 'Content differs!' );
 		$this->assertNotSame( $playlistA, $playlistB, 'Same order!' );
 		$this->assertEquals( $playlistA[1], $playlistB[1], 'Lost key assigment!' );
 
 		// Re-create order: by name, desc
-		Utils::arraySortMulti( $playlistB, 'name', 'desc' );
+		Utils::arraySortMulti( $playlistB, 'name', false );
 		$this->assertEquals( $playlistA, $playlistB, 'Content differs!' );
 		$this->assertSame( $playlistA, $playlistB, 'Not same order!' );
 		$this->assertEquals( $playlistA[1], $playlistB[1], 'Lost key assigment!' );
+	}
+
+	/**
+	 * Sort multi-dimensional array by bolean value and maintain key assigment.
+	 */
+	public function testCanSortMultiArrayBoleanValue()
+	{
+		/* @formatter:off */
+		$data = [
+			0 => [ 'ready' => true  ],
+			1 => [ 'ready' => false ],
+			2 => [ 'ready' => true  ],
+		];
+		$expectAsc = [
+			1 => [ 'ready' => false ],
+			0 => [ 'ready' => true  ],
+			2 => [ 'ready' => true  ],
+		];
+		$expectDesc = [
+			0 => [ 'ready' => true  ],
+			2 => [ 'ready' => true  ],
+			1 => [ 'ready' => false ],
+		];
+		/* @formatter:on */
+
+		$arr = $data; // copy
+		Utils::arraySortMulti( $arr, 'ready' );
+		$this->assertSame( $expectAsc, $arr, 'Sort ASC' );
+
+		$arr = $data; // copy
+		Utils::arraySortMulti( $arr, 'ready', false );
+		$this->assertSame( $expectDesc, $arr, 'Sort DESC' );
 	}
 
 	/**
