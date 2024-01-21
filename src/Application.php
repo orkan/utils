@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2023 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = 'v3.10.3';
-	const APP_DATE = 'Fri, 29 Dec 2023 07:48:09 +01:00';
+	const APP_VERSION = 'v4.0.0';
+	const APP_DATE = 'Sun, 21 Jan 2024 17:02:56 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -419,11 +419,14 @@ class Application
 
 	/**
 	 * Print exception message and write to php error log.
+	 *
+	 * @param bool $log   Write to PHP error log?
+	 * @param int  $dirUp How many sub-dirs to show in path?
 	 */
-	public function exceptionHandler( \Throwable $E ): void
+	public function exceptionHandler( \Throwable $E, bool $log = true, int $dirUp = 4 ): void
 	{
-		$this->exceptionPrintLog( $E );
-		$this->exceptionPrint( $E );
+		$this->exceptionPrintLog();
+		$this->exceptionPrint( $E, $log, $dirUp );
 
 		exit( $E->getCode() ?: 1 );
 	}
@@ -431,24 +434,10 @@ class Application
 	/**
 	 * Print Logger saved extra logs and write current Exception.
 	 */
-	public function exceptionPrintLog( \Throwable $E ): void
+	public function exceptionPrintLog(): void
 	{
-		// Return if no services available
-		if ( !$this->Utils || !$this->Logger ) {
-			return;
-		}
-
 		// Print all saved history logs
-		$this->Utils->writeln( implode( "\n", $this->getHistoryLogs() ), 2 );
-
-		/**
-		 * 1. Turn OFF printing log messages since we're going to print Exception anyway!
-		 * 2. Log full error + stack trace.
-		 *
-		 * @link https://symfony.com/doc/current/console/verbosity.html
-		 */
-		$this->Factory->cfg( 'log_verbose', $this->Logger::NONE );
-		$this->Logger->error( sprintf( '[%s] %s', get_class( $E ), $E->getMessage() ) );
+		$this->Utils && $this->Utils->writeln( implode( "\n", $this->getHistoryLogs() ), 2 );
 	}
 
 	/**
@@ -459,15 +448,18 @@ class Application
 	 * since $this->Utils might not be available at early stages of App init.
 	 * @see Utils::exceptionPrint()
 	 *
-	 * @param bool $log Write error log file?
+	 * @param bool $log   Write to PHP error log?
+	 * @param int  $dirUp How many sub-dirs to show in path?
 	 */
-	public function exceptionPrint( \Throwable $E, bool $log = true ): void
+	public static function exceptionPrint( \Throwable $E, bool $log = true, int $dirUp = 4 ): void
 	{
+		echo "\n----------\n";
+
 		if ( defined( 'DEBUG' ) && DEBUG ) {
-			print $E;
+			echo $E;
 		}
 		else {
-			$projectDir = dirname( __DIR__, 4 );
+			$projectDir = dirname( __DIR__, $dirUp );
 			$srcFile = substr( $E->getFile(), strlen( $projectDir ) );
 
 			/* @formatter:off */

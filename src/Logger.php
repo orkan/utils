@@ -1,14 +1,19 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2023 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
 use Monolog\Logger as Monolog;
+use Monolog\Formatter\LineFormatter;
+use Monolog\Handler\RotatingFileHandler;
 
 /**
  * Factory Logger.
+ *
+ * Why not extend Monolog\Logger?
+ * - keep Orkan\Utils dependency clean
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
@@ -21,7 +26,7 @@ class Logger
 	 */
 	const NONE = 0;
 
-	/*
+	/**
 	 * Map Monolog levels.
 	 */
 	const DEBUG     = 100;
@@ -38,26 +43,19 @@ class Logger
 	/**
 	 * Cache results of Monolog::isHandling($level).
 	 */
-	private $handling = [];
+	protected $handling = [];
 
 	/**
 	 * Cached log records from cfg[log_history].
 	 */
-	private $history = [];
+	protected $history = [];
 
 	/**
 	 * Monolog instance.
 	 *
 	 * @var \Monolog\Logger
 	 */
-	private $Logger;
-
-	/**
-	 * Handler instance.
-	 *
-	 * @var \Monolog\Handler\RotatingFileHandler
-	 */
-	private $Handler;
+	protected $Logger;
 
 	/**
 	 * @var Factory
@@ -72,21 +70,33 @@ class Logger
 		$this->Factory = $Factory->merge( $this->defaults() );
 
 		// Provide at least verbose output if no logging to file available
-		if ( !class_exists( '\\Monolog\\Logger' ) || !$Factory->get( 'log_file' ) ) {
-			$this->Logger = new LoggerNoop();
+		if ( !class_exists( '\\Monolog\\Logger' ) ) {
+			$this->Logger = new Noop();
 			return;
 		}
 
-		$Format = new \Monolog\Formatter\LineFormatter( $Factory->cfg( 'log_format' ), $Factory->cfg( 'log_datetime' ) );
-		$DTZone = new \DateTimeZone( $Factory->cfg( 'log_timezone' ) );
+		$this->Logger = new Monolog( $Factory->cfg( 'log_channel' ) );
+		$this->Logger->setTimezone( new \DateTimeZone( $Factory->cfg( 'log_timezone' ) ) );
 
-		// Note: Default log level for RotatingFileHandler is Logger::DEBUG (log everything)
-		$this->Handler = new \Monolog\Handler\RotatingFileHandler( $Factory->cfg( 'log_file' ), $Factory->cfg( 'log_keep' ), $Factory->cfg( 'log_level' ) );
-		$this->Handler->setFormatter( $Format );
-		$this->Logger = new Monolog( $Factory->cfg( 'log_channel' ), [ $this->Handler ], [], $DTZone );
+		// NOTE: Default log level for RotatingFileHandler is Logger::DEBUG (log everything)
+		if ( $this->Factory->get( 'log_file' ) ) {
+			/* @formatter:off */
+			$Handler = new RotatingFileHandler(
+				$this->Factory->cfg( 'log_file' ),
+				$this->Factory->cfg( 'log_keep' ),
+				$this->Factory->cfg( 'log_level' ),
+			);
+			/* @formatter:on */
+			$Format = new LineFormatter( $Factory->cfg( 'log_format' ), $Factory->cfg( 'log_datetime' ) );
+			$Handler->setFormatter( $Format );
+			$this->Logger->pushHandler( $Handler );
+
+			// Redirect all unhandled php errors to this log file.
+			ini_set( 'error_log', $Handler->getUrl() );
+		}
 
 		// Mask sensitive data in log
-		if ( $mask = $Factory->cfg( 'log_mask' ) ) {
+		if ( $mask = $this->Factory->cfg( 'log_mask' ) ) {
 			$this->Logger->pushProcessor( function ( $entry ) use ($mask ) {
 				$entry['message'] = str_replace( $mask['search'], $mask['replace'], $entry['message'] );
 				return $entry;
@@ -94,7 +104,7 @@ class Logger
 		}
 
 		// Reset log file
-		if ( $Factory->cfg( 'log_reset' ) ) {
+		if ( $this->Factory->cfg( 'log_reset' ) ) {
 			@unlink( $this->getFilename() );
 		}
 	}
@@ -126,19 +136,32 @@ class Logger
 		 *
 		 * [log_verbose]
 		 * Min. log level to echo. 0 == OFF
+		 *
+		 * [log_debug]
+		 * Print extra info in log file (backtrace, etc...)
+		 *
 		 * @formatter:off */
 		return [
-			'log_channel'   => __CLASS__,
-			'log_timezone'  => date_default_timezone_get(),
-			'log_format'    => "[%datetime%] %level_name%: %message%\n",
-			'log_datetime'  => 'Y-m-d H:i:s',
-			'log_keep'      => 5,
-			'log_reset'     => false,
-			'log_level'     => self::INFO,
-			'log_history'   => self::NONE,
-			'log_verbose'   => self::NONE,
+			'log_channel'   => getenv( 'LOG_CHANNEL'  ) ?: __CLASS__,
+			'log_timezone'  => getenv( 'LOG_TIMEZONE' ) ?: date_default_timezone_get(),
+			'log_format'    => getenv( 'LOG_FORMAT'   ) ?: "[%datetime%] %level_name%: %context% %message%\n",
+			'log_datetime'  => getenv( 'LOG_DATETIME' ) ?: 'Y-m-d H:i:s',
+			'log_keep'      => getenv( 'LOG_KEEP'     ) ?: 5,
+			'log_reset'     => getenv( 'LOG_RESET'    ) ?: false,
+			'log_level'     => getenv( 'LOG_LEVEL'    ) ?: self::INFO,
+			'log_history'   => getenv( 'LOG_HISTORY'  ) ?: self::NONE,
+			'log_verbose'   => getenv( 'LOG_VERBOSE'  ) ?: self::NONE,
+			'log_debug'     => getenv( 'LOG_DEBUG'    ) ?: false,
 		];
 		/* @formatter:on */
+	}
+
+	/**
+	 * Expose original Monolog.
+	 */
+	public function Monolog(): Monolog
+	{
+		return $this->Logger;
 	}
 
 	/**
@@ -170,11 +193,9 @@ class Logger
 	 */
 	public function getFilename(): string
 	{
-		$handlers = (array) $this->Logger->getHandlers();
-
-		foreach ( $handlers as $Handler ) {
-			if ( $Handler instanceof \Monolog\Handler\RotatingFileHandler ) {
-				return $Handler->getUrl();
+		foreach ( $this->Monolog()->getHandlers() as $Handler ) {
+			if ( $Handler instanceof RotatingFileHandler ) {
+				return realpath( $Handler->getUrl() );
 			}
 		}
 
@@ -201,7 +222,7 @@ class Logger
 		$type = $trace[$back]['type'] ?? '';
 		$function = $trace[$back]['function'] ?? '';
 
-		return isset( $trace[$back] ) ? "[{$class}{$type}{$function}()] " : '[{main}] ';
+		return isset( $trace[$back] ) ? $class . $type . $function . '()' : '{main}';
 	}
 
 	/**
@@ -217,7 +238,7 @@ class Logger
 	 */
 	public static function getLevelName( int $level ): string
 	{
-		return Monolog::getLevelName( $level );
+		return class_exists( '\\Monolog\\Logger' ) ? Monolog::getLevelName( $level ) : "LEVEL_{$level}";
 	}
 
 	/**
@@ -225,7 +246,7 @@ class Logger
 	 *
 	 * @param int $backtrace Add backtrace info in DEBUG mode. -1: OFF
 	 */
-	public function addRecord( int $level, string $message, int $backtrace = 0 ): bool
+	public function addRecord( int $level, string $message, int $backtrace = 0, array $context = [] ): bool
 	{
 		// Save history?
 		if ( self::isHandling( $this->Factory->cfg( 'log_history' ), $level ) ) {
@@ -247,11 +268,11 @@ class Logger
 		}
 
 		// Add method name?
-		if ( $this->is( self::DEBUG ) && 0 <= $backtrace ) {
-			$message = $this->backtrace( $backtrace ) . $message;
+		if ( $this->Factory->get( 'log_debug' ) && $this->is( self::DEBUG ) && 0 <= $backtrace ) {
+			$context[] = $this->backtrace( $backtrace );
 		}
 
-		return $this->Logger->addRecord( $level, $message );
+		return $this->Logger->addRecord( $level, $message, $context );
 	}
 
 	/**
@@ -298,20 +319,5 @@ class Logger
 	public function error( string $message, int $backtrace = 0 ): bool
 	{
 		return $this->addRecord( self::ERROR, $message, $backtrace );
-	}
-}
-
-/**
- * Dummy Logger.
- */
-class LoggerNoop
-{
-
-	/**
-	 * Do nothing if if logging is disabled.
-	 */
-	public function __call( $name, $arguments )
-	{
-		return;
 	}
 }

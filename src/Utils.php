@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2023 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
@@ -190,16 +190,16 @@ class Utils
 	 * Sort multi-dimensional array by sub-array key (preserve keys).
 	 *
 	 * @param  string $sort Field name to sort by (orig|path|name)
-	 * @param  string $dir  Sort direction (asc|desc)
+	 * @param  string $dir  Sort direction: asc|desc
 	 * @return bool
 	 */
 	public static function arraySortMulti( array &$arr, string $sort = 'name', string $dir = 'asc' ): bool
 	{
-		if ( empty( $arr ) || !isset( $arr[0][$sort] ) ) {
+		if ( empty( $arr ) || !isset( current( $arr )[$sort] ) ) {
 			return false;
 		}
 
-		uasort( $arr, function ( $a, $b ) use ($sort, $dir ) {
+		return uasort( $arr, function ( $a, $b ) use ($sort, $dir ) {
 
 			if ( is_int( $a[$sort] ) ) {
 				$cmp = $a[$sort] < $b[$sort] ? -1 : 1;
@@ -211,8 +211,6 @@ class Utils
 			// Keep ASC sorting for unknown [dir]
 			return 'desc' == $dir ? -$cmp : $cmp;
 		} );
-
-		return true;
 	}
 
 	/**
@@ -494,27 +492,36 @@ class Utils
 
 	/**
 	 * Handle Exceptions.
+	 *
+	 * @param bool $log   Write to PHP error log?
+	 * @param int  $dirUp How many sub-dirs to show in path?
 	 */
-	public static function exceptionHandler( \Throwable $E ): void
+	public static function exceptionHandler( \Throwable $E, bool $log = true, int $dirUp = 4 ): void
 	{
-		static::exceptionPrint( $E );
+		static::exceptionPrint( $E, $log, $dirUp );
 		exit( $E->getCode() ?: 1 );
 	}
 
 	/**
 	 * Print formated Exception message.
 	 *
-	 * @param bool $log Write error log file?
+	 * @param bool $log   Write to PHP error log?
+	 * @param int  $dirUp How many sub-dirs to show in path?
 	 */
-	public static function exceptionPrint( \Throwable $E, bool $log = true ): void
+	public static function exceptionPrint( \Throwable $E, bool $log = true, int $dirUp = 4 ): void
 	{
+		echo "\n----------\n";
+
 		if ( defined( 'DEBUG' ) && DEBUG ) {
-			print $E;
+			echo $E;
 		}
 		else {
+			$projectDir = dirname( __DIR__, $dirUp );
+			$srcFile = substr( $E->getFile(), strlen( $projectDir ) );
+
 			/* @formatter:off */
-			printf( "\nIn %s line %d:\n\n  [%s]\n  %s\n\n",
-				basename( $E->getFile() ),
+			printf( "\nIn ...%s:%d\n\n  [%s]\n  %s\n\n",
+				$srcFile,
 				$E->getLine(),
 				get_class( $E ),
 				trim( $E->getMessage() ), // prefixed with new line!
@@ -926,6 +933,9 @@ class Utils
 			sapi_windows_cp_set( $codepage );
 			$line = iconv( "cp{$cp}", 'UTF-8', $line );
 		}
+
+		// Remove [Enter] key!
+		$line = rtrim( $line, "\r\n" );
 
 		return $line;
 	}

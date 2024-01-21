@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2023 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan\Tests;
 
@@ -26,7 +26,7 @@ class LoggerTest extends TestCase
 	 */
 	public function testCanVerbose()
 	{
-		$this->expectExceptionMessage( $message = __FUNCTION__ );
+		$this->expectExceptionMessage( __FUNCTION__ );
 
 		/* @formatter:off */
 		$Factory = new Factory( [
@@ -35,8 +35,7 @@ class LoggerTest extends TestCase
 		]);
 		/* @formatter:on */
 
-		$Logger = $Factory->Logger();
-		$Logger->info( $message );
+		$Factory->Logger()->info( __FUNCTION__ );
 	}
 
 	/**
