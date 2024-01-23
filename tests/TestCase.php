@@ -39,7 +39,7 @@ class TestCase extends \PHPUnit\Framework\TestCase
 	 */
 	public static function setUpBeforeClass(): void
 	{
-		!defined( 'DEBUG' ) && define( 'DEBUG', true );
+		!defined( 'DEBUG' ) && define( 'DEBUG', (bool) getenv( 'APP_DEBUG' ) );
 		!defined( 'TESTING' ) && define( 'TESTING', true );
 	}
 

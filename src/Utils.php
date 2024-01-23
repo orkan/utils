@@ -677,6 +677,16 @@ class Utils
 	}
 
 	/**
+	 * Get memory usage string.
+	 *
+	 * @param string $format Use %s placeholder for byte string
+	 */
+	public static function memory( string $format = 'Memory: %s' ): string
+	{
+		return sprintf( $format, static::byteString( memory_get_usage() ) );
+	}
+
+	/**
 	 * Finally the formatNumber() unified method.
 	 */
 	public static function numberString( float $number = 0, int $decimals = 0, string $point = '.', string $sep = ' ' ): string

@@ -195,7 +195,7 @@ class Logger
 	{
 		foreach ( $this->Monolog()->getHandlers() as $Handler ) {
 			if ( $Handler instanceof RotatingFileHandler ) {
-				return realpath( $Handler->getUrl() );
+				return $Handler->getUrl();
 			}
 		}
 
