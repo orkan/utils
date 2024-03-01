@@ -1,14 +1,14 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan\Tests;
 
 use Orkan\Application;
 
 /**
- * Test Application.
+ * Test: Orkan\Application.
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
@@ -32,12 +32,14 @@ class ApplicationTest extends TestCase
 		$value = 'dummy_arg';
 
 		/* @formatter:off */
-		$App = new Application( new Factory([
+		$cfg = [
 			'app_args' => [
 				'arg1' => [ 'short' => "{$nameS}:", 'long' => "{$nameL}", 'desc' => "Testing --$nameL=$value" ],
 			],
-		], $this ));
+		];
 		/* @formatter:on */
+
+		$App = new Application( new FactoryMock( $this, $cfg ) );
 
 		/**
 		 * SOLUTION 1:
@@ -77,7 +79,7 @@ class ApplicationTest extends TestCase
 			 * ini_set()
 			 * @see Application::__construct()
 			 */
-			new Application( new Factory( [ 'php' => $php ], $this ) );
+			new Application( new FactoryMock( $this, [ 'php' => $php ] ) );
 
 			foreach ( $php as $k => $v ) {
 				$this->assertEquals( $v, ini_get( $k ) ); // dont check types!
@@ -102,7 +104,7 @@ class ApplicationTest extends TestCase
 			$actual[$k] = null;
 		}
 
-		new Application( new Factory( [ 'php' => $actual ], $this ) );
+		new Application( new FactoryMock( $this, [ 'php' => $actual ] ) );
 
 		foreach ( $expect as $k => $v ) {
 			$this->assertEquals( $v, ini_get( $k ) ); // dont check types!

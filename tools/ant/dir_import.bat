@@ -8,7 +8,7 @@ set EXTRAS=%~3
 set CONTINUE=%~4
 set EXCLUDES=%~5
 set INCLUDES=%~6
-set QUESTION=%CONTINUE% [y/N]:
+set QUESTION=%CONTINUE% y/[n]:
 
 REM Confirm: -------------------------------------------
 if "%CONTINUE%" NEQ "" set /p ANSWER=%QUESTION%

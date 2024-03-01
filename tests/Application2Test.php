@@ -1,20 +1,19 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan\Tests;
 
-use Orkan\Tests\App2\Application;
-use Orkan\Tests\App2\Factory;
-use PHPUnit\Framework\TestCase;
+use Orkan\Tests\App2\Factory as App2Factory;
+use Orkan\Tests\App2\Application as App2;
 
 /**
- * Test App2.
+ * Test: Orkan\Application2.
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
-class App2Test extends TestCase
+class Application2Test extends \Orkan\Tests\TestCase
 {
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -24,12 +23,12 @@ class App2Test extends TestCase
 	/**
 	 * Create App2.
 	 */
-	public function testCanCreateApp2()
+	public function testCanCreateApp()
 	{
-		$Factory = new Factory( $cfg = [ 'expect' => 'testing' ] );
-		$App2 = new Application( $Factory );
+		$Factory = new App2Factory( $cfg = [ 'expect' => 'testing' ], $this );
+		$App2 = new App2( $Factory );
 
 		$this->assertSame( $cfg['expect'], $Factory->get2( 'expect' ) );
-		$this->assertSame( $App2::APP_NAME, Application::APP_NAME );
+		$this->assertSame( App2::APP_NAME, $App2::APP_NAME );
 	}
 }

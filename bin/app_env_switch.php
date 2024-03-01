@@ -1,4 +1,8 @@
 <?php
+/*
+ * This file is part of the orkan/utils package.
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
+ */
 use Orkan\Application;
 use Orkan\Factory;
 

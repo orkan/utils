@@ -1,21 +1,25 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan\Tests;
 
 use Orkan\Thumbnail;
-use Orkan\Utils;
 
 /**
- * Test Thumbnail.
+ * Test: Orkan\Thumbnail.
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
-class ThumbnailTest extends \PHPUnit\Framework\TestCase
+class ThumbnailTest extends TestCase
 {
-	protected static $dir = [];
+	const USE_SANDBOX = true;
+	const USE_FIXTURE = true;
+
+	/**
+	 * @see Thumbnail::__construct([ cfg ])
+	 */
 	protected static $cfg = [];
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -23,21 +27,10 @@ class ThumbnailTest extends \PHPUnit\Framework\TestCase
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	public static function setUpBeforeClass(): void
 	{
-		/* @formatter:off */
-		self::$dir = [
-			'fixtures' => __DIR__ . '/_fixtures',
-			'sandbox'  => __DIR__ . '/_sandbox',
-		];
-		self::$cfg = [
-			'dir_upload'  => self::$dir['sandbox'] . '/uploads',
-			'dir_assets'  => self::$dir['sandbox'] . '/assets',
-		];
-		/* @formatter:on */
-	}
+		parent::setUpBeforeClass();
 
-	protected function setUp(): void
-	{
-		Utils::dirClear( self::$dir['sandbox'] );
+		self::$cfg['dir_upload'] = self::sandboxPath('upload');
+		self::$cfg['dir_assets'] = self::sandboxPath('assets');
 	}
 
 	protected static function mkDir( string $dir ): bool
@@ -181,10 +174,15 @@ class ThumbnailTest extends \PHPUnit\Framework\TestCase
 	{
 		$alias = 'sexy';
 		$type = '666';
-		$cfg = [ 'th_alias' => [ $alias => $type ] ];
+
+		/* @formatter:off */
+		$cfg = array_merge( self::$cfg, [
+			'th_alias' => [ $alias => $type ],
+		]);
+		/* @formatter:on */
 
 		self::mkDirType( $type );
-		$Thumbnail = new Thumbnail( '', '', array_merge( self::$cfg, $cfg ) );
+		$Thumbnail = new Thumbnail( '', '', $cfg );
 
 		$this->assertSame( $type, $Thumbnail->type( $alias ) );
 	}
@@ -289,7 +287,7 @@ class ThumbnailTest extends \PHPUnit\Framework\TestCase
 	 */
 	public function testCanSaveThumbnail( $idx, $type, $file )
 	{
-		$image = self::$dir['fixtures'] . '/' . $file;
+		$image = self::fixturePath( $file );
 
 		// Save orig image
 		$Thumbnail = self::newThumbnail( $idx, Thumbnail::TYPE_ORIG );
@@ -330,7 +328,7 @@ class ThumbnailTest extends \PHPUnit\Framework\TestCase
 		$idx = time() . __FUNCTION__;
 		self::mkDirType( Thumbnail::TYPE_ORIG );
 
-		$file = self::$dir['fixtures'] . '/images/a01.jpg';
+		$file = self::fixturePath( 'images/a01.jpg' );
 		$exif = [ 'TestExifFieldA' => 'A', 'TestExifFieldB' => 'B' ];
 		$Mock = $this->getMockBuilder( \stdClass::class )->addMethods( [ 'getExif' ] )->getMock();
 
@@ -366,8 +364,9 @@ class ThumbnailTest extends \PHPUnit\Framework\TestCase
 	 */
 	public function testCanUseCloudStorage()
 	{
+		self::sandboxClear();
 		$idx = time() . __FUNCTION__;
-		$image = self::$dir['fixtures'] . '/images/a01.jpg';
+		$image = self::fixturePath( 'images/a01.jpg' );
 
 		/* @formatter:off */
 		$Storage = $this->getMockBuilder( \stdClass::class )->addMethods([
@@ -390,10 +389,8 @@ class ThumbnailTest extends \PHPUnit\Framework\TestCase
 
 		$Thumbnail->save( $image ); // copy test image to ORIG subdir
 
-		/*
-		 * -------------------------------------------------------------------------------------------------------------
-		 * Get local ORIG file info
-		 */
+		// -------------------------------------------------------------------------------------------------------------
+		// Get local ORIG file info
 		/* @formatter:off */
 		$expectInfo = [
 			'url'  => 'whatever',
@@ -407,10 +404,8 @@ class ThumbnailTest extends \PHPUnit\Framework\TestCase
 		$actualInfo = $Thumbnail->origInfo();
 		$this->assertSame( array_keys( $expectInfo ), array_keys( $actualInfo ) );
 
-		/*
-		 * -------------------------------------------------------------------------------------------------------------
-		 * Move ORIG to Cloud
-		 */
+		// -------------------------------------------------------------------------------------------------------------
+		// Move ORIG to Cloud
 		/* @formatter:off */
 		$Storage->expects( $this->once() )->method( 'putObject' )
 			->with(
@@ -425,10 +420,8 @@ class ThumbnailTest extends \PHPUnit\Framework\TestCase
 		$this->assertSame( 'OK', $Thumbnail->origPut() );
 		$this->assertFileDoesNotExist( $pathOrig = $Thumbnail->path( Thumbnail::TYPE_ORIG ) ); // moved!
 
-		/*
-		 * -------------------------------------------------------------------------------------------------------------
-		 * Get remote ORIG file info
-		 */
+		// -------------------------------------------------------------------------------------------------------------
+		// Get remote ORIG file info
 		/* @formatter:off */
 		$Storage->expects( $this->once() )->method( 'getInfo' )
 			->with( $idx )
@@ -437,10 +430,8 @@ class ThumbnailTest extends \PHPUnit\Framework\TestCase
 
 		$this->assertSame( $expectInfo, $Thumbnail->origInfo() );
 
-		/*
-		 * -------------------------------------------------------------------------------------------------------------
-		 * Check image exists in cloud
-		 */
+		// -------------------------------------------------------------------------------------------------------------
+		// Check image exists in cloud
 		/* @formatter:off */
 		$Storage->expects( $this->once() )->method( 'getUrl' )
 			->with( $idx )
@@ -477,27 +468,26 @@ class ThumbnailTest extends \PHPUnit\Framework\TestCase
 		$this->assertSame( ImageSX( $Img ), $box['w'] );
 
 		// Check 2
-		$this->assertFileDoesNotExist( $path9999 = $Thumbnail->path( Thumbnail::TYPE_FULL ) );
+		$pathFull = $Thumbnail->path( Thumbnail::TYPE_FULL );
+		$this->assertFileDoesNotExist( $pathFull );
 		$Thumbnail->rebuildThumbs(); // <-- load orig image from Thumbnail::$cache - see cfg[keep_orig]
-		$this->assertFileExists( $path9999 );
+		$this->assertFileExists( $pathFull );
 
 		fclose( $fpFile );
 
-		/*
-		 * -------------------------------------------------------------------------------------------------------------
-		 * Remove ORIG from Cloud
-		 */
+		// -------------------------------------------------------------------------------------------------------------
+		// Remove ORIG from Cloud
 		/* @formatter:off */
 		$Storage->expects( $this->once() )->method( 'delObject' )
 			->with( $idx )
 			->willReturn( $url = 'a/b/c' );
 		/* @formatter:on */
 
-		$expect = [ $path9999, $url ];
+		$expect = [ $pathFull, $url ];
 		$actual = $Thumbnail->removeAll();
 		$this->assertSame( $expect, $actual );
 
-		$this->assertFileDoesNotExist( $path9999 );
+		$this->assertFileDoesNotExist( $pathFull );
 		$this->assertFileDoesNotExist( $pathOrig );
 	}
 

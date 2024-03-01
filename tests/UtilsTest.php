@@ -1,34 +1,27 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan\Tests;
 
 use Orkan\Utils;
 
 /**
- * Test Utils.
+ * Test: Orkan\Utils.
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
 class UtilsTest extends TestCase
 {
-
-	protected function setUp(): void
-	{
-	}
-
-	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers
-	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	const USE_SANDBOX = true;
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests:
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * @see Utils::timeString( $seconds, $precision )
+	 * @see UtilsTest::testTimeString()
 	 */
 	public function provideTimes()
 	{
@@ -43,8 +36,10 @@ class UtilsTest extends TestCase
 			'(  1.26  ,    1 )'      => [  1.26  ,    1,  '1.3s'   ], // round up
 			'( -1.25  ,    1 )'      => [ -1.25  ,    1, '-1.2s'   ], // round down
 			'( -1.26  ,    1 )'      => [ -1.26  ,    1, '-1.3s'   ], // round up
+			'(  0.2345,    0 )'      => [  0.2345,    0,  '0s'     ],
+			'(  0.2345, null )'      => [  0.2345, null,  '0.234s' ],
 			'(  1.2345,    0 )'      => [  1.2345,    0,  '1s'     ],
-			'(  1.2345, null )'      => [  1.2345, null,  '1.234s' ], // def. 3
+			'(  1.2345, null )'      => [  1.2345, null,  '1.23s'  ],
 			'( -3.453 ,    2 )'      => [ -3.453 ,    2, '-3.45s'  ], // round down
 			'( -3.457 ,    2 )'      => [ -3.457 ,    2, '-3.46s'  ], // round up
 			// minute
@@ -52,30 +47,29 @@ class UtilsTest extends TestCase
 			'(  123.45,    2 )'      => [  123.45,    2,  '2m 3.45s'  ],
 			'( -123.45,    2 )'      => [ -123.45,    2, '-2m 3.45s'  ],
 			'( -123.45,    3 )'      => [ -123.45,    3, '-2m 3.450s' ],
-			'( -123.45, null )'      => [ -123.45, null, '-2m 3.450s' ], // def. 3
+			'( -123.45, null )'      => [ -123.45, null, '-2m 3s'     ],
 			// hour
 			'( 3600   , 0 )'         => [ 3600   ,    0,  '1h'       ],
 			'( 3601   , 1 )'         => [ 3601   ,    1,  '1h 1.0s'  ],
 			'( 3601.51, 2 )'         => [ 3601.51,    2,  '1h 1.51s' ],
 			// day
-			'( 86400   ,    0 )'     => [ 86400   ,    0,  '1d'              ],
-			'( 86401   ,    1 )'     => [ 86401   ,    1,  '1d 1.0s'         ],
-			'( 86401   ,    2 )'     => [ 86401   ,    2,  '1d 1.00s'        ],
-			'( 88560   ,    2 )'     => [ 88560   ,    2,  '1d 36m'          ],
-			'( 88564   ,    2 )'     => [ 88564   ,    2,  '1d 36m 4.00s'    ],
-			'( 93784   ,    0 )'     => [ 93784   ,    0,  '1d 2h 3m 4s'     ],
-			'( 93784   , null )'     => [ 93784   , null,  '1d 2h 3m 4.000s' ],  // def. 3
-			'( 86402.34, null )'     => [ 86402.34, null,  '1d 2.340s'       ],  // def. 3
+			'( 86400   ,    0 )'     => [ 86400   ,    0,  '1d'           ],
+			'( 86401   ,    1 )'     => [ 86401   ,    1,  '1d 1.0s'      ],
+			'( 86401   ,    2 )'     => [ 86401   ,    2,  '1d 1.00s'     ],
+			'( 88560   ,    2 )'     => [ 88560   ,    2,  '1d 36m'       ],
+			'( 88564   ,    2 )'     => [ 88564   ,    2,  '1d 36m 4.00s' ],
+			'( 93784   ,    0 )'     => [ 93784   ,    0,  '1d 2h 3m 4s'  ],
+			'( 93784   , null )'     => [ 93784   , null,  '1d 2h 3m 4s'  ],
+			'( 86402.34, null )'     => [ 86402.34, null,  '1d 2s'        ],
 		];
 		/* @formatter:on */
 	}
 
 	/**
 	 * Convert size string to bytes.
-	 *
 	 * @dataProvider provideTimes
 	 */
-	public function testFormatTime( $seconds, $precision, $expect )
+	public function testTimeString( $seconds, $precision, $expect )
 	{
 		if ( null === $precision ) {
 			$actual = Utils::timeString( $seconds );
@@ -87,6 +81,9 @@ class UtilsTest extends TestCase
 		$this->assertSame( $expect, $actual );
 	}
 
+	/**
+	 * @see UtilsTest::testByteNumber()
+	 */
 	public function provideBytes()
 	{
 		/* @formatter:off */
@@ -109,12 +106,36 @@ class UtilsTest extends TestCase
 
 	/**
 	 * Convert size string to bytes.
-	 *
 	 * @dataProvider provideBytes
 	 */
-	public function testToBytes( $str, $expect )
+	public function testByteNumber( $str, $expect )
 	{
 		$this->assertSame( $expect, Utils::byteNumber( $str ) );
+	}
+
+	/**
+	 * @see UtilsTest::testNumberPad()
+	 */
+	public function provideNumbers()
+	{
+		/* @formatter:off */
+		return [
+			//             | val | max | pad | expect
+			'[ 2/13]'   => [    2,   13,  ' ',  ' 2' ],
+			'[10/13]'   => [   10,   13,  ' ',  '10' ],
+			'[004/100]' => [    4,  100,    0, '004' ],
+			'[099/100]' => [   99,  100,    0, '099' ],
+		];
+		/* @formatter:on */
+	}
+
+	/**
+	 * Left pad number.
+	 * @dataProvider provideNumbers
+	 */
+	public function testNumberPad( $val, $max, $pad, $expect )
+	{
+		$this->assertSame( $expect, Utils::numberPad( $val, $max, $pad ) );
 	}
 
 	/**
@@ -305,7 +326,6 @@ class UtilsTest extends TestCase
 
 	/**
 	 * Convert EXIF gps data to decimal location.
-	 *
 	 * @dataProvider provideExifGps
 	 */
 	public function testExifGpsToLoc( $gps, $expect )
@@ -340,6 +360,112 @@ class UtilsTest extends TestCase
 		$exif = $this->provideExifGps()['N 54, E 18'][0];
 		$exif['GPSLatitudeRef'] = 'X';
 		$this->assertSame( [], Utils::exifGpsToLoc( $exif ) );
+	}
+
+	/**
+	 * Rotate files with mask.
+	 */
+	public function testCanFilesRotate()
+	{
+		$mask = self::sandboxPath( '%s-*.txt', __FUNCTION__ );
+
+		/* @formatter:off */
+		$names = [
+			'1-2-3',
+			'2-3-1',
+			'3-2-1',
+			'4-1-1',
+			'5-4-3',
+		];
+		/* @formatter:on */
+
+		$files = [];
+		foreach ( $names as $name ) {
+			$files[$name] = str_replace( '*', $name, $mask );
+			$this->assertTrue( touch( $files[$name] ), 'Create test file' );
+		}
+
+		// Keep first 4 files
+		Utils::filesRotate( $mask, 4, false );
+		$this->assertFileExists( $files['1-2-3'] );
+		$this->assertFileExists( $files['2-3-1'] );
+		$this->assertFileExists( $files['3-2-1'] );
+		$this->assertFileExists( $files['4-1-1'] );
+		$this->assertFileDoesNotExist( $files['5-4-3'] );
+
+		// Keep last 3 files
+		Utils::filesRotate( $mask, 2 );
+		$this->assertFileDoesNotExist( $files['1-2-3'] );
+		$this->assertFileDoesNotExist( $files['2-3-1'] );
+		$this->assertFileExists( $files['3-2-1'] );
+		$this->assertFileExists( $files['4-1-1'] );
+	}
+
+	/**
+	 * Commang line switches.
+	 * @see Utils::cmdLastArg()
+	 */
+	public function provideCmgLines()
+	{
+		/* @formatter:off */
+		return [
+			'{empty}'                      => [ ''                            , ''            ],
+			'-a'                           => [ '-a'                          , ''            ],
+			'-c config.php'                => [ '-c config.php'               , ''            ],
+			'-c config.php --'             => [ '-c config.php --'            , ''            ],
+			'-uFile.php'                   => [ '-uFile.php'                  , ''            ],
+			'-c=config.php'                => [ '-c=config.php'               , ''            ],
+			'--opt-file opt.php'           => [ '--opt-file opt.php'          , ''            ],
+			'--cfg-file=Config.php'        => [ '--cfg-file=Config.php'       , ''            ],
+			'--arg-switch'                 => [ '--arg-switch'                , ''            ],
+			'--arg-switch --'              => [ '--arg-switch --'             , ''            ],
+			'--'                           => [ '--'                          , ''            ],
+			'-cfile.php file2.php'         => [ '-cfile.php file2.php'        , ''            ],
+			'-cfile.php -- file2.php'      => [ '-cfile.php -- file2.php'     , 'file2.php'   ],
+			'-c config.php config2.php'    => [ '-c config.php config2.php'   , 'config2.php' ],
+			'config2.php'                  => [ 'config2.php'                 , 'config2.php' ],
+			'-d data.php -- data2.php'     => [ '-d data.php -- data2.php'    , 'data2.php'   ],
+			'--arg-switch -- file.txt'     => [ '--arg-switch -- file.txt'    , 'file.txt'    ],
+		];
+		/* @formatter:on */
+	}
+
+	/**
+	 * Get last CMD line argument (not option)
+	 * @dataProvider provideCmgLines
+	 */
+	public function testCanGetLastCmdArg( $args, $expect )
+	{
+		// Mimic default PHP behaviour: $argv[0] == current file
+		$args = explode( ' ', $args );
+		array_unshift( $args, __FILE__ );
+		$this->assertSame( $expect, Utils::cmdLastArg( $args ) );
+	}
+
+	/**
+	 * Path Last Elements
+	 * @see Utils::pathLast()
+	 */
+	public function provideLastPathElements()
+	{
+		/* @formatter:off */
+		return [
+			'/usr/cfg/out - 3'          => [ '/usr/cfg/out'         , 3, 'usr/cfg/out'       ],
+			'/usr/cfg/out - 2'          => [ '/usr/cfg/out'         , 2, '/cfg/out'          ],
+			'/usr/cfg/out - 1'          => [ '/usr/cfg/out'         , 1, '/out'              ],
+			'C:\\Windows\\System32 - 2' => [ 'C:\\Windows\\System32', 2, 'Windows\\System32' ],
+			'C:\\Windows\\System32 - 1' => [ 'C:\\Windows\\System32', 1, '\\System32'        ],
+		];
+		/* @formatter:on */
+	}
+
+	/**
+	 * Get last n'th path elements.
+	 * @dataProvider provideLastPathElements
+	 */
+	public function testCanGetLastPathElements( $path, $last, $expect )
+	{
+		$this->assertSame( $expect, Utils::pathLast( $path, $last ) );
 	}
 }
 

@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = 'v5.1.0';
-	const APP_DATE = 'Tue, 23 Jan 2024 12:43:59 +01:00';
+	const APP_VERSION = '6.0.0';
+	const APP_DATE = 'Fri, 01 Mar 2024 16:07:20 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -34,10 +34,11 @@ class Application
 	 * @link https://www.php.net/manual/en/function.getopt.php
 	 *
 	 * FORMAT:
-	 * short | long     => meaning
-	 * c       config   => parameter does not accept any value
-	 * c:      config:  => parameter requires value. Use: -c value|-cvalue|-c=value
-	 * c::     config:: => optional value. Can't use space in between, use either: -cvalue|-c=value
+	 * short | long      | meaning
+	 * -----------------------------------------------------------------------------------------------------------------
+	 * c     | config    | Parameter does not accept any value
+	 * c:    | config:   | Parameter requires value. Use: -c value|-cvalue|-c=value
+	 * c::   | config::  | Optional value. Can't use space in between, use either: -cvalue|-c=value
 	 */
 	const ARGUMENTS = [
 		'setup'   => [ 'short' => 's', 'long' => 'setup'  , 'desc' => 'Display App config'  ],
@@ -49,13 +50,6 @@ class Application
 		               'long'  => 'verbose::',
 		               'desc'  => 'Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug' ],
 	];
-
-	/**
-	 * Required PHP extensions.
-	 *
-	 * @var array Array ( [extension_name] => (bool) verify, ... )
-	 */
-	const EXTENSIONS = [];
 
 	/*
 	 * Translate Verbosity levels from cmd line.
@@ -72,36 +66,20 @@ class Application
 	 * @see Application::setVerbosity()
 	 */
 	const VERBOSITY = [
-		self::VERBOSITY_QUIET        => Logger::ERROR,  // 400
-		self::VERBOSITY_NORMAL       => Logger::NOTICE,
-		self::VERBOSITY_VERBOSE      => Logger::INFO,
-		self::VERBOSITY_VERY_VERBOSE => Logger::DEBUG,
-		self::VERBOSITY_DEBUG        => Logger::DEBUG,  // 100
+		self::VERBOSITY_QUIET        => 'ERROR',  // 400 -q
+		self::VERBOSITY_NORMAL       => 'NOTICE', // 250 default
+		self::VERBOSITY_VERBOSE      => 'INFO',   // 200 -v
+		self::VERBOSITY_VERY_VERBOSE => 'DEBUG',  // 100 -vv
+		self::VERBOSITY_DEBUG        => 'DEBUG',  // 100 -vvv
 	];
 
 	/* @formatter:on */
 
 	/*
-	 * -----------------------------------------------------------------------------------------------------------------
-	 * SERVICES
-	 *
-	 * NOTE:
-	 * Re-declare overwriten parent services for IntelliSense features!
-	 */
-
-	/**
-	 * @var Factory
+	 * Services:
 	 */
 	protected $Factory;
-
-	/**
-	 * @var Logger
-	 */
 	protected $Logger;
-
-	/**
-	 * @var Utils
-	 */
 	protected $Utils;
 
 	/**
@@ -109,28 +87,29 @@ class Application
 	 */
 	public function __construct( Factory $Factory )
 	{
-		!defined( 'DEBUG' ) && define( 'DEBUG', getenv( 'APP_DEBUG' ) );
+		!defined( 'DEBUG' ) && define( 'DEBUG', (bool) getenv( 'APP_DEBUG' ) );
 
-		/*
-		 * WARNING:
-		 * Don't initialize Services here cos the config isn't fully loaded yet!
-		 */
-		$this->Factory = $Factory->merge( $this->defaults() );
+		// Don't initialize Services here, since config is NOT fully loaded yet!
+		$this->Factory = $Factory->merge( self::defaults() );
 
 		// PHP setup
-		foreach ( $this->Factory->get( 'php' ) as $k => $v ) {
+		date_default_timezone_set( $this->Factory->get( 'app_timezone' ) );
+		foreach ( $this->Factory->get( 'php', [] ) as $k => $v ) {
 			isset( $v ) && ini_set( $k, $v );
 		}
 	}
 
 	/**
-	 * Get default config.
+	 * App config.
 	 *
 	 * [err_handle]
 	 * Handle errors?
 	 *
 	 * [exc_handle]
 	 * Handle exceptions?
+	 *
+	 * [extensions]
+	 * Required PHP extensions: Array ( [extension_name] => (bool) verify, ... )
 	 *
 	 * -----------------------------------------------------------------------------------------------------------------
 	 * PHP INI: Prepare for CLI
@@ -164,7 +143,6 @@ class Application
 	 */
 	protected function defaults()
 	{
-		$baseName = basename( static::class );
 		$packageDir = dirname( ( new \ReflectionClass( static::class ) )->getFileName(), 2 ); // vendor/orkan/[project]
 
 		/* @formatter:off */
@@ -173,16 +151,16 @@ class Application
 			'app_title'    => static::getVersion(),
 			'app_args'     => static::ARGUMENTS,
 			'app_usage'    => 'app.php [options]',
-			'app_timezone' => date_default_timezone_get(),
+			'app_timezone' => getenv( 'APP_TIMEZONE' ) ?: date_default_timezone_get(),
 			'err_handle'   => true,
 			'exc_handle'   => true,
 			'date_short'   => 'Y-m-d',
 			'date_long'    => 'l, Y-m-d H:i',
-			'log_level'    => DEBUG ? Logger::DEBUG : Logger::INFO,
-			'log_channel'  => DEBUG ? "$baseName/DEBUG" : $baseName,
-			'log_format'   => "[%datetime%] [%channel%] %level_name%: %message%\n",
+			'log_level'    => DEBUG ? 'DEBUG' : 'INFO',
+			'log_debug'    => DEBUG,
+			'log_history'  => 'WARNING',
 			'dir_package'  => $packageDir,
-			'extensions'   => self::EXTENSIONS,
+			'extensions'   => [],
 			'php' => [
 				'max_execution_time'     => null,
 				'error_reporting'        => E_ALL,
@@ -204,11 +182,9 @@ class Application
 	{
 		$map = $map ?: static::VERBOSITY;
 
-		/* @formatter:off */
-		$level = null !== $this->getArg( 'quiet' ) ?
-			static::VERBOSITY_QUIET :
-			min( max( static::VERBOSITY_NORMAL, $this->getArg( 'verbose' ) ), static::VERBOSITY_DEBUG );
-		/* @formatter:on */
+		$level = $this->getArg( 'verbose' );
+		$level = min( max( static::VERBOSITY_NORMAL, $level ), static::VERBOSITY_DEBUG );
+		$level = null !== $this->getArg( 'quiet' ) ? static::VERBOSITY_QUIET : $level;
 
 		$this->Factory->cfg( 'log_verbose', $map[$level] );
 	}
@@ -221,7 +197,7 @@ class Application
 	protected function checkExtensions()
 	{
 		if ( !is_array( $extensions = $this->Factory->get( 'extensions' ) ) ) {
-			throw new \InvalidArgumentException( 'Invalid EXTENSIONS definition! Check Application::EXTENSIONS for more info.' );
+			throw new \InvalidArgumentException( 'Invalid EXTENSIONS definition! See Application::defaults() for more info.' );
 		}
 
 		$missing = [];
@@ -381,7 +357,7 @@ class Application
 	 */
 	public static function getVersion(): string
 	{
-		return sprintf( '%s %s', static::APP_NAME, static::APP_VERSION );
+		return sprintf( '%s v%s', static::APP_NAME, static::APP_VERSION );
 	}
 
 	/**
@@ -389,21 +365,7 @@ class Application
 	 */
 	public static function getVersionLong(): string
 	{
-		return sprintf( '%s %s (%s)', static::APP_NAME, static::APP_VERSION, static::APP_DATE );
-	}
-
-	/**
-	 * Get extra saved logs >= ['log_history'] level.
-	 */
-	public function getHistoryLogs(): array
-	{
-		$out = [];
-
-		foreach ( $this->Logger->getHistory() ?: [] as $log ) {
-			$out[] = sprintf( '%s: %s', $this->Logger->getLevelName( $log['level'] ), $log['message'] );
-		}
-
-		return $out;
+		return sprintf( '%s v%s (%s)', static::APP_NAME, static::APP_VERSION, static::APP_DATE );
 	}
 
 	/**
@@ -422,57 +384,16 @@ class Application
 	 *
 	 * @param bool $log   Write to PHP error log?
 	 * @param int  $dirUp How many sub-dirs to show in path?
+	 * @del
 	 */
 	public function exceptionHandler( \Throwable $E, bool $log = true, int $dirUp = 4 ): void
 	{
-		$this->exceptionPrintLog();
-		$this->exceptionPrint( $E, $log, $dirUp );
+		if ( $this->Utils ) {
+			$this->Logger && $this->Utils->writeln( implode( "\n", $this->Logger->getHistoryLogs() ), 2 );
+			$this->Utils->exceptionPrint( $E, $log, $dirUp );
+		}
 
 		exit( $E->getCode() ?: 1 );
-	}
-
-	/**
-	 * Print Logger saved extra logs and write current Exception.
-	 */
-	public function exceptionPrintLog(): void
-	{
-		// Print all saved history logs
-		$this->Utils && $this->Utils->writeln( implode( "\n", $this->getHistoryLogs() ), 2 );
-	}
-
-	/**
-	 * Print formated Exception message.
-	 *
-	 * NOTE:
-	 * This is a copy of Utils::exceptionPrint() hardcoded here
-	 * since $this->Utils might not be available at early stages of App init.
-	 * @see Utils::exceptionPrint()
-	 *
-	 * @param bool $log   Write to PHP error log?
-	 * @param int  $dirUp How many sub-dirs to show in path?
-	 */
-	public static function exceptionPrint( \Throwable $E, bool $log = true, int $dirUp = 4 ): void
-	{
-		echo "\n----------\n";
-
-		if ( defined( 'DEBUG' ) && DEBUG ) {
-			echo $E;
-		}
-		else {
-			$projectDir = dirname( __DIR__, $dirUp );
-			$srcFile = substr( $E->getFile(), strlen( $projectDir ) );
-
-			/* @formatter:off */
-			printf( "\nIn ...%s:%d\n\n  [%s]\n  %s\n\n",
-				$srcFile,
-				$E->getLine(),
-				get_class( $E ),
-				trim( $E->getMessage() ), // prefixed with new line!
-			);
-			/* @formatter:on */
-		}
-
-		$log && error_log( $E );
 	}
 
 	/**
@@ -499,7 +420,7 @@ class Application
 		 * @see Application::exceptionHandler()
 		 */
 		if ( $this->Factory->get( 'err_handle' ) ) {
-			set_error_handler( [ get_class( $this->Utils ), 'errorHandler' ] );
+			set_error_handler( [ $this->Utils, 'errorHandler' ] );
 		}
 		if ( $this->Factory->get( 'exc_handle' ) ) {
 			set_exception_handler( [ $this, 'exceptionHandler' ] );

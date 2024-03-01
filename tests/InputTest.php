@@ -1,18 +1,18 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan\Tests;
 
 use Orkan\Input;
 
 /**
- * Test Input.
+ * Test: Orkan\Input.
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
-class InputTest extends \PHPUnit\Framework\TestCase
+class InputTest extends TestCase
 {
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -294,6 +294,7 @@ class InputTest extends \PHPUnit\Framework\TestCase
 		foreach ( Input::fieldsEach( $fieldsActual ) as $name => &$field ) {
 			$field['name'] = sprintf( 'new[%s]', $name );
 		}
+		unset( $field );
 
 		$this->assertSame( $fieldsExpected, $fieldsActual );
 	}

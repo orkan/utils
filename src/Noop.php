@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
@@ -18,9 +18,11 @@ class Noop
 
 	public function __call( $name, $arguments )
 	{
+		return null;
 	}
 
 	public static function __callStatic( $name, $arguments )
 	{
+		return null;
 	}
 }

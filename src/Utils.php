@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
@@ -39,6 +39,7 @@ class Utils
 	public function __construct()
 	{
 		static::$execTime = static::exectime();
+		static::$timeZone = date_default_timezone_get();
 	}
 
 	/**
@@ -97,7 +98,7 @@ class Utils
 	 * If two or more headers starts with 'key: ...' the resulting header is: 'key: val1, val2, ...'
 	 * This method preserves only the last value, eg. 'key: val2'
 	 *
-	 * Example: arrayMergeValues(': ', Array( 'a: aaa', 'b: bbb' ), Array( 'a: xxx' ) )
+	 * Example: arrayMergeValues( Array( 'a: aaa', 'b: bbb' ), Array( 'a: xxx' ), ': ' )
 	 * Results: Array( 'a:xxx', 'b:bbb' )
 	 */
 	public static function arrayMergeValues( array $a1, array $a2, string $delimiter = ': ' ): array
@@ -242,6 +243,44 @@ class Utils
 	}
 
 	/**
+	 * Get last cmd line argument (not option!).
+	 * Examples:
+	 * command {argument}
+	 * command -c aaa {argument}
+	 * command -c aaa -- {argument}
+	 * command -c {!NOT argument!}
+	 *
+	 * @param $arguments array|null The PHP::$argv like data with !trimed! values
+	 */
+	public static function cmdLastArg( ?array $arguments = null ): string
+	{
+		global $argv;
+
+		$args = $arguments ?? $argv;
+		$argc = count( $args );
+
+		$out = '';
+
+		if ( $argc > 1 ) {
+			$last = $args[$argc - 1];
+
+			// Check one before
+			if ( $argc > 2 ) {
+				$prev = $args[$argc - 2];
+				$prev0 = $prev[0] ?? '';
+				if ( '--' !== $prev && '-' === $prev0 ) {
+					$last = '';
+				}
+			}
+
+			$last0 = $last[0] ?? '';
+			$out = '-' === $last0 ? '' : $last;
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Return an associative array of defined constants in format: [int] => 'CONSTANT_NAME'
 	 *
 	 * @see get_defined_constants()
@@ -283,8 +322,8 @@ class Utils
 		$Begin = ( new \DateTime() )->setTimestamp( $begin )->setTimezone( $TZone );
 		$Final = ( new \DateTime() )->setTimestamp( $final )->setTimezone( $TZone );
 
-		$out['begin'] = $Begin->format( $format[0] ?? 'l, d.m.Y H:i');
-		$out['final'] = $Final->format( $format[1] ?? 'l, d.m.Y H:i');
+		$out['begin'] = $Begin->format( $format[0] ?? static::$dateFormat);
+		$out['final'] = $Final->format( $format[1] ?? static::$dateFormat);
 
 		if ( !isset( $format[2] ) || '%a' === $format[2] ) {
 			$Begin->setTime( 0, 0 ); // Count full days!
@@ -493,9 +532,9 @@ class Utils
 	 * Handle Exceptions.
 	 *
 	 * @param bool $log   Write to PHP error log?
-	 * @param int  $dirUp How many sub-dirs to show in path?
+	 * @param int  $dirUp How many sub-dirs to show in path? 5 === /vendor/...
 	 */
-	public static function exceptionHandler( \Throwable $E, bool $log = true, int $dirUp = 4 ): void
+	public static function exceptionHandler( \Throwable $E, bool $log = true, int $dirUp = 5 ): void
 	{
 		static::exceptionPrint( $E, $log, $dirUp );
 		exit( $E->getCode() ?: 1 );
@@ -505,9 +544,9 @@ class Utils
 	 * Print formated Exception message.
 	 *
 	 * @param bool $log   Write to PHP error log?
-	 * @param int  $dirUp How many sub-dirs to show in path?
+	 * @param int  $dirUp How many sub-dirs to show in path? 5 === /vendor/...
 	 */
-	public static function exceptionPrint( \Throwable $E, bool $log = true, int $dirUp = 4 ): void
+	public static function exceptionPrint( \Throwable $E, bool $log = true, int $dirUp = 5 ): void
 	{
 		echo "\n----------\n";
 
@@ -515,12 +554,9 @@ class Utils
 			echo $E;
 		}
 		else {
-			$projectDir = dirname( __DIR__, $dirUp );
-			$srcFile = substr( $E->getFile(), strlen( $projectDir ) );
-
 			/* @formatter:off */
 			printf( "\nIn ...%s:%d\n\n  [%s]\n  %s\n\n",
-				$srcFile,
+				static::pathLast( $E->getFile(), $dirUp ),
 				$E->getLine(),
 				get_class( $E ),
 				trim( $E->getMessage() ), // prefixed with new line!
@@ -650,11 +686,39 @@ class Utils
 	}
 
 	/**
+	 * Keep last n files in dir.
+	 *
+	 * @param  string $mask Filename wildcard
+	 * @param  int    $keep How many files to keep?
+	 * @param  bool   $last Keep last (true) or first (false) files?
+	 * @return array Deleted (rotated) files
+	 */
+	public static function filesRotate( string $mask, int $keep, bool $last = true ): array
+	{
+		$files = glob( $mask );
+		$order = $last ? -1 : 1;
+		$rotated = [];
+
+		if ( $keep < count( $files ) ) {
+			usort( $files, function ( $a, $b ) use ($order ) {
+				return strcmp( $a, $b ) * $order;
+			} );
+			foreach ( array_slice( $files, $keep ) as $file ) {
+				if ( is_writable( $file ) && @unlink( $file ) ) {
+					$rotated[] = $file;
+				}
+			}
+		}
+
+		return $rotated;
+	}
+
+	/**
 	 * Read JSON array from file.
 	 */
-	public static function jsonLoad( string $file )
+	public static function jsonLoad( string $file, $default = [] )
 	{
-		return is_file( $file ) ? json_decode( file_get_contents( $file ), true ) : [];
+		return is_file( $file ) ? json_decode( file_get_contents( $file ), true ) : $default;
 	}
 
 	/**
@@ -677,13 +741,17 @@ class Utils
 	}
 
 	/**
-	 * Get memory usage string.
+	 * Left pad number string.
 	 *
-	 * @param string $format Use %s placeholder for byte string
+	 * @see \str_pad()
+	 *
+	 * @param int $val Value to render
+	 * @param int $max Max value
 	 */
-	public static function memory( string $format = 'Memory: %s' ): string
+	public static function numberPad( int $val, int $max, $pad = ' ' ): string
 	{
-		return sprintf( $format, static::byteString( memory_get_usage() ) );
+		$len = strlen( $max );
+		return sprintf( "%{$pad}{$len}s", $val );
 	}
 
 	/**
@@ -704,6 +772,19 @@ class Utils
 	public static function pathBuild( string $base, array $parts ): string
 	{
 		return $base . DIRECTORY_SEPARATOR . implode( DIRECTORY_SEPARATOR, $parts );
+	}
+
+	/**
+	 * Get last n'th path elements.
+	 *
+	 * @param int $last Number of last path elements to preserve
+	 */
+	public static function pathLast( string $path, int $last = 1 ): string
+	{
+		$cut = dirname( $path, $last );
+		$out = substr( $path, strlen( $cut ) );
+
+		return $out;
 	}
 
 	/**
@@ -760,20 +841,36 @@ class Utils
 	}
 
 	/**
-	 * Generate BIND array for PDO::execute()
+	 * Get memory usage.
 	 *
-	 * @param  array $data Array ( [name] => value, ... )
-	 * @return array       Array ( [:name] => value, ... )
+	 * @param string $format Use %s placeholder for byte string
 	 */
-	public static function pdoExecuteParams( array $data ): array
+	public static function phpMemory( string $format = 'Memory: %s' ): string
 	{
-		$bind = [];
+		return sprintf( $format, static::byteString( memory_get_usage() ) );
+	}
 
-		foreach ( $data as $k => $v ) {
-			$bind[":$k"] = $v;
-		}
+	/**
+	 * Get PHP summary.
+	 *
+	 * @return array (
+	 * [php] PHP: 7.4.30 (took 12s) on Mon, 05 Feb 2024 16:33:19 +0100.
+	 * [mem] Memory: 8MB
+	 * )
+	 */
+	public static function phpSummary(): array
+	{
+		/* @formatter:off */
+		$out = [
+			'php' => sprintf( 'PHP: %1$s (took %2$s) on %3$s',
+				/*1*/ phpversion(),
+				/*2*/ static::timeString( static::exectime( null ) ),
+				/*3*/ date( 'r', time() ) ),
+			'mem' => static::phpMemory(),
+		];
+		/* @formatter:on */
 
-		return $bind;
+		return $out;
 	}
 
 	/**
@@ -910,19 +1007,6 @@ class Utils
 	}
 
 	/**
-	 * Print message to STDERR.
-	 *
-	 * @codeCoverageIgnore
-	 *
-	 * @param string $message
-	 * @param string $codepage
-	 */
-	public static function stderr( string $message, string $codepage = 'cp852' ): void
-	{
-		self::print( $message, true, $codepage );
-	}
-
-	/**
 	 * Get user input.
 	 *
 	 * @codeCoverageIgnore
@@ -954,14 +1038,17 @@ class Utils
 	 *
 	 * @param float   $seconds   Time in fractional seconds
 	 * @param int     $precision How many fractional digits? 0 == no fractions part
-	 * @return string            Time in format 18394d 16g 11m 41.589s
+	 * @return string            Time in format 18394d 16g 11m 41s, 12s, 4.45s, 0.682s
 	 */
 	public static function timeString( float $seconds, ?int $precision = null ): string
 	{
-		$precision = null === $precision ? 3 : $precision;
-
 		$sign = $seconds < 0 ? '-' : '';
 		$seconds = abs( $seconds );
+
+		if ( null === $precision ) {
+			$precision = $seconds < 10 ? 2 : 0;
+			$precision = $seconds < 1 ? 3 : $precision;
+		}
 
 		$d = $h = $m = 0;
 		$s = (int) $seconds; // get natural part
@@ -980,7 +1067,7 @@ class Utils
 			$s = floor( $s % self::MINUTE );
 		}
 
-		$s = sprintf( "%.{$precision}f", $s + $u );
+		$s = sprintf( "%.{$precision}f", $s + $u ); // round fraction part!
 
 		/* @formatter:off */
 		$masks = [

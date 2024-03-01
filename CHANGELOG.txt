@@ -1,19 +1,42 @@
 ===================================================================================================
+v6.0.0
+Removed triats:
+---------------
+Logging > $this->Factory->info(...
+
+Removed methods:
+---------------
+Utils::memory()                  > Utils::phpMemory()
+Utils::pdoExecuteParams()        > Database::bind()
+Utils::stderr()                  > fwrite( STDERR, "message\n" );
+Application::exceptionPrint()    > Utils::exceptionPrint()
+Application::getHistoryLogs()    > Logger::getHistoryLogs()
+Application::exceptionPrintLog() > Merged with Application::exceptionHandler()
+Application::exceptionHandler()  > Utils::exceptionHandler()
+
+Updated constants:
+---------------
+Loggeg::NONE > 0
+Application::EXTENSIONS > cfg[extensions]
+
+===================================================================================================
 v5.0.0
 Func args update:
+----------------
   - Utils::arraySortMulti( array &$arr, string $sort = 'name', string $dir = 'asc' )
   + Utils::arraySortMulti( array &$arr, string $sort = 'name', bool $asc = true )
+
 ===================================================================================================
 v4.0.0
 Removed methods:
---------------
+---------------
 Logger::pushHandler() > Logger::Monolog()->pushHandler()
 Logger::getHandlers() > Logger::Monolog()->getHandlers()
 
 ===================================================================================================
 v3.0.0
 Renamed methods:
---------------
+---------------
 Utils::buildPath()           > pathBuild()
 Utils::checkError()          > errorCheck()
 Utils::clearDirectory()      > dirClear()

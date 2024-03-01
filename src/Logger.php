@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan;
 
@@ -15,16 +15,14 @@ use Monolog\Handler\RotatingFileHandler;
  * Why not extend Monolog\Logger?
  * - keep Orkan\Utils dependency clean
  *
+ * WARNING:
+ * If Monolog\Logger isn't available, all extra features like log_history and log_verbose are also unavailable.
+ *
  * @author Orkan <orkans+utils@gmail.com>
  */
 class Logger
 {
 	/* @formatter:off */
-
-	/**
-	 * Special level to disable logging features.
-	 */
-	const NONE = 0;
 
 	/**
 	 * Map Monolog levels.
@@ -50,17 +48,11 @@ class Logger
 	 */
 	protected $history = [];
 
-	/**
-	 * Monolog instance.
-	 *
-	 * @var \Monolog\Logger
-	 */
-	protected $Logger;
-
-	/**
-	 * @var Factory
+	/*
+	 * Services:
 	 */
 	protected $Factory;
+	protected $Logger;
 
 	/**
 	 * Build Factory Logger.
@@ -115,49 +107,57 @@ class Logger
 	protected function defaults()
 	{
 		/**
-		 * [log_format]
-		 * Default: [%datetime%] %channel%.%level_name%: %message% %context% %extra%\n
+		 * [log_file]
+		 * Full path to log file or or leave empty to skip creating log file
+		 *
+		 * [log_keep]
+		 * @see \Monolog\Handler\RotatingFileHandler::__construct( $maxFiles )
 		 *
 		 * [log_datetime]
 		 * Default: Y-m-d\TH:i:s.uP
 		 *
-		 * [log_keep]
-		 * @see \Monolog\Handler\RotatingFileHandler::__construct( $maxFiles )
+		 * [log_format]
+		 * Default: [%datetime%] %channel%.%level_name%: %message% %context% %extra%\n
+		 *
+		 * [log_mask]
+		 * Replace sensitive info in logs messages
+		 * Array( [search] => string|array, [replace] => string|array )
+		 * @see str_replace( [search], [replace] )
 		 *
 		 * [log_reset]
 		 * Empty previous log file
 		 *
 		 * [log_history]
 		 * Min. log level to save in history. 0 == OFF
-		 * Array (
-		 *   Array ( [level] => self::DEBUG, [message] => 'message 1' ] ),
-		 *   Array ( [level] => self::ERROR, [message] => 'message 2' ] ),
-		 * )
+		 * @see Logger::getHistory()
 		 *
 		 * [log_verbose]
 		 * Min. log level to echo. 0 == OFF
+		 * @see Logger::addRecord()
 		 *
 		 * [log_debug]
 		 * Print extra info in log file (backtrace, etc...)
 		 *
 		 * @formatter:off */
 		return [
-			'log_channel'   => getenv( 'LOG_CHANNEL'  ) ?: __CLASS__,
+			'log_file'      => '',
+			'log_keep'      => 5,
+			'log_channel'   => __CLASS__,
 			'log_timezone'  => getenv( 'LOG_TIMEZONE' ) ?: date_default_timezone_get(),
-			'log_format'    => getenv( 'LOG_FORMAT'   ) ?: "[%datetime%] %level_name%: %context% %message%\n",
-			'log_datetime'  => getenv( 'LOG_DATETIME' ) ?: 'Y-m-d H:i:s',
-			'log_keep'      => getenv( 'LOG_KEEP'     ) ?: 5,
+			'log_datetime'  => 'Y-m-d H:i:s',
+			'log_format'    => "[%datetime%] %level_name%: %context% %message%\n",
+			'log_mask'      => '',
 			'log_reset'     => getenv( 'LOG_RESET'    ) ?: false,
 			'log_level'     => getenv( 'LOG_LEVEL'    ) ?: self::INFO,
-			'log_history'   => getenv( 'LOG_HISTORY'  ) ?: self::NONE,
-			'log_verbose'   => getenv( 'LOG_VERBOSE'  ) ?: self::NONE,
+			'log_history'   => getenv( 'LOG_HISTORY'  ) ?: 0,
+			'log_verbose'   => getenv( 'LOG_VERBOSE'  ) ?: 0,
 			'log_debug'     => getenv( 'LOG_DEBUG'    ) ?: false,
 		];
 		/* @formatter:on */
 	}
 
 	/**
-	 * Expose original Monolog.
+	 * Expose Monolog instance.
 	 */
 	public function Monolog(): Monolog
 	{
@@ -165,14 +165,15 @@ class Logger
 	}
 
 	/**
-	 * Check if given level is currently handled, aka: $level >= cfg[log_level].
+	 * Check if given level is currently handled.
 	 *
-	 * @param mixed $level Level name ie. 'debug' or Level constant ie. Logger::DEBUG
+	 * @param int|string $level Level name ie. 'debug', 'DEBUG', Logger::DEBUG
 	 */
 	public function is( $level ): ?bool
 	{
-		$level = $this->Logger->toMonologLevel( $level );
-		$this->handling[$level] = $this->handling[$level] ?? $this->Logger->isHandling( $level );
+		if ( !isset( $this->handling[$level] ) ) {
+			$this->handling[$level] = $this->Logger->isHandling( $this->toLevel( $level ) );
+		}
 
 		return $this->handling[$level];
 	}
@@ -180,12 +181,32 @@ class Logger
 	/**
 	 * Check if given level is currently handled by extra cfg level.
 	 *
-	 * @param int $cfgLevel Extra feature level, like: log_verbose, log_history, etc...
-	 * @param int $level    Current level
+	 * @param int|string $cfgLevel Extra feature level, like: log_verbose, log_history, etc...
+	 * @param int|string $logLevel Current level
 	 */
-	protected static function isHandling( int $cfgLevel, int $level ): bool
+	protected function isHandling( $cfgLevel, $logLevel ): bool
 	{
-		return self::NONE !== $cfgLevel && $cfgLevel <= $level;
+		$cfgLevel = $this->toLevel( $cfgLevel );
+		$logLevel = $this->toLevel( $logLevel );
+
+		return $cfgLevel && $cfgLevel <= $logLevel;
+	}
+
+	/**
+	 * Convert log level to int.
+	 *
+	 * @param int|string $level Level name or empty ie. 'debug', 'DEBUG', Logger::DEBUG, '', 0, null
+	 */
+	protected function toLevel( $level ): int
+	{
+		static $cache = [];
+
+		if ( !isset( $cache[$level] ) ) {
+			$level = $level ? $this->Logger->toMonologLevel( $level ) : 0;
+			$cache[$level] = $level;
+		}
+
+		return $cache[$level];
 	}
 
 	/**
@@ -226,11 +247,35 @@ class Logger
 	}
 
 	/**
-	 * Get saved records
+	 * Get saved records >= [log_history].
+	 *
+	 * @return Array (
+	 *   Array ( [level] => self::DEBUG, [message] => 'message 1' ] ),
+	 *   Array ( [level] => self::ERROR, [message] => 'message 2' ] ),
+	 * )
 	 */
 	public function getHistory(): array
 	{
 		return $this->history;
+	}
+
+	/**
+	 * Get formated records >= [log_history].
+	 *
+	 * @return string[] (
+	 *   WARNING: Message 1,
+	 *   ERROR: Message 2,
+	 * )
+	 */
+	public function getHistoryLogs(): array
+	{
+		$out = [];
+
+		foreach ( $this->history as $rec ) {
+			$out[] = sprintf( '%s: %s', static::getLevelName( $rec['level'] ), $rec['message'] );
+		}
+
+		return $out;
 	}
 
 	/**

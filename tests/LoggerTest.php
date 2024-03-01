@@ -1,7 +1,7 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan\Tests;
 
@@ -9,13 +9,46 @@ use Orkan\Factory;
 use Orkan\Logger;
 
 /**
- * Test Logger.
+ * Test: Orkan\Logger.
  *
- * @see \Orkan\Logger
  * @author Orkan <orkans+utils@gmail.com>
  */
 class LoggerTest extends TestCase
 {
+	const USE_SANDBOX = true;
+
+	/**
+	 * Skip all tests if Monolog is not installed.
+	 * @var bool
+	 */
+	private static $isMonolog;
+
+	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers Helpers
+	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public static function setUpBeforeClass(): void
+	{
+		parent::setUpBeforeClass();
+
+		$Logger = new Logger( new Factory() );
+		self::$isMonolog = null !== $Logger->Monolog();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	protected function setUp(): void
+	{
+		parent::setUp();
+
+		if ( !self::$isMonolog ) {
+			$this->markTestSkipped( 'The Monolog class is not available.' );
+		}
+	}
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests:
@@ -26,16 +59,16 @@ class LoggerTest extends TestCase
 	 */
 	public function testCanVerbose()
 	{
-		$this->expectExceptionMessage( __FUNCTION__ );
+		$message = uniqid();
+		$this->expectExceptionMessage( $message );
 
 		/* @formatter:off */
-		$Factory = new Factory( [
-			'log_file'    => '',
-			'log_verbose' => Logger::INFO,
+		$Factory = new Factory([
+			'log_verbose' => 'INFO',
 		]);
 		/* @formatter:on */
 
-		$Factory->Logger()->info( __FUNCTION__ );
+		$Factory->Logger()->info( $message );
 	}
 
 	/**
@@ -43,14 +76,7 @@ class LoggerTest extends TestCase
 	 */
 	public function testCanFileSkip()
 	{
-		/* @formatter:off */
-		$Factory = new Factory( [
-			'log_file'    => '',
-			'log_verbose' => Logger::NONE,
-		]);
-		/* @formatter:on */
-
-		$Logger = $Factory->Logger();
+		$Logger = new Logger( new Factory() );
 		$Logger->info( __FUNCTION__ );
 
 		$this->assertFileDoesNotExist( $Logger->getFilename() );
@@ -61,18 +87,19 @@ class LoggerTest extends TestCase
 	 */
 	public function testCanFileWrite()
 	{
-		if ( !class_exists( '\\Monolog\\Logger' ) ) {
-			$this->markTestSkipped( 'The Monolog class is not available.' );
-		}
+		/* @formatter:off */
+		$cfg = [
+			'log_file' => self::sandboxPath( '%s.log', __FUNCTION__ ),
+		];
+		/* @formatter:on */
 
-		$logFile = sprintf( '%s/%s.log', self::DIR_TEMP, __FUNCTION__ );
+		$Factory = new Factory( $cfg );
+		$Logger = new Logger( $Factory );
 
-		$Factory = new Factory( [ 'log_file' => $logFile ] );
-		$Logger = $Factory->Logger();
-		$Logger->warning( $message = __FUNCTION__ );
+		$message = uniqid();
+		$Logger->warning( $message );
 
-		$filename = $Logger->getFilename();
-		$this->assertFileExists( $filename );
-		$this->assertStringContainsString( $message, file_get_contents( $filename ) );
+		$file = $Logger->getFilename();
+		$this->assertStringContainsString( $message, file_get_contents( $file ) );
 	}
 }

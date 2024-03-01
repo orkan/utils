@@ -1,18 +1,16 @@
 <?php
 /*
  * This file is part of the orkan/utils package.
- * Copyright (c) 2020-2024 Orkan <orkans+utils@gmail.com>
+ * Copyright (c) 2020 Orkan <orkans+utils@gmail.com>
  */
 namespace Orkan\Tests;
 
-use ReflectionClass;
-
 /**
- * Test case helper functions.
+ * Utils: Orkan\Tests.
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
-class Utils
+class TestUtils
 {
 
 	/**
@@ -24,7 +22,7 @@ class Utils
 	 */
 	public static function setPrivateProperty( object $obj, string $property, $value ): void
 	{
-		$class = new ReflectionClass( $obj );
+		$class = new \ReflectionClass( $obj );
 		$item = $class->getProperty( $property );
 		$item->setAccessible( true );
 		$item->setValue( $obj, $value );
@@ -39,7 +37,7 @@ class Utils
 	 */
 	public static function getPrivateProperty( object $obj, string $property )
 	{
-		$class = new ReflectionClass( $obj );
+		$class = new \ReflectionClass( $obj );
 		$item = $class->getProperty( $property );
 		$item->setAccessible( true );
 		return $item->getValue( $obj );
@@ -55,7 +53,7 @@ class Utils
 	 */
 	public static function callPrivateMethod( $obj, string $method, $args = [] )
 	{
-		$class = new ReflectionClass( $obj );
+		$class = new \ReflectionClass( $obj );
 		$name = $class->getMethod( $method );
 		$name->setAccessible( true ); // Set method to public
 		return $name->invokeArgs( is_string( $obj ) ? null : $obj, $args ); // Call $this->name( $args );
