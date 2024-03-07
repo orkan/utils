@@ -205,7 +205,8 @@ class FactoryTest extends TestCase
 	{
 		/* @formatter:off */
 		$cfg = [
-			'log_file' => self::sandboxPath( '%s.log', __FUNCTION__ ),
+			'log_level' => 'DEBUG',
+			'log_file'  => self::sandboxPath( '%s.log', __FUNCTION__ ),
 		];
 		$tokens = [
 			'%one%' => 'f i r s t',

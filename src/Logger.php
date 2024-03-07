@@ -59,7 +59,7 @@ class Logger
 	 */
 	public function __construct( Factory $Factory )
 	{
-		$this->Factory = $Factory->merge( $this->defaults() );
+		$this->Factory = $Factory->merge( self::defaults() );
 
 		// Provide at least verbose output if no logging to file available
 		if ( !class_exists( '\\Monolog\\Logger' ) ) {
