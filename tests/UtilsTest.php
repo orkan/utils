@@ -82,7 +82,7 @@ class UtilsTest extends TestCase
 	}
 
 	/**
-	 * @see UtilsTest::testByteNumber()
+	 * @see UtilsTest::testCanFormatByteNumber()
 	 */
 	public function provideBytes()
 	{
@@ -108,7 +108,7 @@ class UtilsTest extends TestCase
 	 * Convert size string to bytes.
 	 * @dataProvider provideBytes
 	 */
-	public function testByteNumber( $str, $expect )
+	public function testCanFormatByteNumber( $str, $expect )
 	{
 		$this->assertSame( $expect, Utils::byteNumber( $str ) );
 	}
@@ -253,7 +253,7 @@ class UtilsTest extends TestCase
 	}
 
 	/**
-	 *
+	 * @see UtilsTest::testCanMergeArrayValues()
 	 */
 	public function provideHttpHeaders()
 	{
@@ -269,10 +269,9 @@ class UtilsTest extends TestCase
 
 	/**
 	 * Merge exploded values.
-	 *
 	 * @dataProvider provideHttpHeaders
 	 */
-	public function testArrayMergeValues( $a1, $a2, $delimiter, $expect )
+	public function testCanMergeArrayValues( $a1, $a2, $delimiter, $expect )
 	{
 		$this->assertSame( $expect, Utils::arrayMergeValues( $a1, $a2, $delimiter ) );
 	}
@@ -466,6 +465,15 @@ class UtilsTest extends TestCase
 	public function testCanGetLastPathElements( $path, $last, $expect )
 	{
 		$this->assertSame( $expect, Utils::pathLast( $path, $last ) );
+	}
+
+	/**
+	 * Get max memory usage.
+	 */
+	public function testCanUseMemoryMax()
+	{
+		Utils::setup( [ 'maxMemory' => $mem = 1e+12 ] ); // 1 000 000 000 000 = ~1TB
+		$this->assertSame( Utils::byteString( $mem ), Utils::phpMemoryMax( '%s' ) );
 	}
 }
 

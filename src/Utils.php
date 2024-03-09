@@ -27,6 +27,7 @@ class Utils
 	 * @see Utils::setup()
 	 */
 	protected static $execTime = 0;
+	protected static $maxMemory = 0;
 	protected static $timeZone = 'UTC';
 	protected static $dateFormat = 'Y-m-d H:i:s';
 
@@ -851,6 +852,18 @@ class Utils
 	}
 
 	/**
+	 * Get max memory usage.
+	 *
+	 * @param string $format Use %s placeholder for byte string
+	 * @param bool   $useMax Use max memory instead of current?
+	 */
+	public static function phpMemoryMax( string $format = 'Memory: %s' ): string
+	{
+		static::$maxMemory = max( memory_get_usage(), static::$maxMemory );
+		return sprintf( $format, static::byteString( static::$maxMemory ) );
+	}
+
+	/**
 	 * Get PHP summary.
 	 *
 	 * @return array (
@@ -866,7 +879,7 @@ class Utils
 				/*1*/ phpversion(),
 				/*2*/ static::timeString( static::exectime( null ) ),
 				/*3*/ date( 'r', time() ) ),
-			'mem' => static::phpMemory(),
+			'mem' => static::phpMemoryMax(),
 		];
 		/* @formatter:on */
 

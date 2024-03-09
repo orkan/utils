@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '6.0.1';
-	const APP_DATE = 'Thu, 07 Mar 2024 16:36:33 +01:00';
+	const APP_VERSION = '6.0.2';
+	const APP_DATE = 'Sat, 09 Mar 2024 23:24:36 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -297,7 +297,7 @@ class Application
 
 			// Array args, like: -v|vv|vvv do not accept values!
 			if ( is_array( $arg['short'] ?? false) ) {
-				$arg['short'] = implode( '|', $arg['short'] );
+				$arg['short'] = implode( ' | ', $arg['short'] );
 			}
 
 			if ( is_string( $arg['short'] ?? false) ) {
@@ -375,8 +375,8 @@ class Application
 	 */
 	public function setCliTitle( string $title = '' ): void
 	{
-		$text = $title ? " $title" : '';
-		cli_set_process_title( sprintf( '[%s] %s', $this->Factory->get( 'cli_title' ), $text ) );
+		$str = trim( sprintf( '[%s] %s', $this->Factory->get( 'cli_title' ), $title ) );
+		cli_set_process_title( $str );
 	}
 
 	/**
