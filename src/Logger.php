@@ -169,10 +169,10 @@ class Logger
 	 *
 	 * @param int|string $level Level name ie. 'debug', 'DEBUG', Logger::DEBUG
 	 */
-	public function is( $level ): ?bool
+	public function is( $level ): bool
 	{
 		if ( !isset( $this->handling[$level] ) ) {
-			$this->handling[$level] = $this->Logger->isHandling( $this->toLevel( $level ) );
+			$this->handling[$level] = $this->Logger->isHandling( $this->toLevel( $level ) ) ?? false;
 		}
 
 		return $this->handling[$level];
@@ -203,7 +203,7 @@ class Logger
 
 		if ( !isset( $cache[$level] ) ) {
 			$level = $level ? $this->Logger->toMonologLevel( $level ) : 0;
-			$cache[$level] = $level;
+			$cache[$level] = $level ?? 0;
 		}
 
 		return $cache[$level];
@@ -214,7 +214,9 @@ class Logger
 	 */
 	public function getFilename(): string
 	{
-		foreach ( $this->Monolog()->getHandlers() as $Handler ) {
+		$Handlers = $this->Logger->getHandlers() ?? [];
+
+		foreach ( $Handlers as $Handler ) {
 			if ( $Handler instanceof RotatingFileHandler ) {
 				return $Handler->getUrl();
 			}

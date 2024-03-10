@@ -20,9 +20,9 @@
 		"vendor-dir": "../vendor"
 	},
 	"require": {
+		"composer-runtime-api": "^2.2"
 	},
 	"require-dev": {
-		"composer-runtime-api": "^2.2",
 		"monolog/monolog": "^2.9",
 		"phpunit/phpunit": "^9.6"
 	},
