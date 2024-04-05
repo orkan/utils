@@ -6,6 +6,9 @@
 namespace Orkan\Tests;
 
 use Orkan\Logger;
+use Orkan\ProgressBar;
+use Orkan\Prompt;
+use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 
 /**
@@ -23,8 +26,7 @@ trait FactoryMockTrait
 
 	/*
 	 * Services:
-	 * CAUTION: Already defined in Factory. Can be overriten in FactoryMock class only - not Triat!
-	 public $Logger;
+	 * public $Logger; // CAUTION: Already defined in Factory. Can be overriten in FactoryMock class only - not Triat!
 	 */
 
 	/**
@@ -34,6 +36,9 @@ trait FactoryMockTrait
 	{
 		parent::__construct( $cfg );
 		$this->TestCase = $TestCase;
+
+		// No user prompt
+		$this->Utils()->setup( [ 'silent' => true ] );
 	}
 
 	// =================================================================================================================
@@ -53,5 +58,21 @@ trait FactoryMockTrait
 		}
 
 		return $this->Logger;
+	}
+
+	/**
+	 * @return MockObject
+	 */
+	public function ProgressBar( int $steps = 10, string $format = '' )
+	{
+		return $this->ProgressBar ?? $this->ProgressBar = $this->TestCase->createMock( ProgressBar::class );
+	}
+
+	/**
+	 * @return MockObject
+	 */
+	public function Prompt()
+	{
+		return $this->Prompt ?? $this->Prompt = $this->TestCase->createMock( Prompt::class );
 	}
 }

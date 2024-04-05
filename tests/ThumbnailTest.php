@@ -29,8 +29,8 @@ class ThumbnailTest extends TestCase
 	{
 		parent::setUpBeforeClass();
 
-		self::$cfg['dir_upload'] = self::sandboxPath('upload');
-		self::$cfg['dir_assets'] = self::sandboxPath('assets');
+		self::$cfg['dir_upload'] = self::sandboxPath( 'upload' );
+		self::$cfg['dir_assets'] = self::sandboxPath( 'assets' );
 	}
 
 	protected static function mkDir( string $dir ): bool

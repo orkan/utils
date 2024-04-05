@@ -11,16 +11,14 @@ use Orkan\Logger;
 /**
  * Test: Orkan\Logger.
  *
+ * NOTICE:
+ * Tets this class in both environments: with and without Monolog installed!
+ *
  * @author Orkan <orkans+utils@gmail.com>
  */
 class LoggerTest extends TestCase
 {
 	const USE_SANDBOX = true;
-
-	/**
-	 * Skip all tests if Monolog is not installed.
-	 * @var bool
-	 */
 	private static $isMonolog;
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -35,19 +33,17 @@ class LoggerTest extends TestCase
 		parent::setUpBeforeClass();
 
 		$Logger = new Logger( new Factory() );
-		self::$isMonolog = null !== $Logger->Monolog();
+		self::$isMonolog = $Logger->isMonolog();
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Skip test despite of Monolog existence.
+	 * @param bool $require Skip if true and "NO Monolog" or skip if false and "IS Monolog"
 	 */
-	protected function setUp(): void
+	private function isMonolog( bool $require = true )
 	{
-		parent::setUp();
-
-		if ( !self::$isMonolog ) {
-			$this->markTestSkipped( 'The Monolog class is not available.' );
-		}
+		$require && !self::$isMonolog && $this->markTestSkipped( 'Skipped! Please install Monolog to run this test.' );
+		!$require && self::$isMonolog && $this->markTestSkipped( 'Skipped! Please uninstall Monolog to run this test.' );
 	}
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,10 +53,10 @@ class LoggerTest extends TestCase
 	/**
 	 * Verbose log message.
 	 */
-	public function testCanVerbose()
+	private function helpTestCanVerbose()
 	{
-		$message = uniqid();
-		$this->expectExceptionMessage( $message );
+		$msg = __METHOD__;
+		$this->expectExceptionMessage( $msg );
 
 		/* @formatter:off */
 		$Factory = new Factory([
@@ -68,25 +64,92 @@ class LoggerTest extends TestCase
 		]);
 		/* @formatter:on */
 
-		$Factory->Logger()->info( $message );
+		$Factory->Logger()->info( $msg );
 	}
 
 	/**
-	 * Skip log message to file.
+	 * cfg[log_verbose]: Monolog installed.
 	 */
-	public function testCanFileSkip()
+	public function testCanVerbose()
 	{
-		$Logger = new Logger( new Factory() );
-		$Logger->info( __FUNCTION__ );
+		$this->isMonolog();
+		$this->helpTestCanVerbose();
+	}
 
-		$this->assertFileDoesNotExist( $Logger->getFilename() );
+	/**
+	 * cfg[log_verbose]: Monolog NOT installed.
+	 */
+	public function testCanVerboseWithoutMonolog()
+	{
+		$this->isMonolog( false );
+		$this->helpTestCanVerbose();
+	}
+
+	/**
+	 * is(): check if current cfg[log_level] is handled.
+	 */
+	public function testCanHandleLogLevel()
+	{
+		$this->isMonolog();
+
+		/* @formatter:off */
+		$Logger = new Logger( new Factory([
+			'log_level' => 'WARNING',
+		]));
+		/* @formatter:on */
+
+		// Yes
+		$this->assertTrue( $Logger->is( 'ERROR' ) );
+		$this->assertTrue( $Logger->is( Logger::ERROR ) );
+		$this->assertTrue( $Logger->is( 'WARNING' ) );
+		$this->assertTrue( $Logger->is( Logger::WARNING ) );
+		// No
+		$this->assertFalse( $Logger->is( 'NOTICE' ) );
+		$this->assertFalse( $Logger->is( Logger::NOTICE ) );
+		$this->assertFalse( $Logger->is( 'INFO' ) );
+		$this->assertFalse( $Logger->is( Logger::INFO ) );
+		$this->assertFalse( $Logger->is( 'DEBUG' ) );
+		$this->assertFalse( $Logger->is( Logger::DEBUG ) );
+	}
+
+	/**
+	 * is(): check if cfg[log_history] is handled.
+	 */
+	public function testCanSaveHistory()
+	{
+		$this->isMonolog();
+
+		/* @formatter:off */
+		$Logger = new Logger( new Factory( $cfg = [
+			'log_history' => Logger::NOTICE,
+		]));
+		/* @formatter:on */
+
+		$msg = __METHOD__;
+
+		// No
+		$Logger->debug( $msg . Logger::DEBUG );
+		$Logger->info( $msg . Logger::INFO );
+		// Yes
+		$Logger->notice( $msg . Logger::NOTICE );
+		$Logger->warning( $msg . Logger::WARNING );
+		$Logger->error( $msg . Logger::ERROR );
+
+		$this->assertCount( 3, $history = $Logger->getHistory() );
+
+		foreach ( $history as $v ) {
+			$this->assertTrue( $v['level'] >= $cfg['log_history'] );
+			$this->assertTrue( $v['message'] === $msg . $v['level'] );
+		}
 	}
 
 	/**
 	 * Log message to file.
 	 */
-	public function testCanFileWrite()
+	public function testCanLogToFile()
 	{
+		$this->isMonolog();
+
 		/* @formatter:off */
 		$cfg = [
 			'log_file' => self::sandboxPath( '%s.log', __FUNCTION__ ),
@@ -96,10 +159,27 @@ class LoggerTest extends TestCase
 		$Factory = new Factory( $cfg );
 		$Logger = new Logger( $Factory );
 
-		$message = uniqid();
-		$Logger->warning( $message );
+		$msg = __METHOD__;
+		$Logger->warning( $msg );
 
 		$file = $Logger->getFilename();
-		$this->assertStringContainsString( $message, file_get_contents( $file ) );
+		$this->assertStringContainsString( $msg, file_get_contents( $file ) );
+	}
+
+	/**
+	 * Skip log message to file.
+	 */
+	public function testCanLogToFileSkip()
+	{
+		$this->isMonolog();
+
+		/* @formatter:off */
+		$Logger = new Logger( new Factory([
+			'log_file' => '',
+		]));
+		/* @formatter:on */
+
+		$Logger->info( __METHOD__ );
+		$this->assertFileDoesNotExist( $Logger->getFilename() );
 	}
 }

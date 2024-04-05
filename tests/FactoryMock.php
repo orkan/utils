@@ -13,4 +13,10 @@ namespace Orkan\Tests;
 class FactoryMock extends \Orkan\Factory
 {
 	use FactoryMockTrait;
+
+	/*
+	 * Services:
+	 */
+	protected $ProgressBar;
+	protected $Prompt;
 }

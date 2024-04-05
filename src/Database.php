@@ -8,7 +8,7 @@ namespace Orkan;
 /**
  * Abstraction layer for PDO (PHP Data Objects) interface.
  *
- * @author Orkan <orkans+filmweb@gmail.com>
+ * @author Orkan <orkans+utils@gmail.com>
  */
 class Database
 {

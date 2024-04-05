@@ -39,7 +39,8 @@ class TestCase extends \PHPUnit\Framework\TestCase
 	 */
 	public static function setUpBeforeClass(): void
 	{
-		!defined( 'DEBUG' ) && define( 'DEBUG', (bool) getenv( 'APP_DEBUG' ) );
+		// Tip: first TestCase defines it!
+		!defined( 'DEBUG' ) && define( 'DEBUG', true );
 		!defined( 'TESTING' ) && define( 'TESTING', true );
 
 		static::USE_SANDBOX && static::$dir['sandbox'] = static::DIR_SELF . '/_sandbox/' . basename( static::class );
@@ -101,7 +102,7 @@ class TestCase extends \PHPUnit\Framework\TestCase
 	}
 
 	/**
-	 * Get constents from file.
+	 * Get contents from file.
 	 */
 	public function fixtureData( string $path, ...$args )
 	{
