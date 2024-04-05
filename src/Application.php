@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '6.0.3';
-	const APP_DATE = 'Sun, 10 Mar 2024 01:21:44 +01:00';
+	const APP_VERSION = '7.0.0';
+	const APP_DATE = 'Fri, 05 Apr 2024 17:47:14 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -41,11 +41,11 @@ class Application
 	 * c::   | config::  | Optional value. Can't use space in between, use either: -cvalue|-c=value
 	 */
 	const ARGUMENTS = [
-		'setup'   => [ 'short' => 's', 'long' => 'setup'  , 'desc' => 'Display App config'  ],
-		'version' => [ 'short' => 'V', 'long' => 'version', 'desc' => 'Display App version' ],
-		'help'    => [ 'short' => 'h', 'long' => 'help'   , 'desc' => 'Display App help'    ],
+		'setup'   => [ 'short' => 's', 'long' => 'setup'  , 'desc' => 'Display App config'                ],
+		'version' => [ 'short' => 'V', 'long' => 'version', 'desc' => 'Display App version'               ],
+		'help'    => [ 'short' => 'h', 'long' => 'help'   , 'desc' => 'Display App help'                  ],
 		'dry-run' => [ 'short' => 'd', 'long' => 'dry-run', 'desc' => 'Do not make changes in filesystem' ],
-		'quiet'   => [ 'short' => 'q', 'long' => 'quiet'  , 'desc' => 'Do not output any message' ],
+		'quiet'   => [ 'short' => 'q', 'long' => 'quiet'  , 'desc' => 'Do not output any message'         ],
 		'verbose' => [ 'short' => [ 'v', 'vv', 'vvv' ],
 		               'long'  => 'verbose::',
 		               'desc'  => 'Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug' ],
@@ -67,7 +67,7 @@ class Application
 	 */
 	const VERBOSITY = [
 		self::VERBOSITY_QUIET        => 'ERROR',  // 400 -q
-		self::VERBOSITY_NORMAL       => 'NOTICE', // 250 default
+		self::VERBOSITY_NORMAL       => 'NOTICE', // 250
 		self::VERBOSITY_VERBOSE      => 'INFO',   // 200 -v
 		self::VERBOSITY_VERY_VERBOSE => 'DEBUG',  // 100 -vv
 		self::VERBOSITY_DEBUG        => 'DEBUG',  // 100 -vvv
@@ -79,8 +79,8 @@ class Application
 	 * Services:
 	 */
 	protected $Factory;
-	protected $Logger;
 	protected $Utils;
+	protected $Logger;
 
 	/**
 	 * Create Factory App.
@@ -89,74 +89,99 @@ class Application
 	{
 		!defined( 'DEBUG' ) && define( 'DEBUG', (bool) getenv( 'APP_DEBUG' ) );
 
-		// Don't initialize Services here, since config is NOT fully loaded yet!
+		/**
+		 * Don't initialize Services here, since config is NOT fully loaded yet!
+		 * @see Application::run()
+		 */
 		$this->Factory = $Factory->merge( self::defaults() );
+		$this->Utils = $Factory->Utils();
 
 		// PHP setup
 		date_default_timezone_set( $this->Factory->get( 'app_timezone' ) );
 		foreach ( $this->Factory->get( 'php', [] ) as $k => $v ) {
 			isset( $v ) && ini_set( $k, $v );
 		}
+
+		// App setup (no services)
+		$this->checkExtensions();
+		$this->setVerbosity();
 	}
 
 	/**
-	 * App config.
-	 *
-	 * [err_handle]
-	 * Handle errors?
-	 *
-	 * [exc_handle]
-	 * Handle exceptions?
-	 *
-	 * [extensions]
-	 * Required PHP extensions: Array ( [extension_name] => (bool) verify, ... )
-	 *
-	 * -----------------------------------------------------------------------------------------------------------------
-	 * PHP INI: Prepare for CLI
-	 * @link https://www.php.net/manual/en/errorfunc.configuration.php
-	 *
-	 * [max_execution_time]
-	 * Maximum script execution time. Default: 30 -OR- 0 in CLI mode!
-	 *
-	 * [error_reporting]
-	 * Show errors, warnings and notices. Default: E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED
-	 * Suggested on PROD: E_ALL & ~E_DEPRECATED & ~E_STRICT
-	 *
-	 * [log_errors]
-	 * Log PHP errors?
-	 *
-	 * [log_errors_max_len]
-	 * Max length of php error messages. Default: 1024, 0: disable.
-	 *
-	 * [ignore_repeated_errors]
-	 * Repeated errors must occur in same file on same line unless ignore_repeated_source is set true.
-	 *
-	 * [ignore_repeated_source]
-	 * Do not log errors with repeated messages from different source lines.
-	 *
-	 * [html_errors]
-	 * Format the error message as HTML?
-	 *
-	 * [error_log]
-	 * Path to php_error.log
-	 * -----------------------------------------------------------------------------------------------------------------
+	 * Get defaults.
 	 */
-	protected function defaults()
+	private function defaults()
 	{
 		$packageDir = dirname( ( new \ReflectionClass( static::class ) )->getFileName(), 2 ); // vendor/orkan/[project]
 
-		/* @formatter:off */
+		/**
+		 * [cmd_title]
+		 * CMD window title
+		 * @see Application::cmdTitle()
+		 *
+		 * [app_opts]
+		 * Defined command line argument (extendable by Factory::cfg())
+		 * @see Application::ARGUMENTS
+		 *
+		 * [err_handle]
+		 * Handle errors?
+		 *
+		 * [exc_handle]
+		 * Handle exceptions?
+		 *
+		 * [extensions]
+		 * Required PHP extensions: Array ( [extension_name] => (bool) verify, ... )
+		 *
+		 * [app_gc]
+		 * Garbage collect: Free up memory once is no longer used
+		 * @see Application::gc()
+		 *
+		 * -----------------------------------------------------------------------------------------------------------------
+		 * PHP INI: Prepare for CLI
+		 * @link https://www.php.net/manual/en/errorfunc.configuration.php
+		 *
+		 * Tip:
+		 * Use NULL to skip set_ini()
+		 *
+		 * [max_execution_time]
+		 * Maximum script execution time. Default: 30 -OR- 0 in CLI mode!
+		 *
+		 * [error_reporting]
+		 * Show errors, warnings and notices. Default: E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED
+		 * Suggested on PROD: E_ALL & ~E_DEPRECATED & ~E_STRICT
+		 *
+		 * [log_errors]
+		 * Log PHP errors?
+		 *
+		 * [log_errors_max_len]
+		 * Max length of php error messages. Default: 1024, 0: disable.
+		 *
+		 * [ignore_repeated_errors]
+		 * Repeated errors must occur in same file on same line unless ignore_repeated_source is set true.
+		 *
+		 * [ignore_repeated_source]
+		 * Do not log errors with repeated messages from different source lines.
+		 *
+		 * [html_errors]
+		 * Format the error message as HTML?
+		 *
+		 * [error_log]
+		 * Path to php_error.log
+		 * @see Logger::__construct()
+		 * -----------------------------------------------------------------------------------------------------------------
+		 *
+		 * @formatter:off */
 		return [
-			'cli_title'    => static::APP_NAME,
-			'app_title'    => static::getVersion(),
-			'app_args'     => static::ARGUMENTS,
+			'cmd_title'    => static::APP_NAME,
+			'app_opts'     => static::ARGUMENTS,
 			'app_usage'    => 'app.php [options]',
 			'app_timezone' => getenv( 'APP_TIMEZONE' ) ?: date_default_timezone_get(),
+			'app_gc'       => getenv( 'APP_GC' ) ?: false,
 			'err_handle'   => true,
 			'exc_handle'   => true,
 			'date_short'   => 'Y-m-d',
 			'date_long'    => 'l, Y-m-d H:i',
-			'log_level'    => DEBUG ? 'DEBUG' : 'INFO',
+			'log_level'    => DEBUG ? 'DEBUG' : 'NOTICE',
 			'log_debug'    => DEBUG,
 			'log_history'  => 'WARNING',
 			'dir_package'  => $packageDir,
@@ -164,11 +189,11 @@ class Application
 			'php' => [
 				'max_execution_time'     => null,
 				'error_reporting'        => E_ALL,
-				'log_errors'             => 'On',
-				'log_errors_max_len'     => 0,
-				'ignore_repeated_errors' => 'On',
-				'ignore_repeated_source' => 'Off',
-				'html_errors'            => 'Off',
+				'log_errors'             => '1',
+				'log_errors_max_len'     => '0',
+				'ignore_repeated_errors' => '1',
+				'ignore_repeated_source' => '0',
+				'html_errors'            => '0',
 				'error_log'              => null,
 			],
 		];
@@ -176,13 +201,43 @@ class Application
 	}
 
 	/**
+	 * Load User config provided as CMD line argument.
+	 *
+	 * CAUTION:
+	 * An unknown switch leads PHP::getopt() to stop parsing following arguments!
+	 *
+	 * @param string $arg Argument key. See cfg[app_opts][{key}]
+	 * @return string|null Config file location or null if argument wasn't present
+	 */
+	public function loadUserConfig( string $arg = '' ): ?string
+	{
+		if ( $arg ) {
+			$file = $this->getArg( $arg );
+		}
+		else {
+			$file = $this->Utils->cmdLastArg();
+		}
+
+		if ( $file ) {
+			$this->Factory->merge( require $file, true );
+			$this->Factory->cfg( 'cfg_user', realpath( $file ) );
+		}
+
+		return $file;
+	}
+
+	/**
 	 * Set verbosity level from cmd line switches.
 	 */
 	public function setVerbosity( array $map = [] )
 	{
+		if ( defined( 'TESTING' ) ) {
+			return;
+		}
+
 		$map = $map ?: static::VERBOSITY;
 
-		$level = $this->getArg( 'verbose' );
+		$level = (int) $this->getArg( 'verbose' );
 		$level = min( max( static::VERBOSITY_NORMAL, $level ), static::VERBOSITY_DEBUG );
 		$level = null !== $this->getArg( 'quiet' ) ? static::VERBOSITY_QUIET : $level;
 
@@ -214,35 +269,47 @@ class Application
 	}
 
 	/**
-	 * Get cmd line arg or NULL if not present.
+	 * Free up variable.
+	 */
+	protected function gc( &$item ): void
+	{
+		if ( $this->Factory->get( 'app_gc' ) ) {
+			$this->Factory->debug( $this->Utils->phpMemoryMax(), 1 );
+			$item = null;
+			$this->Factory->debug( $this->Utils->phpMemoryMax(), 1 );
+		}
+	}
+
+	/**
+	 * Get defined cmd line argument.
 	 *
-	 * @param  string           $name Defined app_args[name] or empty string to get all parsed options
-	 * @return array|NULL|mixed
+	 * @param string $name Defined app_opts[name] or empty string to get all parsed options
+	 * @return string|null CMD line arg or NULL if not present
 	 */
 	public function getArg( string $name = '' )
 	{
-		if ( !$appArgs = $this->Factory->get( 'app_args' ) ) {
+		if ( !$appOpts = $this->Factory->get( 'app_opts' ) ) {
 			return null;
 		}
 
-		if ( null === $cmdArgs = $this->Factory->cfg( 'cmd_args' ) ) {
-			$optS = array_column( $appArgs, 'short' );
-			$optS = Utils::arrayFlat( $optS );
+		if ( !$cmdOpts = $this->Factory->get( 'cmd_opts' ) ) {
+			$optS = array_column( $appOpts, 'short' );
+			$optS = $this->Utils->arrayFlat( $optS );
 			$optS = implode( '', $optS );
-			$optL = array_column( $appArgs, 'long' );
-			$cmdArgs = getopt( $optS, $optL );
-			$this->Factory->cfg( 'cmd_args', $cmdArgs );
+			$optL = array_column( $appOpts, 'long' );
+			$cmdOpts = getopt( $optS, $optL );
+			$this->Factory->cfg( 'cmd_opts', $cmdOpts );
 		}
 
 		if ( !$name ) {
-			return $cmdArgs;
+			return $cmdOpts;
 		}
 
 		/*
 		 * Grouped short args are parsed as array.
 		 *
 		 * Example: -a -cc
-		 * Result: [cmd_args] => Array (
+		 * Result: [cmd_opts] => Array (
 		 * 	[a] => false,
 		 * 	[c] => Array (
 		 * 		[0] => false,
@@ -255,22 +322,22 @@ class Application
 		 * Even if -cc was used, PHP will parse it under single letter [c] key - not [cc]
 		 * For single -c PHP will return false, not Array( [0] => false )
 		 */
-		if ( is_array( $arg = $appArgs[$name]['short'] ?? false) ) {
+		if ( is_array( $arg = $appOpts[$name]['short'] ?? false) ) {
 			$opt = $arg[0][0];
 
-			if ( isset( $cmdArgs[$opt] ) ) {
+			if ( isset( $cmdOpts[$opt] ) ) {
 				// cast to array in case single -c was used. See notes.
-				return count( (array) $cmdArgs[$opt] );
+				return count( (array) $cmdOpts[$opt] );
 			}
 
-			$appArgs[$name]['short'] = $opt;
+			$appOpts[$name]['short'] = $opt;
 		}
 
 		// Extract defined arg switches for current option and remove 'require' signatures if any
-		$nameS = rtrim( $appArgs[$name]['short'] ?? '', ':' );
-		$nameL = rtrim( $appArgs[$name]['long'] ?? '', ':' );
+		$nameS = rtrim( $appOpts[$name]['short'] ?? '', ':' );
+		$nameL = rtrim( $appOpts[$name]['long'] ?? '', ':' );
 
-		$value = $cmdArgs[$nameS] ?? $cmdArgs[$nameL] ?? $appArgs[$name]['default'] ?? null;
+		$value = $cmdOpts[$nameS] ?? $cmdOpts[$nameL] ?? $appOpts[$name]['default'] ?? null;
 
 		/*
 		 * CAUTION:
@@ -292,7 +359,7 @@ class Application
 		$max = 0;
 
 		$out = [];
-		foreach ( $this->Factory->get( 'app_args' ) as $name => $arg ) {
+		foreach ( $this->Factory->get( 'app_opts' ) as $name => $arg ) {
 			$valS = $valL = '';
 
 			// Array args, like: -v|vv|vvv do not accept values!
@@ -353,7 +420,7 @@ class Application
 	}
 
 	/**
-	 * Get name & version string.
+	 * Get: name, version.
 	 */
 	public static function getVersion(): string
 	{
@@ -361,7 +428,7 @@ class Application
 	}
 
 	/**
-	 * Get name & version string.
+	 * Get: name, version, date.
 	 */
 	public static function getVersionLong(): string
 	{
@@ -369,31 +436,30 @@ class Application
 	}
 
 	/**
-	 * Set cli window title.
-	 *
-	 * @param string $title String to append
+	 * Print exception message and write to php error log.
 	 */
-	public function setCliTitle( string $title = '' ): void
+	public function exceptionHandler( \Throwable $E ): void
 	{
-		$str = trim( sprintf( '[%s] %s', $this->Factory->get( 'cli_title' ), $title ) );
-		cli_set_process_title( $str );
+		$this->Logger && $this->Utils && $this->Utils->writeln( implode( "\n", $this->Logger->getHistoryLogs() ), 2 );
+		$this->Logger && $this->Logger->error( $E->getMessage() );
+		$this->Utils && $this->Utils->exceptionPrint( $E );
+
+		ini_get( 'log_errors' ) && error_log( $E );
+		exit( $E->getCode() ?: 1 );
 	}
 
 	/**
-	 * Print exception message and write to php error log.
+	 * Update CMD window title.
 	 *
-	 * @param bool $log   Write to PHP error log?
-	 * @param int  $dirUp How many sub-dirs to show in path?
-	 * @del
+	 * @param string|array $tokens Array( ['{token1}'] => text1, ['{token2}'] => text2, ... )
+	 * @param string       $format Eg. '{token1} - {token2} - {title}'
 	 */
-	public function exceptionHandler( \Throwable $E, bool $log = true, int $dirUp = 4 ): void
+	protected function cmdTitle( string $format = '', array $tokens = [] ): void
 	{
-		if ( $this->Utils ) {
-			$this->Logger && $this->Utils->writeln( implode( "\n", $this->Logger->getHistoryLogs() ), 2 );
-			$this->Utils->exceptionPrint( $E, $log, $dirUp );
-		}
+		$format = $format ? "$format - {cmd_title}" : '{cmd_title}';
+		$tokens['{cmd_title}'] = $this->Factory->get( 'cmd_title' );
 
-		exit( $E->getCode() ?: 1 );
+		cli_set_process_title( strtr( $format, $tokens ) );
 	}
 
 	/**
@@ -404,8 +470,6 @@ class Application
 	 */
 	public function run()
 	{
-		$this->Utils = $this->Factory->Utils();
-
 		/* @formatter:off */
 		$this->Utils->setup([
 			'timeZone'   => $this->Factory->get( 'app_timezone' ),
@@ -426,10 +490,8 @@ class Application
 			set_exception_handler( [ $this, 'exceptionHandler' ] );
 		}
 
+		$this->cmdTitle();
 		$this->Logger = $this->Factory->Logger();
-		$this->setCliTitle();
-		$this->setVerbosity();
-		$this->checkExtensions();
 
 		/*
 		 * -------------------------------------------------------------------------------------------------------------
@@ -446,7 +508,9 @@ class Application
 		}
 
 		if ( null !== $this->getArg( 'setup' ) ) {
-			print_r( $this->Factory->cfg() );
+			$cfg = $this->Factory->cfg();
+			ksort( $cfg );
+			print_r( $cfg );
 			exit();
 		}
 
@@ -457,11 +521,11 @@ class Application
 		 * NOTE:
 		 * Keep this after "Help" section to prevent extra output if App is going to exit anyway
 		 */
-		DEBUG && $this->Logger->info( 'DEBUG is ON' );
-
-		/* @formatter:off */
-		$this->Logger->is( $this->Logger::DEBUG ) &&
-		$this->Logger->debug( $this->Utils->print_r( $this->Factory->cfg() ) );
-		/* @formatter:on */
+		if ( DEBUG ) {
+			$this->Logger->info( 'DEBUG is ON' );
+			$this->Logger->debug( 'CMD: ' . implode( ' ', $GLOBALS['argv'] ) );
+			$this->Logger->debug( 'ARGS: ' . $this->Utils->print_r( $this->getArg() ) );
+			$this->Logger->debug( $this->Utils->print_r( $this->Factory->cfg() ) );
+		}
 	}
 }

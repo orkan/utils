@@ -12,7 +12,7 @@ use Orkan\Application;
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
-class ApplicationTest extends TestCase
+class ApplicationTest extends \Orkan\Tests\TestCase
 {
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -25,7 +25,7 @@ class ApplicationTest extends TestCase
 	 * @todo No solution to pass cmd line args to PHPUnit so far
 	 * @link https://stackoverflow.com/questions/39659602/send-parameter-to-php-unit-on-the-command-line
 	 */
-	public function testCanGetCommandLineArg()
+	public function _testCanGetCommandLineArg()
 	{
 		$nameS = 't';
 		$nameL = 'exclude-group';
@@ -33,7 +33,7 @@ class ApplicationTest extends TestCase
 
 		/* @formatter:off */
 		$cfg = [
-			'app_args' => [
+			'app_opts' => [
 				'arg1' => [ 'short' => "{$nameS}:", 'long' => "{$nameL}", 'desc' => "Testing --$nameL=$value" ],
 			],
 		];

@@ -38,12 +38,12 @@
 	},
 	"bin": [
 		"ork-env-switch",
-		"ork-files-quantity"
+		"ork-files-sync"
 	],
 	"extra": {
 		"branch-alias": {
-			"dev-master": "6.0.x-dev",
-			"dev-develop": "6.x-dev"
+			"dev-master": "7.0.x-dev",
+			"dev-develop": "7.x-dev"
 		}
 	}
 }

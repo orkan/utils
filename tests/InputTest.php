@@ -12,7 +12,7 @@ use Orkan\Input;
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
-class InputTest extends TestCase
+class InputTest extends \Orkan\Tests\TestCase
 {
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

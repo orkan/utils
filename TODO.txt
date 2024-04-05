@@ -1,5 +1,7 @@
 Application:
 ---------------
+cmdTitle(): add update frequency
+run() [-s] format array: no objects, func, etc...
 Rename: getArg()     => arg()
 Rename: getArgHelp() => argHelp()
 

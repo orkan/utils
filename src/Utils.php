@@ -32,6 +32,17 @@ class Utils
 	protected static $dateFormat = 'Y-m-d H:i:s';
 
 	/**
+	 * Last dirs to show for error[file].
+	 */
+	protected static $errDirUp = 5;
+
+	/**
+	 * Silent mode (skip all prompt).
+	 * @see Utils::prompt()
+	 */
+	protected static $silent = false;
+
+	/**
 	 * ErrorException code.
 	 * @see Utils::errorHandler()
 	 */
@@ -221,13 +232,13 @@ class Utils
 	 * @link https://stackoverflow.com/questions/11807115/php-convert-kb-mb-gb-tb-etc-to-bytes
 	 *
 	 * @param  string $str Byte size string
-	 * @return int Size in bytes
+	 * @return int|null Size in bytes or null if invalid format
 	 */
-	public static function byteNumber( string $str ): int
+	public static function byteNumber( string $str ): ?int
 	{
 		$m = [];
-		if ( !preg_match( '/^([\d.]+)(\s)?([BKMGTPE]?)(B)?$/i', trim( $str ), $m ) ) return 0;
-		return (int) floor( $m[1] * ( $m[3] ? ( 1024 ** strpos( 'BKMGTPE', strtoupper( $m[3] ) ) ) : 1 ) );
+		if ( !preg_match( '/^([\d.]+)(\s)?([BKMGTPE]?)(B)?$/i', trim( $str ), $m ) ) return null;
+		return floor( $m[1] * ( $m[3] ? ( 1024 ** strpos( 'BKMGTPE', strtoupper( $m[3] ) ) ) : 1 ) );
 	}
 
 	/**
@@ -245,40 +256,57 @@ class Utils
 
 	/**
 	 * Get last cmd line argument (not option!).
-	 * Examples:
+	 *
+	 * Arguments:
 	 * command {argument}
 	 * command -c aaa {argument}
 	 * command -c aaa -- {argument}
+	 * NULL:
 	 * command -c {!NOT argument!}
+	 * command -caaa {!NOT argument!}
+	 * command --opt {!NOT argument!}
+	 * command --opt=AAA {!NOT argument!}
 	 *
 	 * @param $arguments array|null The PHP::$argv like data with !trimed! values
+	 * @return string The last cmd line argument or null if not present
 	 */
-	public static function cmdLastArg( ?array $arguments = null ): string
+	public static function cmdLastArg( ?array $arguments = null ): ?string
 	{
-		global $argv;
-
-		$args = $arguments ?? $argv;
-		$argc = count( $args );
-
-		$out = '';
-
-		if ( $argc > 1 ) {
-			$last = $args[$argc - 1];
-
-			// Check one before
-			if ( $argc > 2 ) {
-				$prev = $args[$argc - 2];
-				$prev0 = $prev[0] ?? '';
-				if ( '--' !== $prev && '-' === $prev0 ) {
-					$last = '';
-				}
-			}
-
-			$last0 = $last[0] ?? '';
-			$out = '-' === $last0 ? '' : $last;
+		// Allow testing via $arguments, otherwise skip if running through PHPUnit ($argv[0] == current script!)
+		if ( defined( 'TESTING' ) && null === $arguments ) {
+			return null;
 		}
 
-		return $out;
+		$args = $arguments ?? $GLOBALS['argv'];
+		$argc = count( $args );
+
+		// No args. arg[0] == current file
+		if ( $argc < 2 ) {
+			return null;
+		}
+
+		$last = $args[$argc - 1] ?? null;
+		$prev = $args[$argc - 2] ?? null;
+
+		// Always return evrything after --
+		if ( '--' === $prev ) {
+			return $last;
+		}
+
+		$last0 = $last[0] ?? '';
+		$prev0 = $prev[0] ?? '';
+
+		// -oAAA || -o=AAA || --switch || --opt=AAA
+		if ( '-' === $last0 ) {
+			return null;
+		}
+
+		// -o AAA || --opt AAA
+		if ( '-' === $prev0 ) {
+			return null;
+		}
+
+		return $last;
 	}
 
 	/**
@@ -363,11 +391,16 @@ class Utils
 	 */
 	public static function dirClear( string $dir ): bool
 	{
+		$result = false;
+
 		if ( self::dirRemove( $dir ) ) {
-			return mkdir( $dir, 0777, true );
+			try {
+				$result = mkdir( $dir, 0777, true );
+			}
+			catch ( \Throwable $E ) {}
 		}
 
-		return false;
+		return $result;
 	}
 
 	/**
@@ -397,23 +430,40 @@ class Utils
 	}
 
 	/**
+	 * Scan dir files with regex and depth level.
+	 *
+	 * @param int $depth Directory depth to scan recursively. 0: current dir only. Def. -1: no limit
+	 * @return array Matched absolute paths
+	 */
+	public static function dirScan( string $dir, string $pattern, int $depth = -1 ): array
+	{
+		$Directory = new \RecursiveDirectoryIterator( $dir );
+		$Iterator = new \RecursiveIteratorIterator( $Directory );
+		$Iterator->setMaxDepth( $depth );
+		$Regex = new \RegexIterator( $Iterator, $pattern, \RecursiveRegexIterator::GET_MATCH );
+		return array_keys( iterator_to_array( $Regex ) );
+	}
+
+	/**
 	 * Check PHP function error result.
 	 *
 	 * Most PHP functions returns false on errors. In that case get last PHP error and throw Exception.
 	 *
-	 * @param mixed  $result PHP function results to check
-	 * @param string $prefix Prefix Exception message
-	 * @param int    $code   Use Exception code
+	 * @param mixed    $result PHP function results to check
+	 * @param string   $prefix Prefix Exception message
+	 * @param int|null $code   Exception code, use null for last error type
 	 * @throws \Exception
 	 */
-	public static function errorCheck( $result, string $prefix, int $code = 1 ): void
+	public static function errorCheck( $result, string $prefix = '', ?int $code = null ): void
 	{
-		if ( false === $result ) {
-			$e = error_get_last();
-			$m = $prefix;
-			$m .= sprintf( "\nPHP error (#%d): %s", $e['type'], $e['message'] );
-			$m .= defined( 'DEBUG' ) ? sprintf( ' in %s:%d', $e['file'], $e['line'] ) : '';
-			throw new \Exception( $m, $code );
+		if ( false === $result && $e = error_get_last() ) {
+			// Get constant name for an error type, ie. "15: E_COMPILE_ERROR"
+			$type = sprintf( '%s: %s', $e['type'], array_search( $e['type'], get_defined_constants() ) );
+			$code = $code ?? $e['type'];
+			$text = static::exceptionFormat( $prefix . $e['message'], $type, $e['file'], $e['line'] );
+
+			set_exception_handler( [ static::class, 'exceptionHandler' ] );
+			throw new \RuntimeException( $text, $code );
 		}
 	}
 
@@ -459,16 +509,16 @@ class Utils
 
 		/* @formatter:off */
 		static $errors = [
-			JSON_ERROR_DEPTH				 => ['JSON_ERROR_DEPTH',				 'The maximum stack depth has been exceeded'],
-			JSON_ERROR_STATE_MISMATCH		 => ['JSON_ERROR_STATE_MISMATCH',		 'Invalid or malformed JSON'],
-			JSON_ERROR_CTRL_CHAR			 => ['JSON_ERROR_CTRL_CHAR',			 'Control character error, possibly incorrectly encoded'],
-			JSON_ERROR_SYNTAX				 => ['JSON_ERROR_SYNTAX',				 'Syntax error'],
-			JSON_ERROR_UTF8					 => ['JSON_ERROR_UTF8',					 'Malformed UTF-8 characters, possibly incorrectly encoded'],
-			JSON_ERROR_RECURSION			 => ['JSON_ERROR_RECURSION',			 'One or more recursive references in the value to be encoded'],
-			JSON_ERROR_INF_OR_NAN			 => ['JSON_ERROR_INF_OR_NAN',			 'One or more NAN or INF values in the value to be encoded'],
-			JSON_ERROR_UNSUPPORTED_TYPE		 => ['JSON_ERROR_UNSUPPORTED_TYPE',		 'A value of a type that cannot be encoded was given'],
+			JSON_ERROR_DEPTH                 => ['JSON_ERROR_DEPTH',                 'The maximum stack depth has been exceeded'],
+			JSON_ERROR_STATE_MISMATCH        => ['JSON_ERROR_STATE_MISMATCH',        'Invalid or malformed JSON'],
+			JSON_ERROR_CTRL_CHAR             => ['JSON_ERROR_CTRL_CHAR',             'Control character error, possibly incorrectly encoded'],
+			JSON_ERROR_SYNTAX                => ['JSON_ERROR_SYNTAX',                'Syntax error'],
+			JSON_ERROR_UTF8                  => ['JSON_ERROR_UTF8',                  'Malformed UTF-8 characters, possibly incorrectly encoded'],
+			JSON_ERROR_RECURSION             => ['JSON_ERROR_RECURSION',             'One or more recursive references in the value to be encoded'],
+			JSON_ERROR_INF_OR_NAN            => ['JSON_ERROR_INF_OR_NAN',            'One or more NAN or INF values in the value to be encoded'],
+			JSON_ERROR_UNSUPPORTED_TYPE      => ['JSON_ERROR_UNSUPPORTED_TYPE',      'A value of a type that cannot be encoded was given'],
 			JSON_ERROR_INVALID_PROPERTY_NAME => ['JSON_ERROR_INVALID_PROPERTY_NAME', 'A property name that cannot be encoded was given'],
-			JSON_ERROR_UTF16				 => ['JSON_ERROR_UTF16',				 'Malformed UTF-16 characters, possibly incorrectly encoded'],
+			JSON_ERROR_UTF16                 => ['JSON_ERROR_UTF16',                 'Malformed UTF-16 characters, possibly incorrectly encoded'],
 		];
 		/* @formatter:on */
 
@@ -485,40 +535,40 @@ class Utils
 	{
 		/* @formatter:off */
 		static $zipErrors = [
-			\ZipArchive::ER_MULTIDISK			=> ['ZipArchive::ER_MULTIDISK',	 			'Multi-disk zip archives not supported'],
-			\ZipArchive::ER_RENAME				=> ['ZipArchive::ER_RENAME'	,	 			'Renaming temporary file failed'],
-			\ZipArchive::ER_CLOSE				=> ['ZipArchive::ER_CLOSE',		 			'Multi-disk zip archives not supported'],
-			\ZipArchive::ER_SEEK				=> ['ZipArchive::ER_SEEK',		 			'Seek error'],
-			\ZipArchive::ER_READ				=> ['ZipArchive::ER_READ',		 			'Read error'],
-			\ZipArchive::ER_WRITE				=> ['ZipArchive::ER_WRITE',		 			'Write error'],
-			\ZipArchive::ER_CRC					=> ['ZipArchive::ER_CRC',		 			'CRC error'],
-			\ZipArchive::ER_ZIPCLOSED			=> ['ZipArchive::ER_ZIPCLOSED',	 			'Containing zip archive was close'],
-			\ZipArchive::ER_NOENT				=> ['ZipArchive::ER_NOENT',		 			'No such file'],
-			\ZipArchive::ER_EXISTS				=> ['ZipArchive::ER_EXISTS',	 			'File already exists'],
-			\ZipArchive::ER_OPEN				=> ['ZipArchive::ER_OPEN',		 			'Can\'t open file'],
-			\ZipArchive::ER_TMPOPEN				=> ['ZipArchive::ER_TMPOPEN',	 			'Failure to create temporary file'],
-			\ZipArchive::ER_ZLIB				=> ['ZipArchive::ER_ZLIB',		 			'Zlib error'],
-			\ZipArchive::ER_MEMORY				=> ['ZipArchive::ER_MEMORY',	 			'Memory allocation failure'],
-			\ZipArchive::ER_CHANGED				=> ['ZipArchive::ER_CHANGED',	 			'Entry has been changed '],
-			\ZipArchive::ER_COMPNOTSUPP			=> ['ZipArchive::ER_COMPNOTSUPP',			'Compression method not supported'],
-			\ZipArchive::ER_EOF					=> ['ZipArchive::ER_EOF',		 			'Premature EOF'],
-			\ZipArchive::ER_INVAL				=> ['ZipArchive::ER_INVAL',		 			'Invalid argument'],
-			\ZipArchive::ER_NOZIP				=> ['ZipArchive::ER_NOZIP',		 			'Not a zip archive'],
-			\ZipArchive::ER_INTERNAL			=> ['ZipArchive::ER_INTERNAL',	 			'Internal error '],
-			\ZipArchive::ER_INCONS				=> ['ZipArchive::ER_INCONS',	 			'Zip archive inconsistent'],
-			\ZipArchive::ER_REMOVE				=> ['ZipArchive::ER_REMOVE',	 			'Can\'t remove file' ],
-			\ZipArchive::ER_DELETED				=> ['ZipArchive::ER_DELETED',	 			'Entry has been deleted'],
+			\ZipArchive::ER_MULTIDISK   => ['ZipArchive::ER_MULTIDISK',   'Multi-disk zip archives not supported'],
+			\ZipArchive::ER_RENAME      => ['ZipArchive::ER_RENAME' ,     'Renaming temporary file failed'],
+			\ZipArchive::ER_CLOSE       => ['ZipArchive::ER_CLOSE',       'Multi-disk zip archives not supported'],
+			\ZipArchive::ER_SEEK        => ['ZipArchive::ER_SEEK',        'Seek error'],
+			\ZipArchive::ER_READ        => ['ZipArchive::ER_READ',        'Read error'],
+			\ZipArchive::ER_WRITE       => ['ZipArchive::ER_WRITE',       'Write error'],
+			\ZipArchive::ER_CRC         => ['ZipArchive::ER_CRC',         'CRC error'],
+			\ZipArchive::ER_ZIPCLOSED   => ['ZipArchive::ER_ZIPCLOSED',   'Containing zip archive was close'],
+			\ZipArchive::ER_NOENT       => ['ZipArchive::ER_NOENT',       'No such file'],
+			\ZipArchive::ER_EXISTS      => ['ZipArchive::ER_EXISTS',      'File already exists'],
+			\ZipArchive::ER_OPEN        => ['ZipArchive::ER_OPEN',        'Can\'t open file'],
+			\ZipArchive::ER_TMPOPEN     => ['ZipArchive::ER_TMPOPEN',     'Failure to create temporary file'],
+			\ZipArchive::ER_ZLIB        => ['ZipArchive::ER_ZLIB',        'Zlib error'],
+			\ZipArchive::ER_MEMORY      => ['ZipArchive::ER_MEMORY',      'Memory allocation failure'],
+			\ZipArchive::ER_CHANGED     => ['ZipArchive::ER_CHANGED',     'Entry has been changed '],
+			\ZipArchive::ER_COMPNOTSUPP => ['ZipArchive::ER_COMPNOTSUPP', 'Compression method not supported'],
+			\ZipArchive::ER_EOF         => ['ZipArchive::ER_EOF',         'Premature EOF'],
+			\ZipArchive::ER_INVAL       => ['ZipArchive::ER_INVAL',       'Invalid argument'],
+			\ZipArchive::ER_NOZIP       => ['ZipArchive::ER_NOZIP',       'Not a zip archive'],
+			\ZipArchive::ER_INTERNAL    => ['ZipArchive::ER_INTERNAL',    'Internal error '],
+			\ZipArchive::ER_INCONS      => ['ZipArchive::ER_INCONS',      'Zip archive inconsistent'],
+			\ZipArchive::ER_REMOVE      => ['ZipArchive::ER_REMOVE',      'Can\'t remove file' ],
+			\ZipArchive::ER_DELETED     => ['ZipArchive::ER_DELETED',     'Entry has been deleted'],
 			/*
-			 * version_compare( PHP_VERSION, '17.4.3' ) >= 0
-			 \ZipArchive::ER_ENCRNOTSUPP 		=> ['ER_ENCRNOTSUPP',			'Encryption method not supported. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
-			 \ZipArchive::ER_RDONLY				=> ['ER_RDONLY',				'Read-only archive. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
-			 \ZipArchive::ER_NOPASSWD			=> ['ER_NOPASSWD',				'No password provided. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
-			 \ZipArchive::ER_WRONGPASSWD			=> ['ER_WRONGPASSWD',			'Wrong password provided. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
-			 \ZipArchive::ZIP_ER_OPNOTSUPP		=> ['ZIP_ER_OPNOTSUPP',			'Operation not supported. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.0.0'],
-			 \ZipArchive::ZIP_ER_INUSE			=> ['ZIP_ER_INUSE',				'Resource still in use. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.0.0'],
-			 \ZipArchive::ZIP_ER_TELL			=> ['ZIP_ER_TELL',				'Tell error. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.0.0'],
-			 \ZipArchive::ZIP_ER_COMPRESSED_DATA	=> ['ZIP_ER_COMPRESSED_DATA',	'Compressed data invalid. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.6.0'],
-			 \ZipArchive::ER_CANCELLED			=> ['ER_CANCELLED',				'Operation cancelled. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.6.0'],
+			 * version_compare( PHP_VERSION, '7.4.3' ) >= 0
+			 \ZipArchive::ER_ENCRNOTSUPP         => ['ER_ENCRNOTSUPP',         'Encryption method not supported. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
+			 \ZipArchive::ER_RDONLY              => ['ER_RDONLY',              'Read-only archive. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
+			 \ZipArchive::ER_NOPASSWD            => ['ER_NOPASSWD',            'No password provided. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
+			 \ZipArchive::ER_WRONGPASSWD         => ['ER_WRONGPASSWD',         'Wrong password provided. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively'],
+			 \ZipArchive::ZIP_ER_OPNOTSUPP       => ['ZIP_ER_OPNOTSUPP',       'Operation not supported. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.0.0'],
+			 \ZipArchive::ZIP_ER_INUSE           => ['ZIP_ER_INUSE',           'Resource still in use. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.0.0'],
+			 \ZipArchive::ZIP_ER_TELL            => ['ZIP_ER_TELL',            'Tell error. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.0.0'],
+			 \ZipArchive::ZIP_ER_COMPRESSED_DATA => ['ZIP_ER_COMPRESSED_DATA', 'Compressed data invalid. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.6.0'],
+			 \ZipArchive::ER_CANCELLED           => ['ER_CANCELLED',           'Operation cancelled. Available as of PHP 7.4.3 and PECL zip 1.16.1, respectively, if built against libzip ≥ 1.6.0'],
 			 */
 		];
 		/* @formatter:on */
@@ -530,42 +580,55 @@ class Utils
 	}
 
 	/**
-	 * Handle Exceptions.
-	 *
-	 * @param bool $log   Write to PHP error log?
-	 * @param int  $dirUp How many sub-dirs to show in path? 5 === /vendor/...
+	 * Get formated exception message.
 	 */
-	public static function exceptionHandler( \Throwable $E, bool $log = true, int $dirUp = 5 ): void
+	public static function exceptionFormat( string $message, string $type, string $file, int $line )
 	{
-		static::exceptionPrint( $E, $log, $dirUp );
+		$file = static::pathLast( $file, static::$errDirUp );
+		$message = trim( $message ); // Exceptions are prefixed with new line!
+
+		return <<<EOF
+		
+		----------
+		
+		In ...$file:$line
+		
+		  [$type]
+		  $message
+		  
+		EOF;
+	}
+
+	/**
+	 * Handle Exceptions & Errors.
+	 */
+	public static function exceptionHandle()
+	{
+		set_error_handler( [ static::class, 'errorHandler' ] );
+		set_exception_handler( [ static::class, 'exceptionHandler' ] );
+	}
+
+	/**
+	 * Handle Exceptions.
+	 */
+	public static function exceptionHandler( \Throwable $E ): void
+	{
+		static::exceptionPrint( $E );
+		error_log( $E );
 		exit( $E->getCode() ?: 1 );
 	}
 
 	/**
 	 * Print formated Exception message.
-	 *
-	 * @param bool $log   Write to PHP error log?
-	 * @param int  $dirUp How many sub-dirs to show in path? 5 === /vendor/...
 	 */
-	public static function exceptionPrint( \Throwable $E, bool $log = true, int $dirUp = 5 ): void
+	public static function exceptionPrint( \Throwable $E ): void
 	{
-		echo "\n----------\n";
-
-		if ( defined( 'DEBUG' ) && DEBUG ) {
+		if ( !defined( 'TESTING' ) && defined( 'DEBUG' ) && DEBUG ) {
 			echo $E;
 		}
 		else {
-			/* @formatter:off */
-			printf( "\nIn ...%s:%d\n\n  [%s]\n  %s\n\n",
-				static::pathLast( $E->getFile(), $dirUp ),
-				$E->getLine(),
-				get_class( $E ),
-				trim( $E->getMessage() ), // prefixed with new line!
-			);
-			/* @formatter:on */
+			echo static::exceptionFormat( $E->getMessage(), get_class( $E ), $E->getFile(), $E->getLine() );
 		}
-
-		$log && error_log( $E );
 	}
 
 	/**
@@ -776,13 +839,73 @@ class Utils
 	}
 
 	/**
-	 * Get last n'th path elements.
+	 * Cut path to given length.
 	 *
-	 * @param int $last Number of last path elements to preserve
+	 * @param int    $max   Total length
+	 * @param int    $cent  Cut position in %
+	 * @param string $sep   Directory separator in returned path. Use null for system default
+	 * @param string $mark  Mark cut position
 	 */
-	public static function pathLast( string $path, int $last = 1 ): string
+	public static function pathCut( string $path, int $max = 80, int $cent = 25, ?string $sep = null, ?string $mark = null ): string
 	{
-		$cut = dirname( $path, $last );
+		$mark = $mark ?? '...';
+		$sep = $sep ?? DIRECTORY_SEPARATOR;
+		$cent = max( 0, min( 100, $cent ) );
+		$lenP = mb_strlen( $path );
+
+		if ( $max <= 0 ) {
+			return '';
+		}
+
+		// Path is less than max - return path
+		if ( $lenP <= $max ) {
+			return $path;
+		}
+
+		$arr = explode( '/', str_replace( '\\', '/', $path ) );
+		$elm = count( $arr );
+
+		// Single element (string)
+		if ( $elm === 1 ) {
+			$cut = $max - mb_strlen( $mark );
+			$out = $cent < 50 ? $mark . mb_substr( $path, $lenP - $cut ) : mb_substr( $path, 0, $cut ) . $mark;
+			return $out;
+		}
+
+		// Path elements (a/b/c)
+		do {
+			$now = floor( $elm / 100 * $cent );
+			$out = $arr[$now];
+			// If last element left treat it as string
+			if ( $elm === 1 ) {
+				$args = func_get_args();
+				$args[0] = $out ?: $mark;
+				return static::pathCut( ...$args );
+			}
+			$arr[$now] = $mark;
+			$out = implode( $sep, $arr );
+			unset( $arr[$now] );
+			$elm--;
+			if ( mb_strlen( $out ) <= $max ) {
+				break;
+			}
+			// re-index!
+			$arr = array_values( $arr );
+		}
+		while ( true );
+
+		return $out;
+	}
+
+	/**
+	 * Get last path elements.
+	 *
+	 * @param int $elements Number of last path elements to preserve
+	 * @return string Path part with n last elements
+	 */
+	public static function pathLast( string $path, int $elements = 1 ): string
+	{
+		$cut = dirname( $path, $elements );
 		$out = substr( $path, strlen( $cut ) );
 
 		return $out;
@@ -905,8 +1028,13 @@ class Utils
 					$exp[$k] = $v ? 'true' : 'false';
 				}
 				// Replace each Object in array with class name string
-				else if ( $simple && is_object( $v ) ) {
+				elseif ( $simple && is_object( $v ) ) {
 					$exp[$k] = '(Object) ' . get_class( $v );
+				}
+				// Replace callbacks
+				elseif ( $simple && is_callable( $v ) ) {
+					$v[0] = is_object( $v[0] ) ? get_class( $v[0] ) : $v[0];
+					$exp[$k] = "(Callback) {$v[0]}::{$v[1]}()";
 				}
 			}
 
@@ -931,55 +1059,54 @@ class Utils
 	/**
 	 * Render Progress bar.
 	 *
-	 * @param number $current  Current item
-	 * @param number $total    Total items
-	 * @param number $size     Bar length
-	 * @param string $cCurrent Proggres char
-	 * @param string $cFill    Fill char
+	 * @param number $step   Current item
+	 * @param number $max    Total items
+	 * @param number $size   Bar length
+	 * @param string $chDone Proggres char
+	 * @param string $chFill Fill char
 	 * @return Array (
-	 *  [bar]  => |||-------
-	 *  [cent] => 36
+	 *  [bar]  => '|||.......'
+	 *  [cent] => ' 36'
 	 * )
 	 */
-	public static function progressBar( int $current, int $total, int $size = 20, string $cCurrent = '|', string $cFill = '-' ): array
+	public static function progressBar( int $step, int $max, int $size = 20, string $chDone = '|', string $chFill = '.' ): array
 	{
-		$current = min( $current, $total );
-		$progres = round( ( 100 / $total ) * $current );
+		$step = max( 0, min( $step, $max ) );
 
-		$_total = $size;
-		$_current = round( ( $size * $current ) / $total );
+		$cent = round( 100 / $max * $step );
+		$pos = round( $size * $step / $max );
 
-		$bar = str_repeat( $cCurrent, $_current );
-		$bar .= str_repeat( $cFill, $_total - $_current );
+		$bar = str_repeat( $chDone, $pos );
+		$bar .= str_repeat( $chFill, $size - $pos );
 
-		return [ 'bar' => $bar, 'cent' => $progres ];
+		return [ 'bar' => $bar, 'cent' => $cent ];
 	}
 
 	/**
 	 * Get user input or die.
+	 * @see Utils::$silent
 	 *
 	 * @throws \BadMethodCallException In TESTING mode throws some exotic Exception instead of exit()
 	 *
-	 * @param  string $msg    Prompt message to show, ie. "Hit [Enter] to continue..."
-	 * @param  bool   $quit   Enable user exit?
-	 * @param  string $_input TESTING: Overwrite user input (for testing purposes)
-	 * @return string User input or [$_input] arg if set
+	 * @param  string $msg     Prompt message to show
+	 * @param  string $quit    Quit sequence. Empty to disable
+	 * @param  string $default Default answer in silent mode
+	 * @return string User input or $default
 	 */
-	public static function prompt( string $msg = '', bool $quit = true, string $_input = '' ): string
+	public static function prompt( string $msg = '', string $quit = '', string $default = '' ): string
 	{
-		if ( defined( 'TESTING' ) ) {
-			if ( $quit ) {
-				throw new \BadMethodCallException( $msg );
-			}
-			else {
-				return $_input;
-			}
+		if ( self::$silent ) {
+			$input = $default;
+		}
+		else {
+			echo $msg;
+			$input = self::stdin();
 		}
 
-		printf( "%s\n%s", $msg, $quit ? "Use [Q] to quit.\n" : '' );
-		$input = $_input ?: self::stdin();
-
-		if ( $quit && 'Q' === strtoupper( $input ) ) {
+		if ( $quit && strtoupper( $quit ) === strtoupper( $input ) ) {
+			if ( defined( 'TESTING' ) ) {
+				throw new \LogicException( $msg );
+			}
 			exit( "User exit. Bye!\n" );
 		}
 
@@ -1022,8 +1149,13 @@ class Utils
 	/**
 	 * Get user input.
 	 *
-	 * @codeCoverageIgnore
+	 * sapi_windows_cp_get(?):
+	 * ansi:  API functions
+	 * oem:   console applications
+	 * empty: the current codepage of the PHP process (65001 == UTF-8)
+	 * @link https://www.php.net/manual/en/function.sapi-windows-cp-get.php
 	 *
+	 * @codeCoverageIgnore
 	 * @param int $length Chars limit
 	 */
 	public static function stdin( int $length = 4096 ): string
@@ -1049,9 +1181,9 @@ class Utils
 	/**
 	 * Format time.
 	 *
-	 * @param float   $seconds   Time in fractional seconds
-	 * @param int     $precision How many fractional digits? 0 == no fractions part
-	 * @return string            Time in format 18394d 16g 11m 41s, 12s, 4.45s, 0.682s
+	 * @param float $seconds   Time in fractional seconds
+	 * @param int   $precision How many fractional digits? 0 == no fractions part
+	 * @return string Time in format 18394d 16g 11m 41s, 12s, 4.45s, 0.682s
 	 */
 	public static function timeString( float $seconds, ?int $precision = null ): string
 	{

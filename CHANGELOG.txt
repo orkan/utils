@@ -1,4 +1,37 @@
 ===================================================================================================
+v7.0.0
+Removed methods:
+---------------
+Application::setCliTitle() > Application::cmdTitle()
+Factory::cmdTitle()        > Application::cmdTitle()
+
+Updated methods:
+---------------
+Factory::cmdTitle(format = '%cmdTitle%', ...) > (format = '{cmd_title}', ...)
+Factory::log(,,tokens = [])                   > log(,, array tokens = []) --> use [{bar}] for ruler length
+Utils::exceptionPrint($E, $log, $dirUp)       > exceptionPrint($E) --> use Utils::$errDirUp, Utils::$errLog
+Utils::exceptionHandler($E, $log)             > exceptionHandler($E) --> use Utils::$errLog
+Utils::exceptionPrint($E, $log)               > exceptionPrint($E) --> use Utils::$errLog
+Utils::cmdLastArg(): string                   > Utils::cmdLastArg(): ?string
+Utils::byteNumber(): int                      > Utils::byteNumber(): ?int
+Utils::prompt()                               > Removed "Use Q to quit." @see Prompt::importXXX(), cfg[user_quit]
+Utils::prompt()                               > Added default answer
+Utils::prompt()                               > TESTING: Quit exception changed from "BadMethodCallException" to "LogicException"
+
+Removed config:
+---------------
+cfg[app_title] > Application::getVersion()
+
+Updated config:
+---------------
+cfg[cmd_args] > cfg[cmd_opts] --> (array) parsed CMD line arguments
+cfg[app_args] > cfg[app_opts] --> (array) definition of CMD line arguments. @see Appliaction::ARGUMENTS 
+cfg[log_level]: Default log level changed! INFO > NOTICE
+
+Updated vendor/bin:
+ork-files-quantity > ork-files-sync
+
+===================================================================================================
 v6.0.0
 Removed triats:
 ---------------
@@ -13,6 +46,14 @@ Application::exceptionPrint()    > Utils::exceptionPrint()
 Application::getHistoryLogs()    > Logger::getHistoryLogs()
 Application::exceptionPrintLog() > Merged with Application::exceptionHandler()
 Application::exceptionHandler()  > Utils::exceptionHandler()
+
+Updated methods:
+---------------
+Factory::cmdTitle(tokens, format) > cmdTitle(format, tokens)
+
+Renamed classes:
+---------------
+Orkan\Tests\Utils > Orkan\Tests\TestUtils
 
 Updated constants:
 ---------------

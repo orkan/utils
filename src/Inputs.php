@@ -36,14 +36,14 @@ class Inputs
 	 */
 	public function __construct( array $inputs = [], array $cfg = [] )
 	{
-		$this->cfg = array_merge( $this->defaults(), $cfg );
+		$this->cfg = array_merge( self::defaults(), $cfg );
 
 		foreach ( $inputs as $Input ) {
 			$this->add( $Input );
 		}
 	}
 
-	protected function defaults(): array
+	private function defaults(): array
 	{
 		/* @formatter:off */
 		return [

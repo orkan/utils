@@ -19,6 +19,7 @@ class Factory
 	 */
 	protected $Utils;
 	protected $Logger;
+	protected $Prompt;
 	protected $databases;
 
 	/**
@@ -28,6 +29,8 @@ class Factory
 	{
 		!defined( 'DEBUG' ) && define( 'DEBUG', (bool) getenv( 'APP_DEBUG' ) );
 		$this->cfg = $cfg;
+
+		$this->Utils()->exceptionHandle();
 	}
 
 	// =================================================================================================================
@@ -48,6 +51,30 @@ class Factory
 	public function Logger()
 	{
 		return $this->Logger ?? $this->Logger = new Logger( $this );
+	}
+
+	/**
+	 * @return Prompt
+	 */
+	public function Prompt()
+	{
+		return $this->Prompt ?? $this->Prompt = new Prompt( $this );
+	}
+
+	/**
+	 * @return FilesSync
+	 */
+	public function FilesSync()
+	{
+		return new FilesSync( $this, $this->get( 'dir_out' ) );
+	}
+
+	/**
+	 * @return ProgressBar
+	 */
+	public function ProgressBar( int $steps = 10, string $format = '' )
+	{
+		return new ProgressBar( $this, $steps, $format );
 	}
 
 	/**
@@ -84,26 +111,15 @@ class Factory
 	// =================================================================================================================
 
 	/**
-	 * Update CMD window title.
-	 *
-	 * Put here since Application::setCliTitle() might be not available from within modules...
-	 *
-	 * @param string|array $tokens Array( [%token1%] => text1, [%token2%] => text2, ... )
-	 * @param string       $format Eg. '%token1% - %token2% - %title%'
-	 */
-	public function cmdTitle( string $format = '%cmd_title%', array $tokens = [] ): void
-	{
-		$tokens['%cmd_title%'] = $this->get( 'cmd_title' );
-		cli_set_process_title( strtr( $format, $tokens ) );
-	}
-
-	/**
 	 * Sleep cfg[key_usec].
 	 */
 	public function sleep( string $key ): void
 	{
+		if ( defined( 'TESTING' ) ) {
+			return;
+		}
+
 		$ms = (int) $this->get( $key );
-		$ms && $this->Logger()->debug( sprintf( 'Sleep cfg[%s]: %s usec... ', $key, $ms ) );
 		$ms && usleep( $ms );
 	}
 
@@ -117,27 +133,36 @@ class Factory
 	 *
 	 * @param string       $method Logger method
 	 * @param string|array $format Tokenized string (or array of strings) or one char to make a ruler
-	 * @param int|array    $tokens Token replacements or ruler length
+	 * @param array        $tokens Token replacements. Use key {bar} to pass bar length
 	 */
 	public function log( string $method, $format = '', $tokens = [] )
 	{
-		$len = 80;
 		$format = (array) $format;
 
-		if ( is_string( $tokens ) ) {
-			$tokens = [ '%s' => $tokens ];
+		if ( !is_array( $tokens ) ) {
+			$tokens = [ '%s' => (string) $tokens ];
 		}
-		elseif ( is_int( $tokens ) ) {
-			$len = $tokens;
-		}
+
+		$out = [];
+		$max = null;
 
 		foreach ( $format as $line ) {
 			if ( strlen( $line ) > 1 ) {
 				$line = strtr( $line, $tokens );
 			}
 			else {
-				$chr = $line ?: '-';
-				$line = str_repeat( $chr, $len );
+				$line = $line ?: '-';
+			}
+			$max = max( $max, strlen( $line ) );
+			$out[] = $line;
+		}
+
+		$max = $max > 1 ? $max : $this->get( 'log_barlen', 80 );
+		$len = $tokens['{bar}'] ?? $max;
+
+		foreach ( $out as $line ) {
+			if ( strlen( $line ) === 1 ) {
+				$line = str_repeat( $line, $len );
 			}
 			$this->Logger()->$method( $line, 2 );
 		}

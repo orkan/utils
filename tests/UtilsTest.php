@@ -12,13 +12,53 @@ use Orkan\Utils;
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
-class UtilsTest extends TestCase
+class UtilsTest extends \Orkan\Tests\TestCase
 {
 	const USE_SANDBOX = true;
 
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests: Tests:
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * @see UtilsTest::testCanPathCut()
+	 */
+	public function providePathCut()
+	{
+		/* @formatter:off */
+		return [
+			'_01' => [ '/aaaa/bbbb/cccc'               , 32, 50,  '/',   '...', '/aaaa/bbbb/cccc'        ],
+			'_02' => [ '/aaaa/bbbb/cccc'               , 14, 50,  '/',   '...', '/aaaa/.../cccc'         ],
+			'_03' => [ '/aaaa/bbbb/cccc'               , 14, 30,  '/',   '...', '/.../bbbb/cccc'         ],
+			'_04' => [ '/aaaa/bbbb'                    , 14, 50,  '/',   '...', '/aaaa/bbbb'             ],
+			'_05' => [ '/aaa/b'                        ,  5, 50,  '/',   '...', '/...'                   ],
+			'_06' => [ '/aaa/b'                        ,  6, 50,  '/',   '...', '/aaa/b'                 ],
+			'_07' => [ '/aaa/b'                        ,  4, 50,  '/',     '-', '/-/b'                   ],
+			'_08' => [ '/aaa/b'                        ,  4, 50,  '/',  '----', '----'                   ],
+			'_09' => [ '/aaa/b'                        ,  4, 50, '\\',     '-', '\\-\\b'                 ],
+			'_10' => [ '/aaa/b'                        ,  4, 50,  '|',     '-', '|-|b'                   ],
+			'_11' => [ '/first/second/third/'          , 15, 25,  '/',   '...', '/.../third/'            ],
+			'_12' => [ '/first/second/third/'          , 15, 75,  '/',   '...', '/first/...'             ],
+			'_13' => [ 'first/second/third'            , 17, 25,  '/',   '...', '.../second/third'       ],
+			'_14' => [ 'first/second/third'            , 17, 50,  '/',   '...', 'first/.../third'        ],
+			'_15' => [ '/first/second/third'           , 17, 75,  '/',   '...', '/first/second/...'      ],
+			'_16' => [ '\\first\\second\\third'        , 18, 50, '\\',   '...', '\\first\\...\\third'    ],
+			'_17' => [ 'C:/Windows/system32/shell.dll' , 22, 25,  '/',   '...', '.../system32/shell.dll' ],
+			'_18' => [ '/aaa/bbbbbbbbbbbbbbbb'         ,  5, 25,  '/',   '...', '...bb'                  ],
+			'_19' => [ 'gęślą' , 4, 25,  '/',   '...', '...ą' ],
+			'_20' => [ 'gęślą' , 4, 75,  '/',   '...', 'g...' ],
+		];
+		/* @formatter:on */
+	}
+
+	/**
+	 * Cut path.
+	 * @dataProvider providePathCut
+	 */
+	public function testCanPathCut( $path, $total, $cent, $sep, $mark, $expect )
+	{
+		$this->assertSame( $expect, Utils::pathCut( $path, $total, $cent, $sep, $mark ) );
+	}
 
 	/**
 	 * @see UtilsTest::testTimeString()
@@ -408,23 +448,24 @@ class UtilsTest extends TestCase
 	{
 		/* @formatter:off */
 		return [
-			'{empty}'                      => [ ''                            , ''            ],
-			'-a'                           => [ '-a'                          , ''            ],
-			'-c config.php'                => [ '-c config.php'               , ''            ],
-			'-c config.php --'             => [ '-c config.php --'            , ''            ],
-			'-uFile.php'                   => [ '-uFile.php'                  , ''            ],
-			'-c=config.php'                => [ '-c=config.php'               , ''            ],
-			'--opt-file opt.php'           => [ '--opt-file opt.php'          , ''            ],
-			'--cfg-file=Config.php'        => [ '--cfg-file=Config.php'       , ''            ],
-			'--arg-switch'                 => [ '--arg-switch'                , ''            ],
-			'--arg-switch --'              => [ '--arg-switch --'             , ''            ],
-			'--'                           => [ '--'                          , ''            ],
-			'-cfile.php file2.php'         => [ '-cfile.php file2.php'        , ''            ],
-			'-cfile.php -- file2.php'      => [ '-cfile.php -- file2.php'     , 'file2.php'   ],
-			'-c config.php config2.php'    => [ '-c config.php config2.php'   , 'config2.php' ],
-			'config2.php'                  => [ 'config2.php'                 , 'config2.php' ],
-			'-d data.php -- data2.php'     => [ '-d data.php -- data2.php'    , 'data2.php'   ],
-			'--arg-switch -- file.txt'     => [ '--arg-switch -- file.txt'    , 'file.txt'    ],
+			'_#01' => [ ''                            , ''            ],
+			'_#02' => [ '-a'                          , null          ],
+			'_#03' => [ '-c config.php'               , null          ],
+			'_#04' => [ '-c config.php --'            , null          ],
+			'_#05' => [ '-uFile.php'                  , null          ],
+			'_#06' => [ '-c=config.php'               , null          ],
+			'_#07' => [ '--opt-file opt.php'          , null          ],
+			'_#08' => [ '--cfg-file=Config.php'       , null          ],
+			'_#09' => [ '--arg-switch'                , null          ],
+			'_#10' => [ '--arg-switch --'             , null          ],
+			'_#11' => [ '--'                          , null          ],
+			'_#12' => [ '-cfile.php file2.php'        , null          ],
+			'_#13' => [ '-cfile.php -- file2.php'     , 'file2.php'   ],
+			'_#14' => [ '-c config.php config2.php'   , 'config2.php' ],
+			'_#15' => [ 'config2.php'                 , 'config2.php' ],
+			'_#16' => [ '-d data.php -- data2.php'    , 'data2.php'   ],
+			'_#17' => [ '--arg-switch -- file.txt'    , 'file.txt'    ],
+			'_#18' => [ null                          , null            ],
 		];
 		/* @formatter:on */
 	}
@@ -436,7 +477,7 @@ class UtilsTest extends TestCase
 	public function testCanGetLastCmdArg( $args, $expect )
 	{
 		// Mimic default PHP behaviour: $argv[0] == current file
-		$args = explode( ' ', $args );
+		$args = is_string( $args ) ? explode( ' ', $args ) : [];
 		array_unshift( $args, __FILE__ );
 		$this->assertSame( $expect, Utils::cmdLastArg( $args ) );
 	}
@@ -449,6 +490,7 @@ class UtilsTest extends TestCase
 	{
 		/* @formatter:off */
 		return [
+			'/a/b/file.txt - 2'         => [ '/a/b/file.txt'        , 2, '/b/file.txt'       ],
 			'/usr/cfg/out - 3'          => [ '/usr/cfg/out'         , 3, 'usr/cfg/out'       ],
 			'/usr/cfg/out - 2'          => [ '/usr/cfg/out'         , 2, '/cfg/out'          ],
 			'/usr/cfg/out - 1'          => [ '/usr/cfg/out'         , 1, '/out'              ],
@@ -474,6 +516,26 @@ class UtilsTest extends TestCase
 	{
 		Utils::setup( [ 'maxMemory' => $mem = 1e+12 ] ); // 1 000 000 000 000 = ~1TB
 		$this->assertSame( Utils::byteString( $mem ), Utils::phpMemoryMax( '%s' ) );
+	}
+
+	// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error:
+	// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+	/**
+	 * @todo errorCheck(): trigger last error as Exception.
+	 * WARNING:
+	 * Eclipse PHPUnit causes Timmer::ResourceUsage() to raise exception on expectExceptionMessageMatches()
+	 */
+	public function _testExceptionThrownOnPhpFunctionErrorPart2()
+	{
+		$prefix = 'Prefix: ';
+		$error = 'My error message';
+		$this->expectExceptionMessageMatches( "~E_USER_WARNING\][\s]+{$prefix}{$error}~" );
+
+		@trigger_error( $error );
+		Utils::errorCheck( false, $prefix );
 	}
 }
 

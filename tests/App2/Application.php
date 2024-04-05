@@ -28,7 +28,7 @@ class Application extends \Orkan\Application
 	/**
 	 * {@inheritdoc}
 	 */
-	protected function defaults()
+	private function defaults()
 	{
 		/* @formatter:off */
 		return [

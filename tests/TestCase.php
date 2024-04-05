@@ -35,11 +35,18 @@ class TestCase extends \PHPUnit\Framework\TestCase
 	protected static $dir = [];
 
 	/**
+	 * Is monolog installed?
+	 * @var bool
+	 */
+	protected static $isMonolog;
+
+	/**
 	 * {@inheritDoc}
 	 */
 	public static function setUpBeforeClass(): void
 	{
-		!defined( 'DEBUG' ) && define( 'DEBUG', (bool) getenv( 'APP_DEBUG' ) );
+		// Tip: first TestCase defines it!
+		!defined( 'DEBUG' ) && define( 'DEBUG', true );
 		!defined( 'TESTING' ) && define( 'TESTING', true );
 
 		static::USE_SANDBOX && static::$dir['sandbox'] = static::DIR_SELF . '/_sandbox/' . basename( static::class );
@@ -47,6 +54,19 @@ class TestCase extends \PHPUnit\Framework\TestCase
 
 		// Prepare current sandbox sub-dir - only once per TestCase
 		static::USE_SANDBOX && self::sandboxClear();
+
+		// Check Monolog class
+		self::$isMonolog = class_exists( '\\Monolog\\Logger' );
+	}
+
+	/**
+	 * Skip test despite of Monolog existence.
+	 * @param bool $require Skip if true and "NO Monolog" or skip if false and "IS Monolog"
+	 */
+	public function needMonolog( bool $require = true ): void
+	{
+		$require && !self::$isMonolog && $this->markTestSkipped( 'Skipped! Please install Monolog to run this test.' );
+		!$require && self::$isMonolog && $this->markTestSkipped( 'Skipped! Please uninstall Monolog to run this test.' );
 	}
 
 	/**
@@ -101,7 +121,7 @@ class TestCase extends \PHPUnit\Framework\TestCase
 	}
 
 	/**
-	 * Get constents from file.
+	 * Get contents from file.
 	 */
 	public function fixtureData( string $path, ...$args )
 	{

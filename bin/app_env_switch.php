@@ -6,13 +6,14 @@
 use Orkan\Application;
 use Orkan\Factory;
 
-require $_composer_autoload_path;
+// require __DIR__ . '/../tools/composer/autoload.php';
+require $GLOBALS['_composer_autoload_path'];
 
 /* @formatter:off */
 $Factory = new Factory([
-	'cli_title'   => 'Environment Switch',
+	'cmd_title'   => 'Environment Switch',
 	'app_usage'   => sprintf( '%s --env <env name> --loc [home dir] [options]', basename( __FILE__ ) ),
-	'app_args'    => [
+	'app_opts'    => [
 		'env'    => [ 'short' => 'e:', 'long' => 'env:'   , 'desc' => 'Environment name' ],
 		'loc'    => [ 'short' => 'l:', 'long' => 'loc:'   , 'desc' => 'Home dir. Default: current dir' ],
 		'config' => [ 'short' => 'c:', 'long' => 'config:', 'desc' => 'Load additional config file' ],
@@ -26,15 +27,7 @@ $Factory = new Factory([
 /* @formatter:on */
 
 $App = new Application( $Factory );
-
-/*
- * ---------------------------------------------------------------------------------------------------------------------
- * User config?
- */
-if ( is_file( $cfgFile = $App->getArg( 'config' ) ) ) {
-	$Factory->merge( require $cfgFile, true );
-}
-
+$App->loadUserConfig( 'config' );
 $App->run();
 $Utils = $Factory->Utils();
 

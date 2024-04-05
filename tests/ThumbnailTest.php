@@ -12,7 +12,7 @@ use Orkan\Thumbnail;
  *
  * @author Orkan <orkans+utils@gmail.com>
  */
-class ThumbnailTest extends TestCase
+class ThumbnailTest extends \Orkan\Tests\TestCase
 {
 	const USE_SANDBOX = true;
 	const USE_FIXTURE = true;
@@ -29,8 +29,8 @@ class ThumbnailTest extends TestCase
 	{
 		parent::setUpBeforeClass();
 
-		self::$cfg['dir_upload'] = self::sandboxPath('upload');
-		self::$cfg['dir_assets'] = self::sandboxPath('assets');
+		self::$cfg['dir_upload'] = self::sandboxPath( 'upload' );
+		self::$cfg['dir_assets'] = self::sandboxPath( 'assets' );
 	}
 
 	protected static function mkDir( string $dir ): bool
