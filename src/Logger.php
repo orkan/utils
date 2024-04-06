@@ -14,6 +14,7 @@ use Monolog\Handler\RotatingFileHandler;
  *
  * Why not extend Monolog\Logger?
  * - keep Orkan\Utils dependency clean
+ * - extended methods must follow parent signature (can extend but not change)
  *
  * @author Orkan <orkans+utils@gmail.com>
  */

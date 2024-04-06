@@ -13,8 +13,8 @@ namespace Orkan;
 class AppFilesSync extends Application
 {
 	const APP_NAME = 'Copy files with: priority, randomizer, size limit';
-	const APP_VERSION = '7.0.0';
-	const APP_DATE = 'Fri, 05 Apr 2024 17:47:14 +02:00';
+	const APP_VERSION = '7.1.0';
+	const APP_DATE = 'Sat, 06 Apr 2024 15:09:53 +02:00';
 
 	/**
 	 * Files match regex.
@@ -112,6 +112,7 @@ class AppFilesSync extends Application
 		parent::run();
 
 		// Verify config
+		$this->Factory->info();
 		$this->configure();
 		$this->Files = $this->Factory->FilesSync();
 
@@ -122,9 +123,11 @@ class AppFilesSync extends Application
 		$this->gc( $this->files ); // release memory!
 
 		// Copy files
+		$this->Factory->info();
 		$this->Files->run();
 
 		// Finalize
+		$this->Factory->info();
 		$this->cmdTitle();
 		$this->Logger->notice( 'Done.' );
 	}
