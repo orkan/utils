@@ -32,8 +32,8 @@ class Application extends \Orkan\Tests\App2\Application
 	{
 		/* @formatter:off */
 		return [
-			'cli_title'     => 'CLI Application 3',
-			'extensions'    => [
+			'app_title'     => 'CLI Application 3',
+			'app_php_ext'    => [
 				'app3_ext1' => false,
 			],
 		];

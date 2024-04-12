@@ -12,9 +12,20 @@ namespace Orkan;
  */
 class AppFilesSync extends Application
 {
-	const APP_NAME = 'Copy files with: priority, randomizer, size limit';
-	const APP_VERSION = '7.1.0';
-	const APP_DATE = 'Sat, 06 Apr 2024 15:09:53 +02:00';
+	const APP_NAME = 'Copy files with priority, shuffle and size limit';
+	const APP_VERSION = '8.0.0';
+	const APP_DATE = 'Sat, 13 Apr 2024 01:22:32 +02:00';
+
+	/**
+	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Speed&t=File-Sync
+	 * @link usr/php/logo/logo.php
+	 */
+	const LOGO = '____________________           ________
+___  ____/__(_)__  /____       __  ___/____  _______________
+__  /_   __  /__  /_  _ \\___________ \\__  / / /_  __ \\  ___/
+_  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
+/_/      /_/  /_/  \\___/       /____/ _\\__, / /_/ /_/\\___/
+                                      /____/';
 
 	/**
 	 * Files match regex.
@@ -41,12 +52,11 @@ class AppFilesSync extends Application
 
 		$this->loadUserConfig( 'config' );
 
-		if ( !count( $this->Factory->get( 'file_types', [] ) ) ) {
-			throw new \InvalidArgumentException( 'No file types specified! Check cfg[file_types]' );
+		// Filter scaned files with regex?
+		if ( $this->pattern = $this->Factory->get( 'sync_types' ) ) {
+			$this->pattern = implode( '|\.', $this->pattern );
+			$this->pattern = "~(\.{$this->pattern})$~i";
 		}
-
-		$this->pattern = implode( '|\.', $this->Factory->get( 'file_types' ) );
-		$this->pattern = "~(\.{$this->pattern})$~i";
 	}
 
 	/**
@@ -55,33 +65,39 @@ class AppFilesSync extends Application
 	private function defaults(): array
 	{
 		/**
-		 * [dir_src]
+		 * [sync_bytes]
+		 * Limit total size. Use 0 for no limit
+		 *
+		 * [sync_types]
+		 * List of file extensions to sync. Use NULL to disable filtering
+		 *
+		 * [sync_depth]
+		 * Max scaned dirs depth. Use -1 for no limit
+		 *
+		 * [sync_shuffle]
+		 * Shuffle found files before applying limits?
+		 *
+		 * [sync_dir_src]
 		 * Source files dir
 		 *
-		 * [dir_fav]
+		 * [sync_dir_fav]
 		 * Favorite source files dir. These have higher priority
-		 *
-		 * [dir_out]
-		 * Copy files to...
-		 *
-		 * [max_bytes]
-		 * Limit total size
-		 *
-		 * [user_quit]
-		 * User input quit sequence
 		 *
 		 * @formatter:off */
 		return [
-			'cmd_title'   => 'Files Sync',
+			// App
+			'app_title'   => 'Files Sync',
 			'app_usage'   => 'vendor/bin/ork-files-sync [options]',
 			'app_opts'    => [
 				'config' => [ 'short' => 'c:', 'long' => 'config:', 'desc' => 'Configuration file' ],
 			],
-			'file_types'  => [ 'avi', 'flv' , 'gif', 'jpe?g', 'mp4', 'png' ],
-			'total_bytes' => 0,
-			'dir_src'     => '',
-			'dir_fav'     => '',
-			'dir_out'     => '',
+			// AppFilesSync
+			'sync_bytes'     => 0,
+			'sync_types'     => null,
+			'sync_depth'     => 0,
+			'sync_shuffle'   => true,
+			'sync_dir_src'   => '',
+			'sync_dir_fav'   => '',
 			// FileSync
 			'sync_callback' => [ $this, 'cbFileSync' ],
 		];
@@ -95,11 +111,12 @@ class AppFilesSync extends Application
 	public function cbFileSync( array $tokens ): void
 	{
 		/* @formatter:off */
-		$this->cmdTitle( '[{cent_done}%] {time_left} left at {speed_bps}/s - "{dst}"', [
+		$this->cmdTitle( '[{cent_done}%] {time_left} left at {speed_bps}/s - {done} done - "{path}"', [
 			'{cent_done}' => $tokens['progress']['cent_done'],
+			'{done}'      => $tokens['{done}'],
 			'{time_left}' => $this->Utils->timeString( $tokens['progress']['time_left'], 0 ),
 			'{speed_bps}' => $this->Utils->byteString( $tokens['progress']['speed_bps'] ),
-			'{dst}'       => $tokens['{dst}'],
+			'{path}'      => $this->Utils->pathCut( $tokens['{src}'], 120 ),
 		]);
 		/* @formatter:on */
 	}
@@ -133,21 +150,21 @@ class AppFilesSync extends Application
 	}
 
 	/**
-	 * Limit files to cfg[total_bytes].
+	 * Limit files to cfg[sync_bytes].
 	 */
 	protected function limit(): void
 	{
-		$total = $this->Factory->get( 'total_bytes' );
-		$dirSrc = $this->Factory->get( 'dir_src' );
-		$dirFav = $this->Factory->get( 'dir_fav' );
+		$bytesMax = $this->Factory->get( 'sync_bytes' );
+		$dirSrc = $this->Factory->get( 'sync_dir_src' );
+		$dirFav = $this->Factory->get( 'sync_dir_fav' );
 
 		/* @formatter:off */
 		$tokens = [
 			'{items}'  => 0,
 			'{bytes}'  => $this->Utils->byteString( 0 ),
 			'{avg}'    => $this->Utils->byteString( 0 ),
-			'{total}'  => $this->Utils->byteString( $total ),
-			'{left}'   => $this->Utils->byteString( $total ),
+			'{total}'  => $this->Utils->byteString( $bytesMax ),
+			'{left}'   => $this->Utils->byteString( $bytesMax ),
 		];
 		/* @formatter:on */
 
@@ -169,14 +186,14 @@ class AppFilesSync extends Application
 
 			// ---------------------------------------------------------------------------------------------------------
 			// Check size:
-			if ( $total && $bytesNow > $total ) {
+			if ( $bytesMax && $bytesNow > $bytesMax ) {
 
 				$this->Factory->debug(
 					/**/ 'File too big! "{file}" (now:{bytes} + file:{size} = sum:{sumNow} > tot:{total})',
 					/**/ $tokens );
 
 				// Continue to find smaller file if there is still room for an average file size
-				if ( $bytesAvg <= $total ) {
+				if ( $bytesAvg <= $bytesMax ) {
 					$this->Factory->debug(
 						/**/ 'Find smaller file... (now:{bytes} + avg:{avg} = sum:{sumAvg} <= tot:{total})',
 						/**/ $tokens );
@@ -190,7 +207,7 @@ class AppFilesSync extends Application
 			// ---------------------------------------------------------------------------------------------------------
 			// Add:
 			// Redirect all files from: [fav], [src] to [out] dir. Watch out for names conflict!
-			$home = 0 === strpos( $file, $dirFav ) ? $dirFav : $dirSrc;
+			$home = $dirFav && 0 === strpos( $file, $dirFav ) ? $dirFav : $dirSrc;
 			$this->Files->add( $file, $home );
 
 			/* @formatter:off */
@@ -198,7 +215,7 @@ class AppFilesSync extends Application
 				'{items}'  => $this->Files->stats( 'items' ),
 				'{bytes}'  => $this->Utils->byteString( $this->Files->stats( 'bytes' ) ),
 				'{sumAvg}' => $this->Utils->byteString( $this->Files->stats( 'bytes' ) + $this->Files->stats( 'avg' ) ),
-				'{left}'   => $this->Utils->byteString( $total - $this->Files->stats( 'bytes' ) ),
+				'{left}'   => $this->Utils->byteString( $bytesMax - $this->Files->stats( 'bytes' ) ),
 				'{avg}'    => $this->Utils->byteString( $this->Files->stats( 'avg' ) ),
 				'{min}'    => $this->Utils->byteString( $this->Files->stats( 'min' ) ),
 				'{max}'    => $this->Utils->byteString( $this->Files->stats( 'max' ) ),
@@ -227,40 +244,57 @@ class AppFilesSync extends Application
 	{
 		$Prompt = $this->Factory->Prompt();
 
-		$total = $Prompt->importBytes( 'total_bytes', 'Total size' );
-		$this->Logger->info( 'Total size: ' . $this->Utils->byteString( $total ) );
+		$bytesMax = $Prompt->importBytes( 'sync_bytes', 'Total size' );
+		$this->Logger->info( 'Total size: ' . ( $bytesMax ? $this->Utils->byteString( $bytesMax ) : 'no limit' ) );
 
-		$dirFav = $Prompt->importPath( 'dir_fav', 'Favorites dir' );
-		$dirSrc = $Prompt->importPath( 'dir_src', 'Source dir' );
-		$dirOut = $Prompt->importPath( 'dir_out', 'Output dir' );
-		$this->Logger->info( 'Fav dir: ' . $dirFav );
-		$this->Logger->info( 'Src dir: ' . $dirSrc );
-		$this->Logger->info( 'Out dir: ' . $dirOut );
-	}
+		$dirFav = $Prompt->importPath( 'sync_dir_fav', 'Favorites dir' );
+		$dirSrc = $Prompt->importPath( 'sync_dir_src', 'Source dir' );
+		$dirOut = $Prompt->importPath( 'sync_dir_out', 'Output dir' );
+		$this->Factory->info( 'Fav dir: "%s"', $this->Utils->pathCut( $dirFav, 69 ) );
+		$this->Factory->info( 'Src dir: "%s"', $this->Utils->pathCut( $dirSrc, 69 ) );
+		$this->Factory->info( 'Out dir: "%s"', $this->Utils->pathCut( $dirOut, 69 ) );
 
-	/**
-	 * Append more files.
-	 */
-	protected function addFiles( array $files, bool $shuffle = true ): void
-	{
-		$shuffle && $this->Utils->arrayShuffle( $files );
-		$this->files = array_merge( $this->files, $files );
-		$this->Logger->debug( $this->Utils->phpMemoryMax() );
+		if ( !$dirFav && !$dirSrc ) {
+			throw new \InvalidArgumentException(
+				/**/ 'At least one source dir required. None specified! Check cfg[sync_dir_fav], cfg[sync_dir_src]' );
+		}
 	}
 
 	/**
 	 * Import files: FAV + SRC (separately randomized in each group).
 	 */
-	protected function scan( int $depth = 0 ): void
+	protected function scan(): void
 	{
-		$this->addFiles( $this->Utils->dirScan( $this->Factory->get( 'dir_fav' ), $this->pattern, $depth ) );
-		$this->addFiles( $this->Utils->dirScan( $this->Factory->get( 'dir_src' ), $this->pattern, $depth ) );
+		/* @formatter:off */
+		$dirs = [
+			$this->Factory->get( 'sync_dir_fav' ),
+			$this->Factory->get( 'sync_dir_src' ),
+		];
+		/* @formatter:on */
+
+		foreach ( $dirs as $dir ) {
+			if ( is_dir( $dir ) ) {
+				$files = $this->Utils->dirScan( $dir, $this->pattern, $this->Factory->get( 'sync_depth' ) );
+				if ( $this->Factory->get( 'sync_shuffle' ) ) {
+					/* @formatter:off */
+					$this->Factory->info( '- shuffle {count} files in "{dir}"', [
+						'{count}' => count( $files ),
+						'{dir}'   => $dir
+					]);
+					/* @formatter:on */
+					$this->Utils->arrayShuffle( $files );
+				}
+				$this->files = array_merge( $this->files, $files );
+			}
+		}
 
 		/* @formatter:off */
 		$this->Factory->info( 'Files found: {count} ({types})', [
-			'{types}' => implode( '|', $this->Factory->get( 'file_types' ) ),
+			'{types}' => $this->pattern ? implode( '|', $this->Factory->get( 'sync_types' ) )  : '*',
 			'{count}' => count( $this->files ),
 		]);
 		/* @formatter:on */
+
+		$this->Logger->debug( $this->Utils->phpMemoryMax() );
 	}
 }

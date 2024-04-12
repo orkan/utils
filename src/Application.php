@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '7.1.0';
-	const APP_DATE = 'Sat, 06 Apr 2024 15:09:53 +02:00';
+	const APP_VERSION = '8.0.0';
+	const APP_DATE = 'Sat, 13 Apr 2024 01:22:32 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -98,13 +98,14 @@ class Application
 
 		// PHP setup
 		date_default_timezone_set( $this->Factory->get( 'app_timezone' ) );
-		foreach ( $this->Factory->get( 'php', [] ) as $k => $v ) {
+		foreach ( $this->Factory->get( 'app_php_ini', [] ) as $k => $v ) {
 			isset( $v ) && ini_set( $k, $v );
 		}
 
 		// App setup (no services)
 		$this->checkExtensions();
 		$this->setVerbosity();
+		$this->getArg( 'dry-run' ) && $Factory->cfg( 'app_dryrun', true );
 	}
 
 	/**
@@ -115,26 +116,33 @@ class Application
 		$packageDir = dirname( ( new \ReflectionClass( static::class ) )->getFileName(), 2 ); // vendor/orkan/[project]
 
 		/**
-		 * [cmd_title]
+		 * [app_title]
 		 * CMD window title
 		 * @see Application::cmdTitle()
+		 *
+		 * [app_welcome]
+		 * Parse message with App tokens
+		 * @see Application::getWelcome()
 		 *
 		 * [app_opts]
 		 * Defined command line argument (extendable by Factory::cfg())
 		 * @see Application::ARGUMENTS
 		 *
-		 * [err_handle]
-		 * Handle errors?
-		 *
-		 * [exc_handle]
-		 * Handle exceptions?
-		 *
-		 * [extensions]
-		 * Required PHP extensions: Array ( [extension_name] => (bool) verify, ... )
-		 *
 		 * [app_gc]
 		 * Garbage collect: Free up memory once is no longer used
 		 * @see Application::gc()
+		 *
+		 * [app_dryrun]
+		 * Is --dry-run swith on?
+		 *
+		 * [app_err_handle]
+		 * Handle errors?
+		 *
+		 * [app_exc_handle]
+		 * Handle exceptions?
+		 *
+		 * [app_php_ext]
+		 * Required PHP extensions: Array ( [extension_name] => (bool) verify, ... )
 		 *
 		 * -----------------------------------------------------------------------------------------------------------------
 		 * PHP INI: Prepare for CLI
@@ -172,21 +180,26 @@ class Application
 		 *
 		 * @formatter:off */
 		return [
-			'cmd_title'    => static::APP_NAME,
-			'app_opts'     => static::ARGUMENTS,
-			'app_usage'    => 'app.php [options]',
-			'app_timezone' => getenv( 'APP_TIMEZONE' ) ?: date_default_timezone_get(),
-			'app_gc'       => getenv( 'APP_GC' ) ?: false,
-			'err_handle'   => true,
-			'exc_handle'   => true,
-			'date_short'   => 'Y-m-d',
-			'date_long'    => 'l, Y-m-d H:i',
-			'log_level'    => DEBUG ? 'DEBUG' : 'NOTICE',
-			'log_debug'    => DEBUG,
-			'log_history'  => 'WARNING',
-			'dir_package'  => $packageDir,
-			'extensions'   => [],
-			'php' => [
+			'app_title'      => static::APP_NAME,
+			'app_welcome'    => '{title} - {name} v{version}',
+			'app_opts'       => static::ARGUMENTS,
+			'app_usage'      => 'app.php [options]',
+			'app_timezone'   => getenv( 'APP_TIMEZONE' ) ?: date_default_timezone_get(),
+			'app_gc'         => getenv( 'APP_GC' ) ?: false,
+			'app_dryrun'     => false,
+			'app_err_handle' => true,
+			'app_exc_handle' => true,
+			// Utils
+			'app_date_short' => 'Y-m-d',
+			'app_date_long'  => 'l, Y-m-d H:i',
+			// Logger
+			'log_level'      => DEBUG ? 'DEBUG' : 'NOTICE',
+			'log_debug'      => DEBUG,
+			'log_history'    => 'WARNING',
+			'dir_package'    => $packageDir,
+			// PHP
+			'app_php_ext'    => [],
+			'app_php_ini'    => [
 				'max_execution_time'     => null,
 				'error_reporting'        => E_ALL,
 				'log_errors'             => '1',
@@ -239,7 +252,7 @@ class Application
 
 		$level = (int) $this->getArg( 'verbose' );
 		$level = min( max( static::VERBOSITY_NORMAL, $level ), static::VERBOSITY_DEBUG );
-		$level = null !== $this->getArg( 'quiet' ) ? static::VERBOSITY_QUIET : $level;
+		$level = $this->getArg( 'quiet' ) ? static::VERBOSITY_QUIET : $level;
 
 		$this->Factory->cfg( 'log_verbose', $map[$level] );
 	}
@@ -251,7 +264,7 @@ class Application
 	 */
 	protected function checkExtensions()
 	{
-		if ( !is_array( $extensions = $this->Factory->get( 'extensions' ) ) ) {
+		if ( !is_array( $extensions = $this->Factory->get( 'app_php_ext' ) ) ) {
 			throw new \InvalidArgumentException( 'Invalid EXTENSIONS definition! See Application::defaults() for more info.' );
 		}
 
@@ -428,6 +441,21 @@ class Application
 	}
 
 	/**
+	 * Parse cfg[app_welcome] message.
+	 */
+	public function getWelcome( ?string $format = null ): string
+	{
+		/* @formatter:off */
+		return strtr( $format ?? $this->Factory->get( 'app_welcome' ), [
+			'{title}'   => $this->Factory->get( 'app_title' ),
+			'{name}'    => static::APP_NAME,
+			'{version}' => static::APP_VERSION,
+			'{date}'    => static::APP_DATE,
+		]);
+		/* @formatter:on */
+	}
+
+	/**
 	 * Get: name, version, date.
 	 */
 	public static function getVersionLong(): string
@@ -454,10 +482,10 @@ class Application
 	 * @param string|array $tokens Array( ['{token1}'] => text1, ['{token2}'] => text2, ... )
 	 * @param string       $format Eg. '{token1} - {token2} - {title}'
 	 */
-	protected function cmdTitle( string $format = '', array $tokens = [] ): void
+	protected function cmdTitle( ?string $format = null, array $tokens = [] ): void
 	{
-		$format = $format ? "$format - {cmd_title}" : '{cmd_title}';
-		$tokens['{cmd_title}'] = $this->Factory->get( 'cmd_title' );
+		$format = $format ? "$format - {app_title}" : '{app_title}';
+		$tokens['{app_title}'] = $this->Factory->get( 'app_title' );
 
 		cli_set_process_title( strtr( $format, $tokens ) );
 	}
@@ -473,7 +501,8 @@ class Application
 		/* @formatter:off */
 		$this->Utils->setup([
 			'timeZone'   => $this->Factory->get( 'app_timezone' ),
-			'dateFormat' => $this->Factory->get( 'date_long' ),
+			'dateFormat' => $this->Factory->get( 'app_date_long' ),
+			'silent'     => $this->getArg( 'quiet' ),
 		]);
 		/* @formatter:on */
 
@@ -483,10 +512,10 @@ class Application
 		 * @see Utils::errorHandler()
 		 * @see Application::exceptionHandler()
 		 */
-		if ( $this->Factory->get( 'err_handle' ) ) {
+		if ( $this->Factory->get( 'app_err_handle' ) ) {
 			set_error_handler( [ $this->Utils, 'errorHandler' ] );
 		}
-		if ( $this->Factory->get( 'exc_handle' ) ) {
+		if ( $this->Factory->get( 'app_exc_handle' ) ) {
 			set_exception_handler( [ $this, 'exceptionHandler' ] );
 		}
 
@@ -497,32 +526,29 @@ class Application
 		 * -------------------------------------------------------------------------------------------------------------
 		 * Help
 		 */
-		if ( null !== $this->getArg( 'version' ) ) {
+		if ( $this->getArg( 'version' ) ) {
 			echo static::APP_VERSION;
 			exit();
 		}
 
-		if ( null !== $this->getArg( 'help' ) ) {
+		if ( $this->getArg( 'help' ) ) {
 			echo $this->getHelp();
 			exit();
 		}
 
-		if ( null !== $this->getArg( 'setup' ) ) {
-			$cfg = $this->Factory->cfg();
-			ksort( $cfg );
-			print_r( $cfg );
+		if ( $this->getArg( 'setup' ) ) {
+			echo $this->Utils->print_r( $this->Factory->cfg(), true, [], 2, false );
 			exit();
 		}
 
 		/*
 		 * -------------------------------------------------------------------------------------------------------------
-		 * LOG
-		 *
-		 * NOTE:
+		 * Welcome message
 		 * Keep this after "Help" section to prevent extra output if App is going to exit anyway
 		 */
 		if ( DEBUG ) {
 			$this->Logger->info( 'DEBUG is ON' );
+			$this->Factory->get( 'app_dryrun' ) && $this->Logger->info( 'DRY-RUN is ON' );
 			$this->Logger->debug( 'CMD: ' . implode( ' ', $GLOBALS['argv'] ) );
 			$this->Logger->debug( 'ARGS: ' . $this->Utils->print_r( $this->getArg() ) );
 			$this->Logger->debug( $this->Utils->print_r( $this->Factory->cfg() ) );

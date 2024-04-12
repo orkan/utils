@@ -51,7 +51,7 @@ class FilesSyncTest extends \Orkan\Tests\TestCase
 		if ( $withSandbox ) {
 			$dir = self::sandboxPath( $this->getName() . '/out' );
 			Utils::dirClear( $dir );
-			$Factory->cfg( 'dir_out', $dir );
+			$Factory->cfg( 'sync_dir_out', $dir );
 		}
 		return $Factory;
 	}
@@ -86,7 +86,8 @@ class FilesSyncTest extends \Orkan\Tests\TestCase
 			$bytes += filesize( $file );
 		}
 
-		$this->assertSame( $bytes, $Sync->stats( 'bytes' ), 'stats(bytes)' );
+		$stats = $Sync->stats();
+		$this->assertSame( $bytes, $stats['bytes'], 'stats(bytes)' );
 		$this->assertSame( $items = count( $files ), $Sync->stats( 'items' ), 'stats(items)' );
 		$this->assertSame( $avg = $bytes / $items, $Sync->stats( 'avg' ), 'stats(avg)' );
 		$this->assertSame( 10, $Sync->stats( 'min' ), 'stats(min)' );
@@ -102,9 +103,10 @@ class FilesSyncTest extends \Orkan\Tests\TestCase
 		$this->assertSame( $avg * 1, self::$progress[0]['progress']['byte_done'], 'byte_done 1/3' );
 		$this->assertSame( $avg * 2, self::$progress[1]['progress']['byte_done'], 'byte_done 2/3' );
 		$this->assertSame( $avg * 3, self::$progress[2]['progress']['byte_done'], 'byte_done 3/3' );
-		$this->assertSame( intval( 100 / 3 * 1 ), self::$progress[0]['progress']['cent_done'], 'cent_done 1/3' );
-		$this->assertSame( intval( 100 / 3 * 2 ), self::$progress[1]['progress']['cent_done'], 'cent_done 2/3' );
-		$this->assertSame( intval( 100 / 3 * 3 ), self::$progress[2]['progress']['cent_done'], 'cent_done 3/3' );
+		// ceil() gives 1-100%, otherwise: 33%, 66%, 99%
+		$this->assertSame( 34, self::$progress[0]['progress']['cent_done'], 'cent_done 1/3' );
+		$this->assertSame( 67, self::$progress[1]['progress']['cent_done'], 'cent_done 2/3' );
+		$this->assertSame( 100, self::$progress[2]['progress']['cent_done'], 'cent_done 3/3' );
 	}
 
 	/**
@@ -118,11 +120,12 @@ class FilesSyncTest extends \Orkan\Tests\TestCase
 			'b' => 'file0 20b.mp4',
 			'c' => 'dir1/file1 10b.txt',
 			'd' => 'dir2/file2 25b.txt',
+			'g' => '.file0b', // zero bytes!
 		];
 		/* @formatter:on */
 
 		$Factory = $this->getFactory();
-		$out = $Factory->get( 'dir_out' );
+		$out = $Factory->get( 'sync_dir_out' );
 
 		// -------------------------------------------------------------------------------------------------------------
 		// Run: 1/2 - copy
@@ -190,6 +193,10 @@ class FilesSyncTest extends \Orkan\Tests\TestCase
 
 		// Extra stats
 		$stats = $Sync->stats();
+		$this->assertCount( 2, $stats['skipped'], 'Stats: skipped' );
+		$this->assertSame( $files['d'][2], $stats['skipped'][0], 'Stats: skipped [d]' );
+		$this->assertSame( $files['g'][2], $stats['skipped'][1], 'Stats: skipped [g]' );
+
 		$this->assertCount( 1, $stats['deleted'], 'Stats: deleted' );
 		$this->assertSame( $files['a'][2], $stats['deleted'][0], 'Stats: deleted [a]' );
 
@@ -215,7 +222,7 @@ class FilesSyncTest extends \Orkan\Tests\TestCase
 		$Sync->run();
 
 		// Infect manifest file
-		$manifest = $Factory->get( 'dir_out' ) . '/' . $Factory->get( 'sync_manifest' );
+		$manifest = $Factory->get( 'sync_dir_out' ) . '/' . $Factory->get( 'sync_manifest' );
 		$json = json_decode( file_get_contents( $manifest ), true );
 		$json = array_values( $json ); // remove keys
 		file_put_contents( $manifest, json_encode( $json, JSON_PRETTY_PRINT ) );
@@ -243,7 +250,7 @@ class FilesSyncTest extends \Orkan\Tests\TestCase
 		$this->expectExceptionMessage( $dir = 'missing' );
 
 		$Factory = $this->getFactory( false );
-		$Factory->cfg( 'dir_out', $dir );
+		$Factory->cfg( 'sync_dir_out', $dir );
 		$Factory->FilesSync()->run();
 	}
 

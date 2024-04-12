@@ -432,16 +432,18 @@ class Utils
 	/**
 	 * Scan dir files with regex and depth level.
 	 *
-	 * @param int $depth Directory depth to scan recursively. 0: current dir only. Def. -1: no limit
+	 * @param string $regex Regular expression fo filter each path. Use empty to return all paths
+	 * @param int $depth    Directory depth to scan recursively. 0: current dir only. Def. -1: no limit
 	 * @return array Matched absolute paths
 	 */
-	public static function dirScan( string $dir, string $pattern, int $depth = -1 ): array
+	public static function dirScan( string $dir, ?string $regex = null, int $depth = -1 ): array
 	{
-		$Directory = new \RecursiveDirectoryIterator( $dir );
+		$Directory = new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS );
 		$Iterator = new \RecursiveIteratorIterator( $Directory );
 		$Iterator->setMaxDepth( $depth );
-		$Regex = new \RegexIterator( $Iterator, $pattern, \RecursiveRegexIterator::GET_MATCH );
-		return array_keys( iterator_to_array( $Regex ) );
+		$regex && $Iterator = new \RegexIterator( $Iterator, $regex, \RecursiveRegexIterator::GET_MATCH );
+
+		return array_keys( iterator_to_array( $Iterator ) );
 	}
 
 	/**
@@ -841,46 +843,43 @@ class Utils
 	/**
 	 * Cut path to given length.
 	 *
-	 * @param int    $max   Total length
-	 * @param int    $cent  Cut position in %
-	 * @param string $sep   Directory separator in returned path. Use null for system default
-	 * @param string $mark  Mark cut position
+	 * @param int    $max  Total length
+	 * @param int    $cent Cut position in %
+	 * @param string $sep  Directory separator in returned path. Use null for system default
+	 * @param string $mark Mark cut position with ellipsis
 	 */
-	public static function pathCut( string $path, int $max = 80, int $cent = 25, ?string $sep = null, ?string $mark = null ): string
+	public static function pathCut( string $path, int $max = 80, int $cent = 25, ?string $sep = null, string $mark = '...' ): string
 	{
-		$mark = $mark ?? '...';
+		$lenP = mb_strlen( $path );
+		$lenM = mb_strlen( $mark );
 		$sep = $sep ?? DIRECTORY_SEPARATOR;
 		$cent = max( 0, min( 100, $cent ) );
-		$lenP = mb_strlen( $path );
+		$max = max( $lenM, min( $lenP, $max ) ); // max: mark <-> str
 
-		if ( $max <= 0 ) {
-			return '';
-		}
-
-		// Path is less than max - return path
-		if ( $lenP <= $max ) {
+		// Path is shorter than max
+		if ( !$path || $lenP <= $max ) {
 			return $path;
+		}
+		// Mark is longer than max
+		elseif ( $lenM >= $max ) {
+			return $mark;
 		}
 
 		$arr = explode( '/', str_replace( '\\', '/', $path ) );
 		$elm = count( $arr );
 
-		// Single element (string)
+		// Single element (string) - cut in half: Aaa...aaa.txt
 		if ( $elm === 1 ) {
-			$cut = $max - mb_strlen( $mark );
-			$out = $cent < 50 ? $mark . mb_substr( $path, $lenP - $cut ) : mb_substr( $path, 0, $cut ) . $mark;
-			return $out;
+			return static::strCut( $path, $max, 50, $mark );
 		}
 
-		// Path elements (a/b/c)
+		// Path elements (/a/b/c)
 		do {
 			$now = floor( $elm / 100 * $cent );
 			$out = $arr[$now];
-			// If last element left treat it as string
+			// If single path element left, return last path element instead
 			if ( $elm === 1 ) {
-				$args = func_get_args();
-				$args[0] = $out ?: $mark;
-				return static::pathCut( ...$args );
+				return static::strCut( $arr[$elm - 1], $max, 50, $mark );
 			}
 			$arr[$now] = $mark;
 			$out = implode( $sep, $arr );
@@ -1012,19 +1011,30 @@ class Utils
 	/**
 	 * Fancy expression print.
 	 *
-	 * @param mixed $exp    Expression to print: array|object|string|float|etc...
-	 * @param bool  $simple Remove objects?
-	 * @param array $keys   Keys replacements
+	 * @param mixed $exp     Expression to print: array|object|string|float|etc...
+	 * @param bool  $simple  Remove objects?
+	 * @param array $keys    Keys replacements
+	 * @param int   $sort    Sort array|object keys to this level
+	 * @param bool  $flatten No line breaks?
 	 */
-	public static function print_r( $exp, bool $simple = true, array $keys = [] ): string
+	public static function print_r( $exp, bool $simple = true, array $keys = [], int $sort = 0, bool $flatten = true )
 	{
+		static $level = 1;
+
 		if ( is_array( $exp ) || is_object( $exp ) ) {
 
 			$exp = (array) $exp;
+			$sort && $level <= $sort && ksort( $exp );
 
 			foreach ( $exp as $k => $v ) {
+				// Extract internal arrays recursively...
+				if ( is_array( $v ) ) {
+					$level++;
+					$exp[$k] = static::print_r( $v, $simple, $keys, $sort, false );
+					$level--;
+				}
 				// Replace bolean values
-				if ( is_bool( $v ) ) {
+				elseif ( is_bool( $v ) ) {
 					$exp[$k] = $v ? 'true' : 'false';
 				}
 				// Replace each Object in array with class name string
@@ -1049,9 +1059,19 @@ class Utils
 			}
 		}
 
+		// Don't format multi-array yet!
+		if ( $level > 1 ) {
+			return $exp;
+		}
+
+		// Apply formating. If Array - format all levels at once
 		$str = print_r( $exp, true );
-		$str = str_replace( [ "\r", "\n" ], ' ', $str ); // remove line breaks
-		$str = preg_replace( '/[ ]{2,}/', ' ', $str ); // remove double spacess
+
+		// No line breaks?
+		if ( $flatten ) {
+			$str = str_replace( [ "\r", "\n" ], ' ', $str ); // remove line breaks
+			$str = preg_replace( '/[ ]{2,}/', ' ', $str ); // remove double spacess
+		}
 
 		return $str;
 	}
@@ -1089,13 +1109,13 @@ class Utils
 	 * @throws \BadMethodCallException In TESTING mode throws some exotic Exception instead of exit()
 	 *
 	 * @param  string $msg     Prompt message to show
-	 * @param  string $quit    Quit sequence. Empty to disable
 	 * @param  string $default Default answer in silent mode
+	 * @param  string $quit    Quit sequence. Empty to disable
 	 * @return string User input or $default
 	 */
-	public static function prompt( string $msg = '', string $quit = '', string $default = '' ): string
+	public static function prompt( string $msg = '', string $default = '', string $quit = '' ): string
 	{
-		if ( self::$silent ) {
+		if ( self::$silent || defined( 'TESTING' ) ) {
 			$input = $default;
 		}
 		else {
@@ -1111,39 +1131,6 @@ class Utils
 		}
 
 		return $input;
-	}
-
-	/**
-	 * String slugiffy.
-	 * Based on Symfony Jobeet tutorial.
-	 *
-	 * @link https://stackoverflow.com/questions/2955251/php-function-to-make-slug-url-string
-	 */
-	public static function slugify( string $text ): string
-	{
-		// replace non letter or digits by -
-		$text = preg_replace( '~[^.\pL\d]+~u', '-', $text );
-
-		// transliterate
-		$text = iconv( 'utf-8', 'us-ascii//TRANSLIT', $text );
-
-		// remove unwanted characters
-		$text = preg_replace( '~[^-.\w]+~', '', $text );
-
-		// trim
-		$text = trim( $text, '-' );
-
-		// remove duplicate -
-		$text = preg_replace( '~-+~', '-', $text );
-
-		// lowercase
-		$text = strtolower( $text );
-
-		if ( empty( $text ) ) {
-			return 'n-a';
-		}
-
-		return $text;
 	}
 
 	/**
@@ -1176,6 +1163,83 @@ class Utils
 		$line = rtrim( $line, "\r\n" );
 
 		return $line;
+	}
+
+	/**
+	 * Cut {str}ing at {cent} position to {max} length and {mark} it.
+	 */
+	public static function strCut( string $str, int $max, int $cent = 100, string $mark = '...' ): string
+	{
+		$lenS = mb_strlen( $str );
+		$lenM = mb_strlen( $mark );
+		$cent = max( 0, min( 100, $cent ) );
+		$max = max( $lenM, min( $lenS, $max ) ); // max: mark <-> str
+
+		// Str is shorter than max
+		if ( !$str || $lenS <= $max ) {
+			return $str;
+		}
+		// Mark is longer than max
+		elseif ( $lenM >= $max ) {
+			return $mark;
+		}
+
+		$pos = floor( $lenS / 100 * $cent ); // cut position
+		$cut = $lenS - $max + $lenM; // cut length
+		$c1 = ceil( $cut / 2 ); // cut left side
+		$c2 = $cut - $c1; // cut right side
+
+		$x1 = $pos - $c1;
+		if ( $x1 < 0 ) {
+			$x1 = abs( $x1 );
+			$c1 = $pos;
+			$c2 += $x1;
+		}
+		$x2 = ( $lenS - $pos ) - $c2;
+		if ( $x2 < 0 ) {
+			$x2 = abs( $x2 );
+			$c2 -= $x2;
+			$c1 += $x2;
+		}
+
+		$s1 = mb_substr( $str, 0, $pos - $c1 );
+		$s2 = mb_substr( $str, $pos + $c2 );
+		$str = $s1 . $mark . $s2;
+
+		return $str;
+	}
+
+	/**
+	 * String slugiffy.
+	 * Based on Symfony Jobeet tutorial.
+	 *
+	 * @link https://stackoverflow.com/questions/2955251/php-function-to-make-slug-url-string
+	 */
+	public static function strSlug( string $str ): string
+	{
+		// replace non letter or digits by -
+		$str = preg_replace( '~[^.\pL\d]+~u', '-', $str );
+
+		// transliterate
+		$str = iconv( 'utf-8', 'us-ascii//TRANSLIT', $str );
+
+		// remove unwanted characters
+		$str = preg_replace( '~[^-.\w]+~', '', $str );
+
+		// trim
+		$str = trim( $str, '-' );
+
+		// remove duplicate -
+		$str = preg_replace( '~-+~', '-', $str );
+
+		// lowercase
+		$str = strtolower( $str );
+
+		if ( empty( $str ) ) {
+			return 'n-a';
+		}
+
+		return $str;
 	}
 
 	/**

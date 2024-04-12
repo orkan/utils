@@ -55,16 +55,20 @@ class Prompt
 	private function defaults(): array
 	{
 		/**
-		 * [user_quit]
+		 * [prompt_quit]
 		 * User input quit sequence
 		 *
-		 * [user_quit_str]
+		 * [prompt_quit_str]
 		 * User "quit" text appended to prompt message
+		 *
+		 * [prompt_autodirs]
+		 * Create path if not exist
 		 *
 		 * @formatter:off */
 		return [
-			'user_quit'     => 'Q',
-			'user_quit_str' => '(use Q to quit)',
+			'prompt_quit'     => 'Q',
+			'prompt_quit_str' => '(use Q to quit)',
+			'prompt_autodirs' => false,
 		];
 		/* @formatter:on */
 	}
@@ -72,8 +76,8 @@ class Prompt
 	/**
 	 * Import bytes as int.
 	 *
-	 * @param string $key  Config[key] holding bytes to update
-	 * @param string $msg  Prompt message
+	 * @param string $key Config[key] holding bytes to update
+	 * @param string $msg Prompt message
 	 * @return int Bytes number
 	 */
 	public function importBytes( $key, string $msg = 'Enter text' ): int
@@ -98,12 +102,12 @@ class Prompt
 				throw new \InvalidArgumentException( "Cannot prompt user input in tests! Use cfg[$key]" );
 			}
 
-			$quit = $this->Factory->get( 'user_quit_str' );
+			$quit = $this->Factory->get( 'prompt_quit_str' );
 			$msg .= $quit ? ' ' . $quit : '';
 			$msg .= $bytes ? ': ' . $bytes : ':';
 
 			do {
-				$out = $this->Utils->prompt( $msg . "\n", $this->Factory->get( 'user_quit' ) );
+				$out = $this->Utils->prompt( $msg . "\n", '0', $this->Factory->get( 'prompt_quit' ) );
 				$out = '' === $out ? $bytes : $out;
 
 				if ( preg_match( '/^([\d.]+)(\s)?([BKMGTPE]?)(B)?$/i', $out ) ) {
@@ -134,15 +138,15 @@ class Prompt
 	 *
 	 * @see Utils::prompt()
 	 *
-	 * @param string $key    cfg[key] holding initial path
-	 * @param string $msg    Prompt message
-	 * @param bool   $create Auto-create user path if not exist?
+	 * @param string $key cfg[key] holding initial path
+	 * @param string $msg Prompt message
 	 * @return int Fixed path or empty if not exist or not required (*)
 	 */
-	public function importPath( string $key, string $msg = 'Enter text', bool $create = false ): string
+	public function importPath( string $key, string $msg = 'Enter text' ): string
 	{
 		$dir = $this->Factory->get( $key );
 		$dir = $this->Utils->pathFix( $dir );
+		$create = $this->Factory->get( 'prompt_autodirs' );
 
 		$mode = $dir[0] ?? '';
 		$dir = ltrim( $dir, implode( '', self::MODES ) );
@@ -157,12 +161,12 @@ class Prompt
 				throw new \InvalidArgumentException( "Cannot prompt user input in tests! Use cfg[$key]" );
 			}
 
-			$quit = $this->Factory->get( 'user_quit_str' );
+			$quit = $this->Factory->get( 'prompt_quit_str' );
 			$msg .= $quit ? ' ' . $quit : '';
 			$msg .= $dir ? ': ' . $dir : ':';
 
 			do {
-				$out = $this->Utils->prompt( $msg . "\n", $this->Factory->get( 'user_quit' ) );
+				$out = $this->Utils->prompt( $msg . "\n", '', $this->Factory->get( 'prompt_quit' ) );
 				$out = trim( $out ?: $dir );
 
 				if ( is_dir( $out ) ) {

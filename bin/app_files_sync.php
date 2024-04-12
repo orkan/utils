@@ -6,20 +6,21 @@
 use Orkan\Factory;
 use Orkan\AppFilesSync;
 
-// require __DIR__ . '/../tools/composer/autoload.php';
-require $GLOBALS['_composer_autoload_path'];
+require $GLOBALS['_composer_autoload_path'] ?? $_ENV['COMPOSER_AUTOLOAD'];
 
 $Factory = new Factory();
 $App = new AppFilesSync( $Factory );
 $Utils = $Factory->Utils();
 $Logger = $Factory->Logger();
 
+$Logger->info( '' );
 $Logger->info( "================================================================================" );
-$Logger->info( $App->getVersion() );
-$Logger->debug( 'Config: ' . $Factory->get( 'cfg_user' ) );
+$Logger->info( $App->getWelcome() );
+DEBUG && $Logger->info( 'Config: ' . $Factory->get( 'cfg_user' ) );
 $Logger->info( "================================================================================" );
 $App->run();
 $Logger->info( "================================================================================" );
+$Logger->info( $App->getWelcome( 'APP: {title} v{version}' ) );
 $Logger->info( implode( '. ', $Utils->phpSummary() ) );
 $Logger->info( 'Bye!' );
 

@@ -61,12 +61,16 @@ class Factory
 		return $this->Prompt ?? $this->Prompt = new Prompt( $this );
 	}
 
+	// =================================================================================================================
+	// INSTANCES
+	// =================================================================================================================
+
 	/**
 	 * @return FilesSync
 	 */
 	public function FilesSync()
 	{
-		return new FilesSync( $this, $this->get( 'dir_out' ) );
+		return new FilesSync( $this );
 	}
 
 	/**

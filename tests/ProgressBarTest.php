@@ -25,7 +25,7 @@ class ProgressBarTest extends \Orkan\Tests\TestCase
 	 */
 	public function testCanBarDraw()
 	{
-		$this->expectExceptionMessage( "[|.........] |  10% | ...anBarDraw" );
+		$this->expectExceptionMessage( "[|.........] |  10% | test...rDraw" );
 
 		/* @formatter:off */
 		$Factory = new Factory([

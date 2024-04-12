@@ -6,12 +6,11 @@
 use Orkan\Application;
 use Orkan\Factory;
 
-// require __DIR__ . '/../tools/composer/autoload.php';
-require $GLOBALS['_composer_autoload_path'];
+require $GLOBALS['_composer_autoload_path'] ?? $_ENV['COMPOSER_AUTOLOAD'];
 
 /* @formatter:off */
 $Factory = new Factory([
-	'cmd_title'   => 'Environment Switch',
+	'app_title'   => 'Environment Switch',
 	'app_usage'   => sprintf( '%s --env <env name> --loc [home dir] [options]', basename( __FILE__ ) ),
 	'app_opts'    => [
 		'env'    => [ 'short' => 'e:', 'long' => 'env:'   , 'desc' => 'Environment name' ],
@@ -19,7 +18,7 @@ $Factory = new Factory([
 		'config' => [ 'short' => 'c:', 'long' => 'config:', 'desc' => 'Load additional config file' ],
 	],
 	// Symlink files. (Tip: empty value to remove mapping)
-	'map' => [
+	'app_map' => [
 		'composer.[%s].json' => 'composer.json',
 		'composer.[%s].lock' => 'composer.lock',
 	],
@@ -45,7 +44,7 @@ if ( !$usrEnv = $App->getArg( 'env' ) ) {
  */
 $Utils->writeln( "SWITCH env to [$usrEnv]", 2 );
 $usrLoc .= DIRECTORY_SEPARATOR;
-$map = array_filter( $Factory->cfg( 'map' ) ); // remove empty values
+$map = array_filter( $Factory->cfg( 'app_map' ) ); // remove empty values
 
 foreach ( $map as $target => $link ) {
 

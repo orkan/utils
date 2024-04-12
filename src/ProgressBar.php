@@ -54,7 +54,9 @@ class ProgressBar
 			return;
 		}
 
-		echo "\n";
+		if ( $this->steps ) {
+			echo "\n";
+		}
 	}
 
 	/**
@@ -85,7 +87,7 @@ class ProgressBar
 		 * @formatter:off */
 		return [
 			'bar_format'    => '[{bar}] {cent}% {text}',
-			'bar_verbose'   => 'NOTICE',
+			'bar_verbose'   => 'INFO',
 			'bar_width'     => 80,
 			'bar_size'      => 20,
 			'bar_char_done' => '|',

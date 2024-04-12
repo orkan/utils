@@ -79,7 +79,7 @@ class ApplicationTest extends \Orkan\Tests\TestCase
 			 * ini_set()
 			 * @see Application::__construct()
 			 */
-			new Application( new FactoryMock( $this, [ 'php' => $php ] ) );
+			new Application( new FactoryMock( $this, [ 'app_php_ini' => $php ] ) );
 
 			foreach ( $php as $k => $v ) {
 				$this->assertEquals( $v, ini_get( $k ) ); // dont check types!
@@ -104,7 +104,7 @@ class ApplicationTest extends \Orkan\Tests\TestCase
 			$actual[$k] = null;
 		}
 
-		new Application( new FactoryMock( $this, [ 'php' => $actual ] ) );
+		new Application( new FactoryMock( $this, [ 'app_php_ini' => $actual ] ) );
 
 		foreach ( $expect as $k => $v ) {
 			$this->assertEquals( $v, ini_get( $k ) ); // dont check types!

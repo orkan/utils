@@ -21,32 +21,72 @@ class UtilsTest extends \Orkan\Tests\TestCase
 	// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
+	 * @see UtilsTest::testCanStringCut()
+	 */
+	public function provideStringCut()
+	{
+		/* @formatter:off */
+		return [
+			'_00' => [ ''          , 80,  50, '...', ''           ],
+			'_01' => [ 'abcdef'    ,  2,  50, '...', '...'        ],
+			'_02' => [ 'abcdef'    ,  3,  50, '...', '...'        ],
+			'_03' => [ 'abcdef'    ,  4,  50, '...', '...f'       ],
+			'_04' => [ 'abcdef'    ,  5,  50, '...', 'a...f'      ],
+			'_05' => [ 'abcdef'    ,  5,   0, '...', '...ef'      ],
+			'_06' => [ 'abcdef'    ,  5, 100, '...', 'ab...'      ],
+			'_07' => [ 'abcdef'    , 10,  50, '...', 'abcdef'     ],
+			'_10' => [ 'abcdef'    ,  5,  50,   '|', 'ab|ef'      ],
+			'_11' => [ 'abcdef'    ,  5,   0,   '|', '|cdef'      ],
+			'_12' => [ 'abcdef'    ,  5, 100,   '|', 'abcd|'      ],
+			'_20' => [ 'gęślą jaźń', 99,  50, '...', 'gęślą jaźń' ],
+			'_21' => [ 'gęślą jaźń',  9,   0, '...', '...ą jaźń'  ],
+			'_22' => [ 'gęślą jaźń',  9,  50, '...', 'gęś...aźń'  ],
+			'_23' => [ 'gęślą jaźń',  9, 100, '...', 'gęślą ...'  ],
+		];
+		/* @formatter:on */
+	}
+
+	/**
+	 * Cut string.
+	 * @dataProvider provideStringCut
+	 */
+	public function testCanStringCut( $path, $max, $cent, $mark, $expect )
+	{
+		$this->assertSame( $expect, Utils::strCut( $path, $max, $cent, $mark ) );
+	}
+
+	/**
 	 * @see UtilsTest::testCanPathCut()
 	 */
 	public function providePathCut()
 	{
 		/* @formatter:off */
 		return [
-			'_01' => [ '/aaaa/bbbb/cccc'               , 32, 50,  '/',   '...', '/aaaa/bbbb/cccc'        ],
-			'_02' => [ '/aaaa/bbbb/cccc'               , 14, 50,  '/',   '...', '/aaaa/.../cccc'         ],
-			'_03' => [ '/aaaa/bbbb/cccc'               , 14, 30,  '/',   '...', '/.../bbbb/cccc'         ],
-			'_04' => [ '/aaaa/bbbb'                    , 14, 50,  '/',   '...', '/aaaa/bbbb'             ],
-			'_05' => [ '/aaa/b'                        ,  5, 50,  '/',   '...', '/...'                   ],
-			'_06' => [ '/aaa/b'                        ,  6, 50,  '/',   '...', '/aaa/b'                 ],
-			'_07' => [ '/aaa/b'                        ,  4, 50,  '/',     '-', '/-/b'                   ],
-			'_08' => [ '/aaa/b'                        ,  4, 50,  '/',  '----', '----'                   ],
-			'_09' => [ '/aaa/b'                        ,  4, 50, '\\',     '-', '\\-\\b'                 ],
-			'_10' => [ '/aaa/b'                        ,  4, 50,  '|',     '-', '|-|b'                   ],
-			'_11' => [ '/first/second/third/'          , 15, 25,  '/',   '...', '/.../third/'            ],
-			'_12' => [ '/first/second/third/'          , 15, 75,  '/',   '...', '/first/...'             ],
-			'_13' => [ 'first/second/third'            , 17, 25,  '/',   '...', '.../second/third'       ],
-			'_14' => [ 'first/second/third'            , 17, 50,  '/',   '...', 'first/.../third'        ],
-			'_15' => [ '/first/second/third'           , 17, 75,  '/',   '...', '/first/second/...'      ],
-			'_16' => [ '\\first\\second\\third'        , 18, 50, '\\',   '...', '\\first\\...\\third'    ],
-			'_17' => [ 'C:/Windows/system32/shell.dll' , 22, 25,  '/',   '...', '.../system32/shell.dll' ],
-			'_18' => [ '/aaa/bbbbbbbbbbbbbbbb'         ,  5, 25,  '/',   '...', '...bb'                  ],
-			'_19' => [ 'gęślą' , 4, 25,  '/',   '...', '...ą' ],
-			'_20' => [ 'gęślą' , 4, 75,  '/',   '...', 'g...' ],
+			'_00' => [ ''                              , 80, 25,  '/',  '...', ''                       ],
+			'_01' => [ '/aaaa/bbbb/cccc'               , 32, 50,  '/',  '...', '/aaaa/bbbb/cccc'        ],
+			'_02' => [ '/aaaa/bbbb/cccc'               , 14, 50,  '/',  '...', '/aaaa/.../cccc'         ],
+			'_03' => [ '/aaaa/bbbb/cccc'               , 14, 30,  '/',  '...', '/.../bbbb/cccc'         ],
+			'_04' => [ '/aaaa/bbbb'                    , 14, 50,  '/',  '...', '/aaaa/bbbb'             ],
+			'_10' => [ '/aaa/b'                        ,  5, 50,  '/',  '...', '/...'                   ],
+			'_11' => [ '/aaa/b'                        ,  6, 50,  '/',  '...', '/aaa/b'                 ],
+			'_12' => [ '/aaa/b'                        ,  4, 50,  '/',    '-', '/-/b'                   ],
+			'_13' => [ '/aaa/b'                        ,  4, 50,  '/', '----', '----'                   ],
+			'_14' => [ '/aaa/b'                        ,  4, 50, '\\',    '-', '\\-\\b'                 ],
+			'_15' => [ '/aaa/b'                        ,  4, 50,  '|',    '-', '|-|b'                   ],
+			'_16' => [ '/aaa/bbbbbbbbbbbbbbbb'         ,  5, 25,  '/',  '...', 'b...b'                  ],
+			'_20' => [ '/first/second/third/'          , 15, 25,  '/',  '...', '/.../third/'            ],
+			'_21' => [ '/first/second/third/'          , 15, 75,  '/',  '...', '/first/...'             ],
+			'_22' => [ 'first/second/third'            , 17, 25,  '/',  '...', '.../second/third'       ],
+			'_23' => [ 'first/second/third'            , 17, 50,  '/',  '...', 'first/.../third'        ],
+			'_24' => [ '/first/second/third'           , 17, 75,  '/',  '...', '/first/second/...'      ],
+			'_25' => [ '\\first\\second\\third'        , 18, 50, '\\',  '...', '\\first\\...\\third'    ],
+			'_30' => [ 'C:/Windows/system32/shell.dll' , 22, 25,  '/',  '...', '.../system32/shell.dll' ],
+			'_31' => [ 'C:/Windows/system32/shell.dll' ,  9, 25,  '/',  '...', 'shell.dll'              ],
+			'_32' => [ 'C:/Windows/system32/shell.dll' ,  8, 25,  '/',  '...', 'sh...dll'               ],
+			'_40' => [ 'gęślą'                         ,  4, 25,  '/',  '...', '...ą'                   ],
+			'_41' => [ 'gęślą'                         ,  4, 75,  '/',  '...', '...ą'                   ],
+			'_42' => [ '/gęślą/jaźń.txt'               , 13, 25,  '/',  '...', '.../jaźń.txt'           ],
+			'_43' => [ '/gęślą/jaźń.txt'               , 10, 25,  '/',  '...', 'jaźń.txt'               ],
 		];
 		/* @formatter:on */
 	}
@@ -55,9 +95,9 @@ class UtilsTest extends \Orkan\Tests\TestCase
 	 * Cut path.
 	 * @dataProvider providePathCut
 	 */
-	public function testCanPathCut( $path, $total, $cent, $sep, $mark, $expect )
+	public function testCanPathCut( $path, $max, $cent, $sep, $mark, $expect )
 	{
-		$this->assertSame( $expect, Utils::pathCut( $path, $total, $cent, $sep, $mark ) );
+		$this->assertSame( $expect, Utils::pathCut( $path, $max, $cent, $sep, $mark ) );
 	}
 
 	/**
@@ -183,28 +223,40 @@ class UtilsTest extends \Orkan\Tests\TestCase
 	 */
 	public function testCanPrintR()
 	{
-		$needle = 'Hello World!';
+		$str = 'Hello World!';
 
 		/* @formatter:off */
-		$a = [
-			'key1' => 'aaa',
+		$arr = [
+			'key4' => 'ddd',
 			'key2' => [
-				'key2.1' => 'bbb',
 				'key2.2' => new PrintR(),
 				'key2.3' => 'ccc',
+				'key2.1' => 'bbb',
 			],
-			'key3' => new PrintR( $needle ),
-			'key4' => 'ddd',
+			'key3' => new PrintR( $str ),
+			'key1' => 'aaa',
 		];
 		/* @formatter:on */
 
 		// Don't exclude Objects so PHP::print_r() will parse each property in output
-		$result = Utils::print_r( $a, false );
-		$this->assertStringContainsString( $needle, $result, 'Missing Object property in output' );
+		$actual = Utils::print_r( $arr, false );
+		$this->assertStringContainsString( $str, $actual, 'Missing Object property in output' );
 
 		// Replace each Object in array with class name string
-		$result = Utils::print_r( $a );
-		$this->assertStringNotContainsString( $needle, $result, 'Missing Object property in output' );
+		$actual = Utils::print_r( $arr );
+		$this->assertStringNotContainsString( $str, $actual, 'Missing Object property in output' );
+
+		// Format multiline
+		$actual = Utils::print_r( $arr, true, [], 0, false );
+		$this->assertTrue( strpos( $actual, 'key4' ) < strpos( $actual, 'key1' ), 'Format multiline no sort' );
+		$this->assertTrue( strpos( $actual, 'key2.2' ) < strpos( $actual, 'key2.1' ), 'Format multiline no sort' );
+		$actual = explode( "\n", $actual );
+		$this->assertCount( 14, $actual, 'Format multiline' );
+
+		// Format multiline +sort
+		$actual = Utils::print_r( $arr, true, [], 2, false );
+		$this->assertTrue( strpos( $actual, 'key4' ) > strpos( $actual, 'key1' ), 'Format multiline +sort level 1' );
+		$this->assertTrue( strpos( $actual, 'key2.2' ) > strpos( $actual, 'key2.1' ), 'Format multiline +sort level 2' );
 	}
 
 	/**
@@ -510,6 +562,25 @@ class UtilsTest extends \Orkan\Tests\TestCase
 	}
 
 	/**
+	 * Get user input.
+	 */
+	public function testCanPromptUserInput()
+	{
+		$expect = 'Default answer';
+		$actual = Utils::prompt( __FUNCTION__, $expect );
+		$this->assertSame( $expect, $actual );
+	}
+
+	/**
+	 * Get user input - quit.
+	 */
+	public function testCanPromptUserQuit()
+	{
+		$this->expectExceptionMessage( $quit = 'Q' );
+		Utils::prompt( __FUNCTION__, $quit, $quit );
+	}
+
+	/**
 	 * Get max memory usage.
 	 */
 	public function testCanUseMemoryMax()
@@ -521,7 +592,6 @@ class UtilsTest extends \Orkan\Tests\TestCase
 	// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error: Error:
 	// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 	/**
 	 * @todo errorCheck(): trigger last error as Exception.

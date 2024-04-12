@@ -55,6 +55,11 @@ class FilesSync
 	 */
 	protected $start;
 
+	/**
+	 * Write mode or dry-run?
+	 */
+	protected $isWrite;
+
 	/*
 	 * Services:
 	 */
@@ -65,15 +70,17 @@ class FilesSync
 	/**
 	 * Setup.
 	 */
-	public function __construct( Factory $Factory, string $dirOut )
+	public function __construct( Factory $Factory )
 	{
 		$this->Factory = $Factory->merge( self::defaults() );
 		$this->Utils = $Factory->Utils();
 		$this->Logger = $Factory->Logger();
 
-		if ( !$this->dir = realpath( $dirOut ) ) {
-			throw new \RuntimeException( sprintf( 'Output dir not found: "%s"', $dirOut ) );
+		if ( !$this->dir = realpath( $dir = $Factory->get( 'sync_dir_out' ) ) ) {
+			throw new \RuntimeException( sprintf( 'Output dir not found: "%s". Check cfg[sync_dir_out]', $dir ) );
 		}
+
+		$this->isWrite = !$Factory->get( 'app_dryrun' );
 	}
 
 	/**
@@ -82,6 +89,9 @@ class FilesSync
 	private function defaults(): array
 	{
 		/**
+		 * [sync_dir_out]
+		 * Copy files to...
+		 *
 		 * [sync_manifest]
 		 * Filename holding list of all files created by previus export to help make a diff list
 		 * Saved in output dir
@@ -101,10 +111,13 @@ class FilesSync
 		 *
 		 * @formatter:off */
 		return [
+			// FileSync
+			'sync_dir_out'    => '',
 			'sync_manifest'   => 'sync.json',
 			'sync_callback'   => null,
+			// ProgressBar
 			'bar_analyzing'   => '- analyzing [{bar}] {step}/{steps}',
-			'bar_copying'     => '- copying [{bar}] {done} "{text}"',
+			'bar_copying'     => '- copying [{bar}] "{text}" [{size}]',
 			'bar_size'        => 10,
 		];
 		/* @formatter:on */
@@ -180,17 +193,20 @@ class FilesSync
 
 			$tokens['progress'] = $this->progress();
 			$tokens['{done}'] = $this->Utils->byteString( $tokens['progress']['byte_done'] );
+			$tokens['{size}'] = $this->Utils->byteString( filesize( $new['src'] ) );
 			$tokens['{src}'] = $new['src'];
 			$tokens['{dst}'] = $new['dst'];
 
 			$callback && call_user_func( $callback, $tokens );
-			$Bar->inc( $new['dst'], 1, $tokens );
+			$Bar->inc( $new['src'], 1, $tokens );
 
 			// Copy to [dst], update [dst:mtime] to match [src:mtime]
 			// Warning: The touch(mtime) might be 1s inaccurate on Windows! Bug or performance?
-			@mkdir( dirname( $new['dst'] ), 0777, true );
-			copy( $new['src'], $new['dst'] );
-			touch( $new['dst'], filemtime( $new['src'] ) );
+			if ( $this->isWrite ) {
+				@mkdir( dirname( $new['dst'] ), 0777, true );
+				copy( $new['src'], $new['dst'] );
+				touch( $new['dst'], filemtime( $new['src'] ) );
+			}
 		}
 
 		$Bar = null;
@@ -210,9 +226,9 @@ class FilesSync
 
 		// No manifest found? Clear output dir to get rid of all untracked files
 		if ( !is_file( $file ) ) {
-			$get = $this->Utils->prompt( 'Manifest file not found! Clear output dir? y/[n]: ', 'Q', 'N' );
+			$get = $this->Utils->prompt( 'Manifest file not found! Clear output dir? [y/N/q]: ', 'N', 'Q' );
 			if ( 'Y' === strtoupper( $get ) ) {
-				$this->Logger->notice( '- clearing output dir...' );
+				$this->Factory->notice( '- clearing dir: "%s"', $this->dir );
 				$this->Utils->dirClear( $this->dir );
 			}
 			return false;
@@ -224,17 +240,18 @@ class FilesSync
 			$this->stats['renamed'] = [];
 			$this->stats['updated'] = [];
 			$this->stats['deleted'] = [];
+			$this->stats['skipped'] = [];
 		}
 
 		// -------------------------------------------------------------------------------------------------------------
 		// Check old manifest:
 		$manifest = json_decode( file_get_contents( $file ), true );
 
-		$bytes = $items = $invalid = $renamed = $updated = $deleted = 0;
+		$bytes = $invalid = $renamed = $updated = $deleted = $skipped = 0;
 		$Bar = $this->Factory->ProgressBar( count( $manifest ), 'bar_analyzing' );
 
 		foreach ( $manifest as $id => $old ) {
-			$size = 0;
+			$size = null;
 			$newSrc = $this->manifest[$id]['src'] ?? null;
 			$newDst = $this->manifest[$id]['dst'] ?? null;
 			$oldSrc = $old['src'];
@@ -297,9 +314,10 @@ class FilesSync
 				$deleted++;
 			}
 			// File won't be copied over. Reduce totals!
-			elseif ( $size ) {
+			elseif ( null !== $size ) {
 				$bytes += $size;
-				$items++;
+				$skipped++;
+				DEBUG && $this->stats['skipped'][] = $oldDst;
 			}
 		}
 
@@ -307,19 +325,20 @@ class FilesSync
 
 		// -------------------------------------------------------------------------------------------------------------
 		// Summary:
+		$skipped && $this->Logger->info( "- skipped {$skipped} files" );
 		$invalid && $this->Logger->info( "- invalid {$invalid} files" );
 		$renamed && $this->Logger->info( "- renamed {$renamed} files" );
 		$updated && $this->Logger->info( "- updated {$updated} files" );
 		$deleted && $this->Logger->info( "- deleted {$deleted} files" );
 
-		if ( $items ) {
-			$this->stats['items'] -= $items; // might reduce to 0
+		if ( $skipped ) {
+			$this->stats['items'] -= $skipped; // might reduce to 0
 			$this->stats['bytes'] -= $bytes;
 			$this->statsRebuild();
 
 			/* @formatter:off */
 			$this->Factory->info( '- saved {bytes} by not exporting {items} matched files.', [
-				'{items}' => $items,
+				'{items}' => $skipped,
 				'{bytes}' => $this->Utils->byteString( $bytes ),
 			]);
 			/* @formatter:on */
@@ -327,7 +346,9 @@ class FilesSync
 
 		// -------------------------------------------------------------------------------------------------------------
 		// Unlink old manifest
-		@unlink( $file );
+		if ( $this->isWrite ) {
+			@unlink( $file );
+		}
 
 		return true;
 	}
@@ -382,7 +403,10 @@ class FilesSync
 	protected function manifestWrite(): void
 	{
 		$file = $this->dir . '/' . $this->Factory->get( 'sync_manifest' );
-		file_put_contents( $file, json_encode( $this->manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
+
+		if ( $this->isWrite ) {
+			file_put_contents( $file, json_encode( $this->manifest, DEBUG ? JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE : null ) );
+		}
 	}
 
 	/**
@@ -412,16 +436,16 @@ class FilesSync
 		];
 		/* @formatter:on */
 
-		// No items loaded yet or progress finished
-		if ( !$this->stats['items'] ) {
-			return $out;
-		}
-
 		// Dont overflow!
 		$this->stats['item'] = min( $this->stats['item'] + 1, $this->stats['items'] );
 
+		// No items loaded yet or progress finished
+		if ( !$this->stats['items'] || !$this->stats['bytes'] ) {
+			return $out;
+		}
+
 		$out['byte_done'] = $this->stats['avg'] * $this->stats['item'];
-		$out['cent_done'] = intval( 100 / $this->stats['bytes'] * $out['byte_done'] ) ?: 1;
+		$out['cent_done'] = intval( ceil( 100 / $this->stats['bytes'] * $out['byte_done'] ) );
 		$out['cent_left'] = 100 - $out['cent_done'];
 
 		$out['time_exec'] = $this->Utils->exectime( $this->start );

@@ -32,9 +32,9 @@ class Application extends \Orkan\Application
 	{
 		/* @formatter:off */
 		return [
-			'cli_title'     => 'CLI Application 2',
+			'app_title'     => 'CLI Application 2',
 			'app2_prop'     => 'App 2 custom prop',
-			'extensions'    => [
+			'app_php_ext'    => [
 				'app2_ext1' => false,
 				'app2_ext2' => false,
 			],

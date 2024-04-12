@@ -1,4 +1,37 @@
 ===================================================================================================
+v8.0.0
+Updated methods:
+---------------
+Utils::prompt(msg,quit,default)               > Utils::prompt(msg,default,quit)
+Prompt::importPath(key,msg,create)            > importPath(key,msg) - use cfg[auto_dirs]
+Application::cmdTitle(tokens={cmd_title})     > tokens={app_title}
+AppFilesSync::cfg[sync_types]                 > null // no filtering by default or define extensions yourself
+
+Renamed methods:
+---------------
+Utils::slugify() > Utils::strSlug()
+
+Renamed config:
+---------------
+Prompt::cfg[user_quit]             > prompt_quit
+Prompt::cfg[user_quit_str]         > prompt_quit_str
+Prompt::cfg[auto_dirs]             > prompt_autodirs
+AppFilesSync::cfg[dir_src]         > sync_dir_src
+AppFilesSync::cfg[dir_fav]         > sync_dir_fav
+AppFilesSync::cfg[dir_out]         > sync_dir_out
+AppFilesSync::cfg[total_bytes]     > sync_bytes
+AppFilesSync::cfg[file_types]      > sync_types
+Application::cfg[cli_title]        > app_title
+Application::cfg[cmd_title]        > app_title
+Application::cfg[err_handle]       > app_err_handle
+Application::cfg[exc_handle]       > app_exc_handle
+Application::cfg[date_short]       > app_date_short
+Application::cfg[date_long]        > app_date_long
+Application::cfg[extensions]       > app_php_ext
+Application::cfg[php]              > app_php_ini
+app_env_switch::cfg[map]           > app_map
+
+===================================================================================================
 v7.0.0
 Removed methods:
 ---------------
@@ -25,7 +58,7 @@ cfg[app_title] > Application::getVersion()
 Updated config:
 ---------------
 cfg[cmd_args] > cfg[cmd_opts] --> (array) parsed CMD line arguments
-cfg[app_args] > cfg[app_opts] --> (array) definition of CMD line arguments. @see Appliaction::ARGUMENTS 
+cfg[app_args] > cfg[app_opts] --> (array) definition of CMD line arguments. @see Appliaction::ARGUMENTS
 cfg[log_level]: Default log level changed! INFO > NOTICE
 
 Updated vendor/bin:
@@ -76,8 +109,6 @@ Logger::getHandlers() > Logger::Monolog()->getHandlers()
 
 ===================================================================================================
 v3.0.0
-Renamed methods:
----------------
 Utils::buildPath()           > pathBuild()
 Utils::checkError()          > errorCheck()
 Utils::clearDirectory()      > dirClear()

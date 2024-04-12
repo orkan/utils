@@ -40,7 +40,7 @@ class Application3Test extends \Orkan\Tests\TestCase
 
 		$this->assertSame( 'app.php [options]', $Factory->cfg( 'app_usage' ), 'App1: cfg[app_usage]' );
 		$this->assertSame( 'App 2 custom prop', $Factory->cfg( 'app2_prop' ), 'App2: cfg[app2_prop]' );
-		$this->assertSame( 'CLI Application 3', $Factory->cfg( 'cli_title' ), 'App3: cfg[cli_title]' );
+		$this->assertSame( 'CLI Application 3', $Factory->cfg( 'app_title' ), 'App3: cfg[app_title]' );
 
 		/* @formatter:off */
 		$expect = [
@@ -50,6 +50,6 @@ class Application3Test extends \Orkan\Tests\TestCase
 		];
 		/* @formatter:on */
 
-		$this->assertSame( $expect, $Factory->cfg( 'extensions' ) );
+		$this->assertSame( $expect, $Factory->cfg( 'app_php_ext' ) );
 	}
 }
