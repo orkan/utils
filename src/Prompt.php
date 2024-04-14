@@ -166,7 +166,7 @@ class Prompt
 			$msg .= $dir ? ': ' . $dir : ':';
 
 			do {
-				$out = $this->Utils->prompt( $msg . "\n", '', $this->Factory->get( 'prompt_quit' ) );
+				$out = $this->Utils->prompt( $msg . "\n", $dir, $this->Factory->get( 'prompt_quit' ) );
 				$out = trim( $out ?: $dir );
 
 				if ( is_dir( $out ) ) {

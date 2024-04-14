@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '8.0.0';
-	const APP_DATE = 'Sat, 13 Apr 2024 01:22:32 +02:00';
+	const APP_VERSION = '8.1.0';
+	const APP_DATE = 'Sun, 14 Apr 2024 18:21:49 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -181,9 +181,9 @@ class Application
 		 * @formatter:off */
 		return [
 			'app_title'      => static::APP_NAME,
-			'app_welcome'    => '{title} - {name} v{version}',
+			'app_welcome'    => '{title} — {name} v{version}',
 			'app_opts'       => static::ARGUMENTS,
-			'app_usage'      => 'app.php [options]',
+			'app_usage'      => 'vendor/bin/app [options]',
 			'app_timezone'   => getenv( 'APP_TIMEZONE' ) ?: date_default_timezone_get(),
 			'app_gc'         => getenv( 'APP_GC' ) ?: false,
 			'app_dryrun'     => false,
@@ -484,7 +484,7 @@ class Application
 	 */
 	protected function cmdTitle( ?string $format = null, array $tokens = [] ): void
 	{
-		$format = $format ? "$format - {app_title}" : '{app_title}';
+		$format = $format ? "$format — {app_title}" : '{app_title}';
 		$tokens['{app_title}'] = $this->Factory->get( 'app_title' );
 
 		cli_set_process_title( strtr( $format, $tokens ) );

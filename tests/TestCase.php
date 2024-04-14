@@ -92,32 +92,32 @@ class TestCase extends \PHPUnit\Framework\TestCase
 	 */
 	public static function dirPath( string $key, string $path = '', ...$args ): string
 	{
-		return static::$dir[$key] . '/' . sprintf( $path, ...$args );
+		return static::$dir[$key] . ( $path ? '/' . sprintf( $path, ...$args ) : '' );
 	}
 
 	/**
 	 * Build path to sandbox artifact.
 	 * NOTE: Each TestCase uses its own sub-dir.
 	 */
-	public static function sandboxPath( string $path, ...$args ): string
+	public static function sandboxPath( string $path = '', ...$args ): string
 	{
 		if ( !static::USE_SANDBOX ) {
 			throw new \Exception( 'Sandbox disabled! Use const USE_SANDBOX = true; in ' . static::class );
 		}
 
-		return self::dirPath( 'sandbox', $path, ...$args );
+		return self::dirPath( 'sandbox', ...func_get_args() );
 	}
 
 	/**
 	 * Build path to fixture artifact.
 	 */
-	public static function fixturePath( string $path, ...$args ): string
+	public static function fixturePath( string $path = '', ...$args ): string
 	{
 		if ( !static::USE_FIXTURE ) {
 			throw new \Exception( 'Fixtures disabled! Use const USE_FIXTURE = true; in ' . static::class );
 		}
 
-		return self::dirPath( 'fixture', $path, ...$args );
+		return self::dirPath( 'fixture', ...func_get_args() );
 	}
 
 	/**

@@ -337,7 +337,7 @@ class FilesSync
 			$this->statsRebuild();
 
 			/* @formatter:off */
-			$this->Factory->info( '- saved {bytes} by not exporting {items} matched files.', [
+			$this->Factory->info( '- saved {bytes} by not exporting {items} matched files', [
 				'{items}' => $skipped,
 				'{bytes}' => $this->Utils->byteString( $bytes ),
 			]);

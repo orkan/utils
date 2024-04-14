@@ -38,7 +38,7 @@ class Application3Test extends \Orkan\Tests\TestCase
 		$Factory = new App2Factory();
 		new App3( $Factory );
 
-		$this->assertSame( 'app.php [options]', $Factory->cfg( 'app_usage' ), 'App1: cfg[app_usage]' );
+		$this->assertSame( 'vendor/bin/app [options]', $Factory->cfg( 'app_usage' ), 'App1: cfg[app_usage]' );
 		$this->assertSame( 'App 2 custom prop', $Factory->cfg( 'app2_prop' ), 'App2: cfg[app2_prop]' );
 		$this->assertSame( 'CLI Application 3', $Factory->cfg( 'app_title' ), 'App3: cfg[app_title]' );
 
