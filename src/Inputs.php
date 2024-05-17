@@ -19,7 +19,6 @@ class Inputs
 
 	/**
 	 * Internal config.
-	 *
 	 * @var array
 	 */
 	protected $cfg;
@@ -57,7 +56,7 @@ class Inputs
 	 */
 	public function cfg( string $key = '', $val = null )
 	{
-		$value = $this->cfg[$key] ?? '';
+		$last = $this->cfg[$key] ?? null;
 
 		if ( isset( $val ) ) {
 			$this->cfg[$key] = $val;
@@ -67,7 +66,15 @@ class Inputs
 			return $this->cfg;
 		}
 
-		return $value;
+		return $last;
+	}
+
+	/**
+	 * Get attribute or fallback to default.
+	 */
+	public function get( string $key = '', $default = '' )
+	{
+		return $this->cfg( $key ) ?? $default;
 	}
 
 	/**
@@ -81,7 +88,7 @@ class Inputs
 	/**
 	 * Find Input in collection.
 	 */
-	public function get( string $name ): ?Input
+	public function find( string $name ): ?Input
 	{
 		return Input::inputsFind( $name, $this->Inputs );
 	}
@@ -112,7 +119,7 @@ class Inputs
 	 */
 	public function isChecked( string $name ): bool
 	{
-		return $this->get( $name )->isChecked();
+		return $this->find( $name )->isChecked();
 	}
 
 	/**
@@ -130,7 +137,7 @@ class Inputs
 	 */
 	protected function maybeEcho(): string
 	{
-		if ( $this->cfg( 'echo' ) ) {
+		if ( $this->get( 'echo' ) ) {
 			echo $this->html;
 			return true;
 		}
@@ -140,32 +147,67 @@ class Inputs
 
 	/**
 	 * Render Inputs inside FORM table.
+	 *
+	 * @param Input $Parent Table attributes
 	 */
-	public function renderTable( ?Input $Group = null ): string
+	public function renderTable( ?Input $Parent = null ): string
 	{
-		$Group = $Group ?? new Input( [ 'type' => 'group' ] );
-		$Group->addClass( 'form-table' );
+		if ( !$Parent ) {
+			$parent = $this->get( 'table', [] );
+			$parent['type'] = 'group';
+			$Parent = new Input( $parent );
+		}
 
-		/* @formatter:off */
-		$this->html = sprintf( '<table%1$s%2$s%3$s>',
-			/*1*/ $Group->getAttr( 'id' ),
-			/*2*/ $Group->getAttr( 'class' ),
-			/*3*/ $Group->getAttr( 'style' ),
-		);
-		/* @formatter:on */
+		$fields = $this->get( 'fields', [] );
+		$rows = [];
 
 		foreach ( $this->Inputs as $Input ) {
+			// Debug
+			if ( $config = $fields[$Input->name()] ?? '') {
+				$config = var_export( $config, true );
+				$config = nl2br( Input::escHtml( $config ) );
+				$config = sprintf( '<code class="config">%s</code>', $config );
+			}
+
 			/* @formatter:off */
-			$this->html .= sprintf( '<tr%3$s><th scope="row"><label for="%1$s">%2$s</label></th><td>%4$s</td></tr>' . PHP_EOL,
-				/*1*/ $Input->get( 'for' ),
-				/*2*/ $Input->get( 'title', $Input->name() ),
-				/*3*/ $Input->getAttr( 'class', null, [ 'class' => $Input->get( 'class_tr' ) ] ),
-				/*4*/ $Input->getContents(),
-			);
+			$rows[] = strtr( '<tr{class}><th scope="row"><label{for}>{title}</label></th><td>{body}{config}</td></tr>', [
+				'{for}'    => $Input->getAttr( 'for' ),
+				'{class}'  => $Input->getAttr( 'class', null, [ 'class' => $Input->get( 'class_tr' ) ] ),
+				'{title}'  => $Input->get( 'title', $Input->name() ),
+				'{body}'   => $Input->getContents(),
+				'{config}' => $config,
+			]);
 			/* @formatter:on */
 		}
 
-		$this->html .= '</table>';
+		$thead = <<<EOT
+		<thead>
+			<tr>
+				<th scope="col">{th1_title}</th>
+				<th scope="col">{th2_title}</th>
+			</tr>
+		</thead>
+		EOT;
+		$thead = $Parent->get( 'th1_title' ) || $Parent->get( 'th2_title' ) ? $thead : '';
+
+		/* @formatter:off */
+		$this->html = strtr( <<<EOT
+			<table{id}{class}{style}>
+				$thead
+				<tbody class="{tbody}">
+					{rows}
+				</tbody>
+			</table>
+			EOT, [
+			'{id}'        => $Parent->getAttr( 'id' ),
+			'{class}'     => $Parent->getAttr( 'class', 'table' ),
+			'{style}'     => $Parent->getAttr( 'style' ),
+			'{tbody}'     => $Parent->get( 'tbody', 'table-group-divider' ),
+			'{th1_title}' => $Parent->get( 'th1_title' ),
+			'{th2_title}' => $Parent->get( 'th2_title' ),
+			'{rows}'      => implode( "\n\t", $rows ),
+		]);
+		/* @formatter:on */
 
 		return $this->maybeEcho() ? '' : $this->html;
 	}
@@ -182,7 +224,7 @@ class Inputs
 	/**
 	 * Render nested Inputs inside FORM table.
 	 *
-	 * All nested groups are rendered separatelly and saved in Group->attr( html, ... )
+	 * All nested groups are rendered separatelly and saved in Group->cfg( html, ... )
 	 * Otherwise Input::getContents() will flatten all sub-group elements and render them in one level.
 	 *
 	 * @see Inputs::renderTableNested()
@@ -192,7 +234,7 @@ class Inputs
 	{
 		foreach ( $this->Inputs as $Input ) {
 			if ( 'group' === $Input->type() ) {
-				$Input->attr( 'html', static::buildTableNested( $Input ) );
+				$Input->cfg( 'html', static::buildTableNested( $Input ) );
 			}
 		}
 
@@ -205,8 +247,10 @@ class Inputs
 	public function renderParagraphs(): string
 	{
 		$this->html = '';
+		$element = $this->get( 'element', 'p' );
+
 		foreach ( $this->Inputs as $Input ) {
-			$this->html .= '<p>' . $Input->getContents() . '</p>' . PHP_EOL;
+			$this->html .= "<{$element}>" . $Input->getContents() . "</$element>";
 		}
 
 		return $this->maybeEcho() ? '' : $this->html;

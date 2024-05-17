@@ -1,4 +1,12 @@
 ===================================================================================================
+v9.0.0
+Renamed methods:
+---------------
+Input::attr()      > Input::cfg()
+Input::isChecked() > Input::val() <-- filterCheckbox() now returns boolean instead of 'on', 'off' strings
+Inputs::get()      > Inputs::find()
+
+===================================================================================================
 v8.0.0
 Updated methods:
 ---------------

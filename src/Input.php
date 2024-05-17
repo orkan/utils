@@ -14,22 +14,18 @@ class Input
 {
 	/**
 	 * Input attributes.
-	 *
 	 * @var array
 	 */
-	protected $attr;
+	protected $cfg;
 
 	/**
 	 * Input definition status.
-	 *
-	 * @var boolean
 	 */
-	protected $dirty = true;
+	protected $isDirty;
 
 	/**
 	 * Reference to Input name.
 	 * @see Input::$attr['name']
-	 *
 	 * @var string
 	 */
 	protected $name;
@@ -37,7 +33,6 @@ class Input
 	/**
 	 * Reference to Input type.
 	 * @see Input::$attr['type']
-	 *
 	 * @var string
 	 */
 	protected $type;
@@ -45,31 +40,58 @@ class Input
 	/**
 	 * Filtered value.
 	 * @see Input::$attr['value']
-	 *
 	 * @var string
 	 */
-	protected $value = null;
+	protected $value;
 
 	/**
 	 * Collection of: current Input + group:items.
-	 *
 	 * @var Input[]
 	 */
 	protected $elements = [];
 
 	/**
-	 * Construct Input from field attributes.
-	 *
-	 * @param array  $attr   Input definition
-	 * @param array  $values $_POST like array
+	 * Parent input if groupped.
+	 * @var Input
 	 */
-	public function __construct( array $attr, array $values = [] )
+	protected $Parent;
+
+	/**
+	 * Construct html Input from php array.
+	 *
+	 * Config: (all values optional)
+	 * [type]     string       Input type. @see Input::input!Type!()
+	 * [filter]   string|array Value filter callback. @see Input::__construct(), Input::buildValue()
+	 * [value]    string       Current value @see Input::__construct()
+	 * [defval]   string       Default value if none provided/found @see Input::__construct()
+	 * [nodef]    bool         Hide input [default] string
+	 * [idfix]    string       String appended to generated <input> id
+	 * [desc]     string       Main Input description
+	 * [label]    string       Input label, like: <label><text>
+	 * [tag]      string       Input text tag, eg. <select><option>[tag]</option>, <radio> [tag]
+	 * [split]    string|array Glue nested elements @see Input::groupBuildJoin(), @see Input::inputRadio()
+	 * [items]    array        Groupped inputs definition or input sub elements, see: <radio>, <select>
+	 * [tab]      string       Tab contents for group:toggler
+	 * [click]    string       Javascript onClick for: group:toggler
+	 * [readonly] bool         Attr [readonly]
+	 * [disabled] bool         Attr [disabled]
+	 * [class]    string       Input CSS class. If type:group - fallback class for nested inputs
+	 * [inline]   bool         Groupped inputs display inline
+	 *
+	 * @param array $cfg    Input definition
+	 * @param array $values $_POST like array
+	 * @param array $values $_POST like array
+	 */
+	public function __construct( array $cfg, array $values = [], ?Input $Parent = null )
 	{
-		$this->attr = array_merge( $this->defaults( $attr['type'] ?? null), $attr );
+		$this->Parent = $Parent;
+		$this->isDirty = true;
+
+		$this->cfg = $this->defaults( $cfg );
 
 		// Create shortcuts to important fields
-		$this->name = &$this->attr['name'];
-		$this->type = &$this->attr['type'];
+		$this->name = &$this->cfg['name'];
+		$this->type = &$this->cfg['type'];
 
 		// Create name variations
 		$this->buildName();
@@ -80,34 +102,50 @@ class Input
 		 * 1. Use 'defval' value only when 'name' or 'name_hidden' is missing in $values array
 		 * 2. Use $values[name], or empty string if $values[defval] is not set
 		 *
-		 * Note:
+		 * NOTE:
 		 * Unchecked checkboxes do not appear in POST data, hence extra "{name}_hidden" element passed.
+		 *
 		 * For list-type <inputs> with no default, use the first element value as default (mimics the browsers behavior)
+		 * To keep radios initially unchecked use a foreign 'defval' value
+		 *
 		 * Do not use constructor to build value - use lazy build
 		 * @see Input::buildValue()
+		 *
+		 * NOTE:
+		 * The Input [type:group] normally doesnt have value, except [kind:toggle] which holds the state on/off
 		 */
-		if ( !isset( $this->attr['value'] ) ) {
-			$nameP = $this->attr['post_name'];
-			$nameH = $this->attr['name_hidden'];
+		if ( !isset( $this->cfg['value'] ) ) {
+			$nameP = $this->cfg['post_name'];
+			$nameH = $this->cfg['name_hidden'];
 
 			// PHP creates sub-arrays for POST names like "aaa[bbb]"
-			if ( $sub = $this->attr['post_group'] ) {
-				$nameH = $this->attr['post_name_hidden'];
+			if ( $sub = $this->cfg['post_group'] ) {
+				$nameH = $this->cfg['post_name_hidden'];
 				$value = $values[$sub][$nameP] ?? $values[$sub][$nameH] ?? null;
 			}
 			else {
 				$value = $values[$nameP] ?? $values[$nameH] ?? null;
 			}
 
-			// Verify item exists
-			if ( isset( $value ) && isset( $this->attr['items'] ) ) {
-				$value = isset( $this->attr['items'][$value] ) ? $value : null;
+			// Skip array values when group:name == inputs namespace
+			if ( is_array( $value ) ) {
+				$value = null;
 			}
 
-			$defVal = $this->attr['defval'] = (array) ( $attr['defval'] ?? []);
-			$defKey = array_key_first( $this->attr['items'] ?? []) ?? '';
+			$defVal = (array) $this->cfg['defval'];
+			$defVal = $defVal[0] ?? null;
 
-			$this->attr['value'] = $value ?? $defVal[0] ?? $defKey;
+			// Fallback to first item if value is out of list
+			if ( 'select' === $this->type ) {
+				$defVal = $defVal ?? array_key_first( $this->cfg['items'] );
+			}
+
+			// Verify value for list type inputs
+			if ( !$this->isGroup() && isset( $this->cfg['items'] ) ) {
+				$value = isset( $this->cfg['items'][$value] ) ? $value : null;
+			}
+
+			$this->cfg['value'] = $value ?? $defVal ?? '';
 		}
 
 		/*
@@ -119,9 +157,9 @@ class Input
 
 		// Add direct child instances. All nested childs are added within their own parent (recursively)
 		if ( $this->isGroup() ) {
-			foreach ( $this->attr['items'] as $_name => $_input ) {
+			foreach ( $this->cfg['items'] as $_name => $_input ) {
 				$_input['name'] = $_input['name'] ?? $_name;
-				$this->elements[$_input['name']] = new static( $_input, $values );
+				$this->elements[$_input['name']] = new static( $_input, $values, $this );
 			}
 		}
 
@@ -130,22 +168,22 @@ class Input
 		 * Set filter callback
 		 * @see Input::buildValue()
 		 */
-		if ( !isset( $this->attr['filter'] ) ) {
-			$this->attr['filter'] = [ 'callback' => $this->getFilter() ];
+		if ( !isset( $this->cfg['filter'] ) ) {
+			$this->cfg['filter'] = [ 'callback' => $this->getFilter() ];
 		}
-		elseif ( 'raw' === $this->attr['filter'] ) {
-			$this->attr['filter'] = [ 'callback' => [ __CLASS__, 'filterNone' ] ];
+		elseif ( 'raw' === $this->cfg['filter'] ) {
+			$this->cfg['filter'] = [ 'callback' => [ __CLASS__, 'filterNone' ] ];
 		}
 		// Convert: 'filter' => [ class, 'method' ] To: 'filter' => [ 'callback' => [ class, 'method' ] ]
-		elseif ( is_callable( $this->attr['filter'] ) ) {
-			$this->attr['filter'] = [ 'callback' => $this->attr['filter'] ];
+		elseif ( is_callable( $this->cfg['filter'] ) ) {
+			$this->cfg['filter'] = [ 'callback' => $this->cfg['filter'] ];
 		}
 
-		if ( !is_callable( $this->attr['filter']['callback'] ) ) {
+		if ( !is_callable( $this->cfg['filter']['callback'] ) ) {
 			/* @formatter:off */
 			throw new \InvalidArgumentException( sprintf( 'Invalid filter callback for [%s] => %s',
-				$this->attr['name'],
-				var_export( $this->attr['filter'], true ),
+				$this->cfg['name'],
+				var_export( $this->cfg['filter'], true ),
 			));
 			/* @formatter:on */
 		}
@@ -153,57 +191,40 @@ class Input
 
 	/**
 	 * Get Input defaults.
-	 *
-	 * Optional:
-	 * @type [type]     string       Input type. @see Input::input!Type!()
-	 * @type [filter]   string|array Value filter callback. @see Input::__construct(), Input::buildValue()
-	 * @type [value]    string       Current value @see Input::__construct()
-	 * @type [defval]   string       Default value if none provided/found @see Input::__construct()
-	 * @type [nodef]    string       Hide [default] button after the <input>
-	 * @type [idfix]    string       String appended to generated <input> id
-	 * @type [desc]     string       Main Input description
-	 * @type [label]    string       Left label, like: [label] <text>
-	 * @type [tag]      string       Right label, like: <radio> [label]
-	 * @type [split]    string|array Glue nested elements @see Input::groupBuildJoin(), @see Input::inputRadio()
-	 * @type [items]    array        Input elements (group) or sub-inputs: <radio>, <select>
-	 * @type [tab]      string       Tab contents for group:toggler
-	 * @type [click]    string       Javascript onClick for: group:toggler
-	 * @type [disabled] string       Javascript onClick for: group:toggler
-	 *
-	 * @see Input::__construct()
-	 * @see Input::maybeRebuild()
-	 * @see Input::buildValue()
-	 * @see Input::buildGroupKindJoin()
-	 * @see Input::get()
-	 * @see Input::attr()
 	 */
-	protected function defaults( ?string $type ): array
+	private function defaults( array $cfg ): array
 	{
-		static $i = 1;
+		static $i = 0;
+
+		$i++;
+		$disabled = $this->Parent && $this->Parent->cfg( 'disabled' );
+		$readonly = $this->Parent && $this->Parent->cfg( 'readonly' );
 
 		/* @formatter:off */
-		$cfg = [
-			'name'     => sprintf( 'name_%d', $i++ ),
+		$defaults = [
 			'type'     => 'text',
-			'disabled' => false,
+			'name'     => 'name_' . $i,
+			'value'    => null,
+			'defval'   => '',
+			'disabled' => $disabled ?? false,
+			'readonly' => $readonly ?? false,
 		];
 		/* @formatter:on */
 
-		if ( in_array( $type, [ 'group', 'radio' ] ) ) {
-			$cfg['split'] = ' ';
-			$cfg['items'] = [];
+		if ( in_array( $cfg['type'], [ 'group', 'radio', 'select' ] ) ) {
+			$defaults['items'] = [];
 		}
 
-		return $cfg;
+		return array_merge( $defaults, $cfg );
 	}
 
 	/**
 	 * Get/Set Input attribute (raw).
 	 * The setter returns old attr.
 	 */
-	public function attr( string $key = '', $val = null, $default = null )
+	public function cfg( string $key = '', $val = null, $default = null )
 	{
-		$last = $this->attr[$key] ?? $default;
+		$last = $this->cfg[$key] ?? $default;
 
 		if ( isset( $val ) ) {
 
@@ -224,12 +245,12 @@ class Input
 					throw new \RuntimeException( sprintf( 'Changing read only attribute "%s" not supported!', $key ) );
 			}
 
-			$this->attr[$key] = $val;
-			$this->dirty = true;
+			$this->cfg[$key] = $val;
+			$this->isDirty = true;
 		}
 
 		if ( '' === $key ) {
-			return $this->attr;
+			return $this->cfg;
 		}
 
 		return $last;
@@ -241,7 +262,7 @@ class Input
 	public function get( string $key = '', $default = '' )
 	{
 		$this->maybeRebuild();
-		return $this->attr( $key ) ?? $default;
+		return $this->cfg( $key ) ?? $default;
 	}
 
 	/**
@@ -252,12 +273,12 @@ class Input
 	 */
 	public function val( $val = null )
 	{
-		$this->maybeRebuild();
-
 		if ( isset( $val ) ) {
-			$this->attr['value'] = $val;
-			$this->dirty = true;
+			$this->cfg['value'] = $val;
+			$this->isDirty = true;
 		}
+
+		$this->maybeRebuild();
 
 		return $this->value;
 	}
@@ -269,7 +290,7 @@ class Input
 	{
 		if ( $name ) {
 			$this->name = $name;
-			$this->dirty = true;
+			$this->isDirty = true;
 		}
 
 		return $this->name;
@@ -286,18 +307,10 @@ class Input
 			}
 
 			$this->type = $type;
-			$this->dirty = true;
+			$this->isDirty = true;
 		}
 
 		return $this->type;
-	}
-
-	/**
-	 * Check whether the checkbox type Input is ON.
-	 */
-	public function isChecked(): bool
-	{
-		return 'on' === $this->val();
 	}
 
 	/**
@@ -311,8 +324,8 @@ class Input
 	/**
 	 * Get collection of instance elements.
 	 *
-	 * @param  bool    $withContainer Include self if type:group?
-	 * @return Input[]                Self or Input elements if type:group
+	 * @param  bool $withContainer Include self if type:group?
+	 * @return Input[] Self or Input elements if type:group
 	 */
 	public function elements( bool $withContainer = false ): array
 	{
@@ -328,8 +341,8 @@ class Input
 	/**
 	 * Traverse instance sub-elements (without Self if type:group) and yield each Input found (recursively).
 	 *
-	 * @param  bool    $withGroups Include elements of type:group
-	 * @return Input[]             Input elements
+	 * @param  bool $withGroups Include elements of type:group
+	 * @return Input[] Input elements
 	 */
 	public function each( bool $withGroups = false )
 	{
@@ -346,18 +359,18 @@ class Input
 	 */
 	protected function maybeRebuild(): void
 	{
-		if ( !$this->dirty ) {
+		if ( !$this->isDirty ) {
 			return;
 		}
 
 		$this->buildName();
-		$id = self::buildId( $this->name, $this->attr['idfix'] ?? '');
-		$this->attr['id'] = $this->attr['for'] = $id;
+		$id = self::buildId( $this->name, $this->cfg['idfix'] ?? '');
+		$this->cfg['id'] = $this->cfg['for'] = $id;
 
 		// Add default <option>?
 		if ( in_array( $this->type, [ 'select', 'year' ] ) ) {
-			if ( isset( $this->attr['items'][0] ) && '' === $this->attr['items'][0] ) {
-				$this->attr['items'][0] = '-- none --';
+			if ( isset( $this->cfg['items'][0] ) && '' === $this->cfg['items'][0] ) {
+				$this->cfg['items'][0] = '-- none --';
 			}
 		}
 
@@ -368,33 +381,36 @@ class Input
 			 * All <radio>s share the same name because ther's no sorrounding element like <select> for <options>
 			 */
 			case 'radio':
-				$this->attr['items'] = $this->attr['items'] ?? [];
-				foreach ( $this->attr['items'] as $value => &$item ) {
+				foreach ( $this->cfg['items'] as $value => $item ) {
+					// Do not rebuild already created items
+					if ( isset( $item['item'] ) ) {
+						continue;
+					}
+
+					$id = self::buildId( $this->name, $value );
+					!isset( $this->cfg['for'] ) && $this->cfg['for'] = $id;
 					/* @formatter:off */
-					$item = [
-						'name'  => $this->attr['name'],
-						'id'    => self::buildId( $this->name, $value ),
+					$this->cfg['items'][$value] = [
+						'id'    => $id,
+						'name'  => $this->cfg['name'],
 						'value' => $value,
 						'tag'   => $item['tag'] ?? $item,
 						'item'  => (array) $item,
 					];
 					/* @formatter:on */
 				}
-				if ( null !== $key = array_key_first( $this->attr['items'] ) ) {
-					$this->attr['for'] = $this->attr['items'][$key]['id'];
-				}
 				break;
 
 			case 'group':
 				// Set [for] attr to the first found Input
 				if ( $elements = self::inputsAll( $this->elements, false ) ) {
-					$this->attr['for'] = $elements[array_key_first( $elements )]->get( 'id' );
+					$this->cfg['for'] = $elements[array_key_first( $elements )]->get( 'id' );
 				}
 				break;
 		}
 
 		$this->buildValue();
-		$this->dirty = false;
+		$this->isDirty = false;
 	}
 
 	/**
@@ -405,12 +421,13 @@ class Input
 	 */
 	protected function getFilter()
 	{
-		$type = $this->attr['type'] ?? '';
-		$kind = $this->attr['kind'] ?? '';
+		$type = $this->cfg['type'] ?? '';
+		$kind = $this->cfg['kind'] ?? '';
 
 		switch ( $type )
 		{
 			case 'checkbox':
+			case 'switch':
 				return [ __CLASS__, 'filterCheckbox' ];
 
 			case 'number':
@@ -456,8 +473,8 @@ class Input
 	 */
 	protected function buildValue(): void
 	{
-		$args = array_merge( $this->attr['filter']['args'] ?? [], [ 'value' => $this->attr['value'] ] );
-		$this->value = call_user_func_array( $this->attr['filter']['callback'], $args );
+		$args = array_merge( $this->cfg['filter']['args'] ?? [], [ 'value' => $this->cfg['value'] ] );
+		$this->value = call_user_func_array( $this->cfg['filter']['callback'], $args );
 	}
 
 	/**
@@ -476,15 +493,18 @@ class Input
 	protected function buildName(): void
 	{
 		$m = [];
-		preg_match( '~(.+)\[(.+)\]$~', $this->attr['name'], $m );
+		preg_match( '~(.+)\[(.+)\]$~', $this->cfg['name'], $m );
 
-		$mask = '%2$s_hidden';
-		$this->attr['post_group'] = $m[1] ?? '';
-		$this->attr['post_name'] = $m[2] ?? $this->attr['name'];
-		$this->attr['post_name_hidden'] = sprintf( $mask, $this->attr['post_group'], $this->attr['post_name'] );
+		$this->cfg['post_group'] = $m[1] ?? '';
+		$this->cfg['post_name'] = $m[2] ?? $this->cfg['name'];
+		$this->cfg['post_name_hidden'] = $this->cfg['post_name'] . '_hidden';
 
-		$mask = $this->attr['post_group'] ? "%1\$s[$mask]" : $mask;
-		$this->attr['name_hidden'] = sprintf( $mask, $this->attr['post_group'], $this->attr['post_name'] );
+		/* @formatter:off */
+		$this->cfg['name_hidden'] = strtr( $this->cfg['post_group'] ? '{group}[{name}]' : '{name}', [
+			'{group}' => $this->cfg['post_group'],
+			'{name}'  => $this->cfg['post_name_hidden'],
+		]);
+		/* @formatter:on */
 	}
 
 	/**
@@ -518,27 +538,45 @@ class Input
 	 */
 	public static function getChecked( bool $checked, string $type = 'checkbox' ): string
 	{
-		return $checked ? sprintf( ' %1$s="%1$s"', 'select' === $type ? 'selected' : 'checked' ) : '';
+		$attr = 'select' === $type ? 'selected' : 'checked';
+		return $checked ? " $attr=\"$attr\"" : '';
 	}
 
 	/**
-	 * <label for="">Label</label> <input>.
+	 * <label for="input">Label</label> <input>.
 	 * No escaping!
 	 */
 	protected function getLabel(): string
 	{
-		$str = $this->get( 'label' );
-		return $str ? sprintf( '<label for="%s">%s</label>', $this->get( 'for' ), $str ) : '';
+		if ( $text = $this->get( 'label' ) ) {
+			/* @formatter:off */
+			return strtr( '<label for="{for}" class="{class}">{text}</label>', [
+				'{for}'   => $this->get( 'for' ),
+				'{text}'  => $text,
+				'{class}' => $this->get( 'label_class', 'form-label' ),
+			]);
+			/* @formatter:on */
+		}
+
+		return '';
 	}
 
 	/**
-	 * <input> <p>Description</p>.
+	 * <input> <div>Description</div>.
 	 * No escaping!
 	 */
 	protected function getDescription(): string
 	{
-		$str = $this->get( 'desc' );
-		return $str ? sprintf( '<p class="description">%s</p>', $str ) : '';
+		if ( $text = $this->get( 'desc' ) ) {
+			/* @formatter:off */
+			return strtr( '<div class="{class}">{text}</div>', [
+				'{text}'  => $text,
+				'{class}' => $this->get( 'desc_class', 'form-text' ),
+			]);
+			/* @formatter:on */
+		}
+
+		return '';
 	}
 
 	/**
@@ -546,16 +584,18 @@ class Input
 	 */
 	protected function getDefVal(): string
 	{
-		$defVals = $this->get( 'defval' );
+		$defVals = (array) $this->get( 'defval' );
 
-		if ( !$defVals || $this->get( 'nodef' ) || $this->get( 'disabled' ) ) {
+		if ( $this->get( 'nodef' ) || $this->get( 'disabled' ) || !$defVals ) {
 			return '';
 		}
 
-		$defVals = (array) $defVals;
-
 		$out = [];
 		foreach ( $defVals as $defVal ) {
+
+			if ( !$defVal ) {
+				continue;
+			}
 
 			switch ( $this->type() )
 			{
@@ -569,7 +609,8 @@ class Input
 					break;
 
 				case 'checkbox':
-					$checked = 'on' === self::filterCheckbox( $defVal ) ? 'true' : 'false';
+				case 'switch':
+					$checked = self::filterCheckbox( $defVal ) ? 'true' : 'false';
 					$js = sprintf( 'jQuery( "#%s" ).prop( "checked", %s )', $this->get( 'id' ), $checked );
 					break;
 
@@ -694,12 +735,12 @@ class Input
 			/*
 			 * Sorround each item with
 			 * [0][1:item][1:item][2], like:
-			 * [0:<table>][1:<tr><th>%s (title)</th><td>%s (html)</td></tr>][2:</table>]
+			 * [0:<table>][1:<tr><th>{head}</th><td>{body}</td></tr>][2:</table>]
 			 */
 			case 3:
 				$rows = '';
 				foreach ( $contents as $item ) {
-					$rows .= sprintf( $split[1], $item['head'], $item['body'] );
+					$rows .= strtr( $split[1], [ '{head}' => $item['head'], '{body}' => $item['body'] ] );
 				}
 				$html = $split[0] . $rows . $split[2];
 				break;
@@ -716,6 +757,19 @@ class Input
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Form grid.
+	 * @link https://getbootstrap.com/docs/5.3/forms/layout/#form-grid
+	 */
+	protected function buildGroupKindGrid( array $contents ): string
+	{
+		$row = $this->get( 'row_class', 'row align-items-center' );
+		$col = $this->get( 'col_class', 'col' );
+
+		$this->cfg( 'split', [ "<div class=\"$row\">", "<div class=\"$col\">{body}</div>", '</div>' ] );
+		return $this->buildGroupKindJoin( $contents );
 	}
 
 	/**
@@ -743,34 +797,36 @@ class Input
 			}
 
 			$next++;
-			$Element->addClass( "toggle $class tab-$next" );
-			$Element->addStyle( $Element->isChecked() ? '' : 'display:none' );
+
+			// Remove original input:checkbox classes for {tab} element!
+			$Element->cfg( 'class', "toggle $class tab-$next" );
+			$Element->addStyle( $Element->val() ? '' : 'display:none' );
 
 			/* @formatter:off */
-			$body .= sprintf(
-				'<div id="%1$s_tab"%3$s%4$s>%2$s</div>',
-				/*1*/ $id,
-				/*2*/ $tab,
-				/*3*/ $Element->getAttr( 'class' ),
-				/*4*/ $Element->getAttr( 'style' ),
-			);
+			$body .= strtr( '<div id="{id}_tab"{class}{style}>{tab}</div>', [
+				'{id}'    => $id,
+				'{tab}'   => $tab,
+				'{class}' => $Element->getAttr( 'class' ),
+				'{style}' => $Element->getAttr( 'style' ),
+			]);
 			/* @formatter:on */
 
 			$ids[] = '#' . $id;
 		}
 
 		/* @formatter:off */
-		$js = sprintf(
-			'<script>jQuery(function(){' .
-				'jQuery( "%1$s" ).on( "click", function(){' .
-				'$box = jQuery( this );' .
-				'$tab = jQuery( "#" + this.id + "_tab" );' .
-				'%2$s' .
-			'})' .
-			'})</script>',
-			/*1*/ implode( ',', $ids ),
-			/*2*/ $this->get( 'click', '$box.prop( "checked" ) ? $tab.show() : $tab.hide();' ),
-		);
+		$js = strtr( <<<'EOT'
+			<script>
+			jQuery(() => jQuery( "{ids}" ).on( "click", (event) => {
+				const $box = jQuery(event.currentTarget);
+				const $tab = jQuery( "#" + event.currentTarget.id + "_tab" );
+				{code}
+			}))
+			</script>
+			EOT, [
+			'{ids}'  => implode( ',', $ids ),
+			'{code}' => $this->get( 'click', '$box.prop( "checked" ) ? $tab.show() : $tab.hide();' ),
+		]);
 		/* @formatter:on */
 
 		return $head . $body . $js;
@@ -781,77 +837,60 @@ class Input
 	 */
 	protected function buildGroupKindToggle( array $contents ): string
 	{
-		$head = [];
-		$label = (array) $this->get( 'labels', 'Toogle' );
+		$labels = (array) $this->get( 'labels', 'Toogle' );
 
-		/*
-		 * Two labels: (x) Enable (o) Disable
-		 * Possiblity to change labels order like this (keep key assignments):
-		 * 'label'  => [ 0 => 'Disable', 1 => 'Enable'  ]
-		 * 'label'  => [ 1 => 'Enable' , 0 => 'Disable' ]
-		 */
-		if ( 2 === count( $label ) ) {
-			foreach ( $label as $k => $v ) {
-				$value = 0 === $k ? 'off' : 'on';
-				/* @formatter:off */
-				$head[$this->name . $k] = [
-					'head' => $v,
-					'body' => sprintf(
-						'<label><input type="radio" name="%1$s" value="%2$s"%3$s> %4$s</label>',
-						/*1*/ $this->name,
-						/*2*/ $value,
-						/*3*/ $this->getChecked( $value === $this->val() ),
-						/*4*/ self::escHtml( $v ),
-				)];
-				/* @formatter:on */
-			}
-		}
+		/* @formatter:off */
+		$head = [
+			'name'  => $this->name,
+			'value' => $this->val(),
+			'split' => $this->get( 'split' ),
+		];
+		/* @formatter:on */
+
 		/*
 		 * One label: [x] Enable
 		 */
+		if ( 1 === count( $labels ) ) {
+			$head['type'] = 'checkbox';
+			$head['tag'] = $labels[0];
+		}
+		/*
+		 * Two labels: (x) Enable (o) Disable
+		 * Possiblity to change labels order like this (keep key assignments):
+		 * cfg[label] => [ 0 => 'Disable', 1 => 'Enable'  ]
+		 * cfg[label] => [ 1 => 'Enable' , 0 => 'Disable' ]
+		 */
 		else {
-			/* @formatter:off */
-			$head[$this->name] = [
-				'head' => $label[0],
-				'body' => sprintf(
-					'<label>' .
-					'<input type="checkbox" name="%2$s" value="on"%3$s> %1$s' .
-					'<input type="hidden" name="%2$s_hidden" value="off">' .
-					'</label>',
-					/*1*/ self::escHtml( $label[0] ),
-					/*2*/ $this->name,
-					/*3*/ $this->getChecked( 'on' === $this->val() ),
-			)];
-			/* @formatter:on */
+			$head['type'] = 'radio';
+			$head['items'] = $labels;
 		}
 
 		// Glue labels with [split]
-		$head = $this->buildGroupKindJoin( $head );
-
-		// Glue [items] with inner group [split]
+		$Head = new static( $head );
 		$body = $this->buildGroupKindJoin( $contents );
 
 		$this->addClass( 'toggle' );
-		$this->addStyle( $this->isChecked() ? '' : 'display:none' );
+		$this->addStyle( $this->val() ? '' : 'display:none' );
 
 		/* @formatter:off */
-		return sprintf(
-			'%5$s' .
-			'<div id="%2$s"%3$s%4$s>' .
-				'%6$s' .
-			'</div>' .
-			'<script>jQuery(function(){' .
-				'jQuery( `input[name="%1$s"]` ).on( "click", function(){' .
-				'jQuery( "#%2$s" ).toggle( jQuery(this).prop( "checked" ) && jQuery(this).val() == "on" )' .
-			'})' .
-			'})</script>',
-			/*1*/ $this->name(),
-			/*2*/ $this->get( 'id' ),
-			/*3*/ $this->getAttr( 'class' ),
-			/*4*/ $this->getAttr( 'style' ),
-			/*5*/ $head,
-			/*6*/ $body,
-		);
+		return strtr( <<<'EOT'
+			{head}
+			<div id="{id}"{class}{style}>{body}</div>
+			<script>
+			jQuery(() => jQuery( `input[name="{name}"]` ).on( "click", (event) => {
+				const $el = jQuery(event.currentTarget);
+				const show = $el.val() == "1" || $el.val() == "on";
+				jQuery( "#{id}" ).toggle( $el.prop( "checked" ) && show );
+			}))
+			</script>
+			EOT, [
+			'{id}'    => $this->get( 'id' ) . '_body',
+			'{name}'  => $this->name(),
+			'{class}' => $this->getAttr( 'class' ),
+			'{style}' => $this->getAttr( 'style' ),
+			'{head}'  => $Head->getContents(),
+			'{body}'  => $body,
+		]);
 		/* @formatter:on */
 	}
 
@@ -1090,9 +1129,9 @@ class Input
 		return $value;
 	}
 
-	public static function filterCheckbox( $value ): string
+	public static function filterCheckbox( $value )
 	{
-		$value = in_array( $value, [ 'on', 'yes', true, 1 ], true ) ? 'on' : 'off';
+		$value = filter_var( $value, FILTER_VALIDATE_BOOLEAN );
 		return $value;
 	}
 
@@ -1104,6 +1143,15 @@ class Input
 
 	/**
 	 * Remove all non printable characters. Replace formating characters to spaces.
+	 *
+	 * \PC  : visible characters
+	 * \PCc : control characters
+	 * \PCn : unassigned characters
+	 * \PCs : UTF-8-invalid characters
+	 * \PCf : formatting characters
+	 *
+	 * @link https://en.wikipedia.org/wiki/List_of_Unicode_characters
+	 * @link https://www.regular-expressions.info/unicode.html#category
 	 * @link https://stackoverflow.com/questions/1497885/remove-control-characters-from-php-string
 	 */
 	public static function filterText( string $value ): string
@@ -1194,63 +1242,73 @@ class Input
 	 *
 	 * @param array $input Replaces $this->input
 	 */
-	public function getAttr( string $key, ?string $default = null, ?array $input = null ): string
+	public function getAttr( string $name, ?string $default = null, ?array $input = null ): string
 	{
-		$val = $input[$key] ?? $this->attr( $key ) ?? $default ?? '';
+		$this->maybeRebuild();
+		$value = $input[$name] ?? $this->cfg( $name ) ?? $default ?? '';
 
-		if ( ( is_string( $val ) || is_bool( $val ) ) && !$val ) {
+		if ( '' === $value || false === $value ) {
 			return '';
 		}
 
-		switch ( $key )
+		switch ( $name )
 		{
 			case 'disabled':
-				$mask = '%1$s';
+			case 'readonly':
+				$format = '{name}';
 				break;
 
 			case 'extra':
-				$mask = '%2$s';
+				$format = '{value}';
 				break;
 
 			default:
-				$mask = '%1$s="%2$s"';
-				break;
+				$format = '{name}="{value}"';
 		}
 
-		$val = sprintf( " $mask", $key, $val );
-
-		return $val;
+		return strtr( " $format", [ '{name}' => $name, '{value}' => $value ] );
 	}
 
 	/**
 	 * Add css class to Input attributes.
 	 */
-	public function addClass( string $class ): void
+	public function addClass( $class ): void
 	{
-		if ( !$class ) {
-			return;
-		}
-		$classes = explode( ' ', $this->get( 'class' ) );
-		if ( !in_array( $class, $classes ) ) {
-			$classes[] = $class;
-		}
-		$this->attr( 'class', trim( implode( ' ', $classes ) ) );
+		$this->addCss( 'class', $class );
 	}
 
 	/**
 	 * Add css style to Input attributes.
 	 */
-	public function addStyle( string $style ): void
+	public function addStyle( $style ): void
 	{
-		if ( !$style ) {
-			return;
-		}
-		$styles = preg_replace( '~\s~', '', $this->get( 'style' ) );
-		$styles = explode( ';', $styles );
-		if ( !in_array( $style, $styles ) ) {
-			$styles[] = $style;
-		}
-		$this->attr( 'style', trim( implode( ' ', $styles ) ) );
+		$this->addCss( 'style', $style );
+	}
+
+	/**
+	 * Add unique css attribute: trim, no empties, no double spaces.
+	 *
+	 * @param string       $key Cfg[key]
+	 * @param string|array $add New attribute(s)
+	 */
+	public function addCss( string $key, $add = null ): void
+	{
+		$sep = 'style' === $key ? ';' : ' ';
+		$end = 'style' === $key ? ';' : '';
+
+		$out = preg_replace( '~[\s]+~', ' ', $this->get( $key ) );
+		$out = trim( $out );
+		$out = explode( $sep, $out );
+
+		$add = array_map( 'trim', (array) $add );
+		$out = array_merge( $out, $add );
+
+		$out = array_unique( $out );
+		$out = array_filter( $out );
+
+		$out = implode( $sep, $out ) . ( $out ? $end : '' );
+
+		$this->cfg( $key, $out );
 	}
 
 	/**
@@ -1259,14 +1317,15 @@ class Input
 	protected function inputAjaxdiv()
 	{
 		/* @formatter:off */
-		return sprintf(
-			'<button id="%1$s_button" type="button" class="button">%2$s</button> ' .
-			'<span id="%1$s_spin" class="spinner inline"></span> ' .
-			'<span id="%1$s_ajax"></span>' .
-			'<div id="%1$s_div"></div>',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ self::escHtml( $this->get( 'button', 'Start' ) ), // Button title!
-		);
+		return strtr( <<<EOT
+			<button id="{id}_button" type="button" class="button">{button}</button>
+			<span id="{id}_spin" class="spinner inline"></span>
+			<span id="{id}_ajax"></span>
+			<div id="{id}_div"></div>
+			EOT, [
+			'{id}'     => $this->get( 'id' ),
+			'{button}' => self::escHtml( $this->get( 'button', 'Start' ) ), // Button title
+		]);
 		/* @formatter:on */
 	}
 
@@ -1276,13 +1335,12 @@ class Input
 	protected function inputHidden(): string
 	{
 		/* @formatter:off */
-		return sprintf(
-			'<input type="hidden" id="%1$s" name="%2$s" value="%3$s"%4$s>',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ $this->name(),
-			/*3*/ self::escAttr( $this->val() ),
-			/*4*/ $this->getAttr( 'disabled' ),
-		);
+		return strtr( '<input type="hidden" id="{id}" name="{name}" value="{value}"{disabled}>', [
+			'{id}'       => $this->get( 'id' ),
+			'{name}'     => $this->name(),
+			'{value}'    => self::escAttr( $this->val() ),
+			'{disabled}' => $this->getAttr( 'disabled' ),
+		]);
 		/* @formatter:on */
 	}
 
@@ -1292,18 +1350,22 @@ class Input
 	protected function inputText(): string
 	{
 		/* @formatter:off */
-		return sprintf(
-			'<input type="text" id="%1$s" name="%2$s" value="%3$s" placeholder="%4$s"%5$s%6$s%7$s%8$s>%9$s',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ $this->name(),
-			/*3*/ self::escAttr( $this->val() ),
-			/*4*/ self::escAttr( $this->get( 'hint' ) ),
-			/*5*/ $this->getAttr( 'class', 'regular-text code' ),
-			/*6*/ $this->getAttr( 'style' ),
-			/*7*/ $this->getAttr( 'extra' ),
-			/*8*/ $this->getAttr( 'disabled' ),
-			/*9*/ self::escHtml( $this->get( 'tag' ) ),
-		);
+		return strtr( <<<EOT
+			<input type="text" id="{id}" name="{name}" value="{value}" placeholder="{hint}"
+			{class}{style}{extra}{disabled}{readonly}
+			>{tag}
+			EOT, [
+			'{id}'        => $this->get( 'id' ),
+			'{name}'      => $this->name(),
+			'{value}'     => self::escAttr( $this->val() ),
+			'{hint}'      => self::escAttr( $this->get( 'hint' ) ),
+			'{class}'     => $this->getAttr( 'class', 'form-control' ),
+			'{style}'     => $this->getAttr( 'style' ),
+			'{extra}'     => $this->getAttr( 'extra' ),
+			'{disabled}'  => $this->getAttr( 'disabled' ),
+			'{readonly}'  => $this->getAttr( 'readonly' ),
+			'{tag}'       => self::escHtml( $this->get( 'tag' ) ),
+		]);
 		/* @formatter:on */
 	}
 
@@ -1313,45 +1375,81 @@ class Input
 	protected function inputTextarea(): string
 	{
 		/* @formatter:off */
-		return sprintf(
-			'<textarea id="%1$s" name="%2$s" placeholder="%4$s" rows="%5$s"%6$s%7$s>%3$s</textarea>',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ $this->name(),
-			/*3*/ self::escAttr( $this->val() ),
-			/*4*/ self::escAttr( $this->get( 'hint' ) ),
-			/*5*/ $this->get( 'rows', 3 ),
-			/*6*/ $this->getAttr( 'class', 'large-text code' ),
-			/*7*/ $this->getAttr( 'disabled' ),
-		);
+		return strtr( <<<EOT
+			<textarea id="{id}" name="{name}" placeholder="{hint}" rows="{rows}"
+			{class}{disabled}{readonly}>{value}</textarea>
+			EOT, [
+			'{id}'       => $this->get( 'id' ),
+			'{name}'     => $this->name(),
+			'{value}'    => self::escAttr( $this->val() ),
+			'{hint}'     => self::escAttr( $this->get( 'hint' ) ),
+			'{rows}'     => $this->get( 'rows', 3 ),
+			'{class}'    => $this->getAttr( 'class', 'form-control' ),
+			'{disabled}' => $this->getAttr( 'disabled' ),
+			'{readonly}' => $this->getAttr( 'readonly' ),
+		]);
 		/* @formatter:on */
 	}
 
 	/**
-	 * <input type="checkbox">
-	 * Note: unchecked checkbox do not appear in $_POST array, hence extra input:hidden holdnig "off" value
+	 * <input type="checkbox" class="form-check">
+	 * NOTE:
+	 * - unchecked checkbox do not appear in $_POST array, hence extra input:hidden holdnig "off" value
+	 * - cfg[class] is merged from both: current and parent (group)
+	 * - cfg[class] is for <div>
+	 * - cfg[style] is for <checkbox>
 	 */
 	protected function inputCheckbox(): string
 	{
-		// No def by default for checkboxes!
-		$this->attr( 'nodef', $this->get( 'nodef', true ) );
+		$nodef = $this->get( 'nodef', true );
+		$inline = $this->get( 'inline', true );
+		$class = explode( ' ', $this->get( 'class' ) );
+
+		// Prioritize parent attrs
+		if ( $this->Parent ) {
+			$nodef = $this->Parent->get( 'nodef', $nodef );
+			$inline = $this->Parent->get( 'inline', $inline );
+			$class = array_merge( $class, explode( ' ', $this->Parent->get( 'class' ) ) );
+		}
+
+		// Set default attributes
+		$this->cfg( 'nodef', $nodef );
+		$this->cfg( 'inline', $inline );
+
+		$class[] = 'form-check';
+		$inline && $class[] = 'form-check-inline';
+		$this->addCss( 'class', $class );
 
 		/* @formatter:off */
-		return sprintf(
-			'<label%6$s>' .
-				'<input type="checkbox" id="%1$s" name="%2$s" value="on"%6$s%7$s%8$s%9$s%4$s>%5$s' .
-				'<input type="hidden" name="%3$s" value="off"%8$s>' .
-			'</label>',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ $this->name(),
-			/*3*/ $this->get( 'name_hidden' ),
-			/*4*/ $this->getChecked( 'on' === $this->val() ),
-			/*5*/ self::escHtml( $this->get( 'tag' ) ),
-			/*6*/ $this->getAttr( 'class' ),
-			/*7*/ $this->getAttr( 'style' ),
-			/*8*/ $this->getAttr( 'extra' ),
-			/*9*/ $this->getAttr( 'disabled' ), // both checkbox!
-		);
+		return strtr( <<<EOT
+			<div{class}>
+				<input type="hidden" name="{name2}" value="off"{disabled}>
+				<input class="form-check-input" type="checkbox" id="{id}" name="{name}" value="on"
+				{style}{extra}{disabled}{checked}>
+				<label class="form-check-label" for="{id}">{tag}</label>
+			</div>
+			EOT
+			, [
+			'{id}'       => $this->get( 'id' ),
+			'{name}'     => $this->name(),
+			'{name2}'    => $this->get( 'name_hidden' ),
+			'{checked}'  => $this->getChecked( $this->val() ),
+			'{tag}'      => self::escHtml( $this->get( 'tag' ) ),
+			'{class}'    => $this->getAttr( 'class' ),
+			'{style}'    => $this->getAttr( 'style' ),
+			'{extra}'    => $this->getAttr( 'extra' ),
+			'{disabled}' => $this->getAttr( 'disabled' ), // both checkbox!
+		]);
 		/* @formatter:on */
+	}
+
+	/**
+	 * <input type="checkbox" class="form-check form-switch">
+	 */
+	protected function inputSwitch(): string
+	{
+		$this->addClass( 'form-switch' );
+		return $this->inputCheckbox();
 	}
 
 	/**
@@ -1362,26 +1460,42 @@ class Input
 	 */
 	protected function inputRadio(): string
 	{
-		$out = [];
+		// Set default attributes
+		$inline = $this->get( 'inline', true );
+		$this->cfg( 'inline', $inline );
 
+		$class = explode( ' ', $this->get( 'class' ) );
+		$class[] = 'form-check';
+		$inline && $class[] = 'form-check-inline';
+		$this->addCss( 'class', $class );
+
+		$out = [];
+		$class = $this->get( 'class' );
 		/* @formatter:off */
-		foreach( $this->attr( 'items' ) as $item ) {
-			$out[] = sprintf(
-				'<label%6$s><input type="radio" id="%1$s" name="%2$s" value="%3$s"%7$s%8$s%9$s%4$s>%5$s</label>',
-				/*1*/ $item['id'],
-				/*2*/ $item['name'],
-				/*3*/ $item['value'],
-				/*4*/ $this->getChecked( $item['value'] == $this->val() ), // dont check types!
-				/*5*/ self::escHtml( $item['tag'] ),
-				/*6*/ $this->getAttr( 'class'   , null, $item['item'] ),
-				/*7*/ $this->getAttr( 'style'   , null, $item['item'] ),
-				/*8*/ $this->getAttr( 'extra'   , null, $item['item'] ),
-				/*9*/ $this->getAttr( 'disabled', null, $item['item'] ),
-			);
+		foreach( $this->cfg( 'items' ) as $key => $item ) {
+			$out[$key]['head'] = $tag = self::escHtml( $item['tag'] );
+			$out[$key]['body'] = strtr( <<<EOT
+				<div{class}>
+					<input class="form-check-input" type="radio" id="{id}" name="{name}" value="{value}" 
+					{style}{extra}{disabled}{checked}>
+					<label class="form-check-label" for="{id}">{tag}</label>
+				</div>
+				EOT
+				, [
+				'{id}'       => $item['id'],
+				'{name}'     => $item['name'],
+				'{value}'    => $item['value'],
+				'{tag}'      => $tag,
+				'{class}'    => $this->getAttr( 'class'   , $class, $item['item'] ),
+				'{style}'    => $this->getAttr( 'style'   ,   null, $item['item'] ),
+				'{extra}'    => $this->getAttr( 'extra'   ,   null, $item['item'] ),
+				'{disabled}' => $this->getAttr( 'disabled',   null, $item['item'] ),
+				'{checked}'  => $this->getChecked( $item['value'] == $this->val() ), // dont check types!
+			]);
 		}
 		/* @formatter:on */
 
-		return implode( $this->get( 'split' ), $out );
+		return $this->buildGroupKindJoin( $out );
 	}
 
 	/**
@@ -1390,23 +1504,22 @@ class Input
 	protected function inputSelect()
 	{
 		/* @formatter:off */
-		$out = sprintf(
-			'<select id="%1$s" name="%2$s"%3$s%4$s%5$s%6$s>',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ $this->name(),
-			/*3*/ $this->getAttr( 'class' ),
-			/*4*/ $this->getAttr( 'style' ),
-			/*5*/ $this->getAttr( 'extra' ),
-			/*6*/ $this->getAttr( 'disabled' ),
-		);
+		$out = strtr( '<select id="{id}" name="{name}"{class}{style}{extra}{disabled}>', [
+			'{id}'       => $this->get( 'id' ),
+			'{name}'     => $this->name(),
+			'{class}'    => $this->getAttr( 'class', 'form-select' ),
+			'{style}'    => $this->getAttr( 'style' ),
+			'{extra}'    => $this->getAttr( 'extra' ),
+			'{disabled}' => $this->getAttr( 'disabled' ),
+			'{readonly}' => $this->getAttr( 'readonly' ),
+		]);
 
-		foreach ( $this->attr( 'items' ) as $value => $tag ) {
-			$out .= sprintf(
-				'<option value="%1$s"%2$s>%3$s</option>',
-				/*1*/ self::escAttr( $value ),
-				/*2*/ $this->getChecked( $this->val() == $value, 'select' ), // dont check value types!
-				/*3*/ self::escHtml( $tag ),
-			);
+		foreach ( $this->cfg( 'items' ) as $value => $tag ) {
+			$out .= strtr( '<option value="{value}"{checked}>{tag}</option>', [
+				'{value}'   => self::escAttr( $value ),
+				'{checked}' => $this->getChecked( $this->val() == $value, 'select' ), // dont compare value types!
+				'{tag}'     => self::escHtml( $tag ),
+			]);
 		}
 		/* @formatter:on */
 
@@ -1426,7 +1539,7 @@ class Input
 			'max'  => $now,
 			'step' => 1,
 			'dir'  => 'asc',
-		], $this->attr );
+		], $this->cfg );
 		/* @formatter:on */
 
 		$items = range( $attr['min'], $attr['max'], $attr['step'] );
@@ -1435,7 +1548,7 @@ class Input
 			$items = array_reverse( $items );
 		}
 
-		$this->attr( 'items', array_combine( $items, $items ) );
+		$this->cfg( 'items', array_combine( $items, $items ) );
 
 		return $this->inputSelect();
 	}
@@ -1446,18 +1559,22 @@ class Input
 	protected function inputDate()
 	{
 		/* @formatter:off */
-		return sprintf(
-			'<input type="date" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s%6$s%7$s%8$s>%9$s',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ $this->name(),
-			/*3*/ self::escAttr( $this->val() ),
-			/*4*/ $this->getAttr( 'min' ),
-			/*5*/ $this->getAttr( 'max' ),
-			/*6*/ $this->getAttr( 'step' ),
-			/*7*/ $this->getAttr( 'class' ),
-			/*8*/ $this->getAttr( 'disabled' ),
-			/*9*/ self::escHtml( $this->get( 'tag' ) ),
-		);
+		return strtr( <<<EOT
+			<input type="date" id="{id}" name="{name}" value="{value}"
+			{min}{max}{step}{class}{disabled}
+			>{tag}
+			EOT, [
+			'{id}'       => $this->get( 'id' ),
+			'{name}'     => $this->name(),
+			'{value}'    => self::escAttr( $this->val() ),
+			'{min}'      => $this->getAttr( 'min' ),
+			'{max}'      => $this->getAttr( 'max' ),
+			'{step}'     => $this->getAttr( 'step' ),
+			'{class}'    => $this->getAttr( 'class', 'form-control' ),
+			'{disabled}' => $this->getAttr( 'disabled' ),
+			'{readonly}' => $this->getAttr( 'readonly' ),
+			'{tag}'      => self::escHtml( $this->get( 'tag' ) ),
+		]);
 		/* @formatter:on */
 	}
 
@@ -1467,18 +1584,22 @@ class Input
 	protected function inputDateTime()
 	{
 		/* @formatter:off */
-		return sprintf(
-			'<input type="datetime-local" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s%6$s%7$s%8$s>%9$s',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ $this->name(),
-			/*3*/ self::escAttr( $this->val() ),
-			/*4*/ $this->getAttr( 'min' ),
-			/*5*/ $this->getAttr( 'max' ),
-			/*6*/ $this->getAttr( 'step' ),
-			/*7*/ $this->getAttr( 'class' ),
-			/*8*/ $this->getAttr( 'disabled' ),
-			/*9*/ self::escHtml( $this->get( 'tag' ) ),
-		);
+		return strtr( <<<EOT
+			<input type="datetime-local" id="{id}" name="{name}" value="{value}"
+			{min}{max}{step}{class}{disabled}
+			>{tag}
+			EOT, [
+				'{id}'       => $this->get( 'id' ),
+				'{name}'     => $this->name(),
+				'{value}'    => self::escAttr( $this->val() ),
+				'{min}'      => $this->getAttr( 'min' ),
+				'{max}'      => $this->getAttr( 'max' ),
+				'{step}'     => $this->getAttr( 'step' ),
+				'{class}'    => $this->getAttr( 'class', 'form-control' ),
+				'{disabled}' => $this->getAttr( 'disabled' ),
+				'{readonly}' => $this->getAttr( 'readonly' ),
+				'{tag}'      => self::escHtml( $this->get( 'tag' ) ),
+			]);
 		/* @formatter:on */
 	}
 
@@ -1488,18 +1609,22 @@ class Input
 	protected function inputNumber(): string
 	{
 		/* @formatter:off */
-		return sprintf(
-			'<input type="number" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s%6$s%7$s%8$s>%9$s',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ $this->name(),
-			/*3*/ self::escAttr( $this->val() ),
-			/*4*/ $this->getAttr( 'min' ),
-			/*5*/ $this->getAttr( 'max' ),
-			/*6*/ $this->getAttr( 'step' ),
-			/*7*/ $this->getAttr( 'class', 'small-text' ),
-			/*8*/ $this->getAttr( 'disabled' ),
-			/*9*/ self::escHtml( $this->get( 'tag' ) ),
-		);
+		return strtr( <<<EOT
+			<input type="number" id="{id}" name="{name}" value="{value}"
+			{min}{max}{step}{class}{disabled}{readonly}
+			>{tag}
+			EOT, [
+			'{id}'       => $this->get( 'id' ),
+			'{name}'     => $this->name(),
+			'{value}'    => self::escAttr( $this->val() ),
+			'{min}'      => $this->getAttr( 'min' ),
+			'{max}'      => $this->getAttr( 'max' ),
+			'{step}'     => $this->getAttr( 'step' ),
+			'{class}'    => $this->getAttr( 'class', 'form-control' ),
+			'{disabled}' => $this->getAttr( 'disabled' ),
+			'{readonly}' => $this->getAttr( 'readonly' ),
+			'{tag}'      => self::escHtml( $this->get( 'tag' ) ),
+		]);
 		/* @formatter:on */
 	}
 
@@ -1509,13 +1634,36 @@ class Input
 	protected function inputFile()
 	{
 		/* @formatter:off */
-		return sprintf(
-			'<input type="file" id="%1$s" name="%2$s"%3$s%4$s>',
-			/*1*/ $this->get( 'id' ),
-			/*2*/ $this->name(),
-			/*3*/ $this->getAttr( 'extra' ),
-			/*4*/ $this->getAttr( 'disabled' ),
-		);
+		return strtr( <<<EOT
+			<input type="file" id="{id}" name="{name}"{class}{extra}{disabled}{readonly}>
+			EOT, [
+			'{id}'       => $this->get( 'id' ),
+			'{name}'     => $this->name(),
+			'{class}'    => $this->getAttr( 'class', 'form-control' ),
+			'{extra}'    => $this->getAttr( 'extra' ),
+			'{disabled}' => $this->getAttr( 'disabled' ),
+			'{readonly}' => $this->getAttr( 'readonly' ),
+		]);
+		/* @formatter:on */
+	}
+
+	/**
+	 * <button ...></button>
+	 */
+	protected function inputButton()
+	{
+		/* @formatter:off */
+		return strtr( <<<EOT
+			<button id="{id}" name="{name}"{type}{class}{extra}{disabled}>{tag}</button>
+			EOT, [
+			'{id}'       => $this->get( 'id' ),
+			'{name}'     => $this->name(),
+			'{type}'     => $this->getAttr( 'type', 'submit' ),
+			'{class}'    => $this->getAttr( 'class', 'btn btn-primary' ),
+			'{extra}'    => $this->getAttr( 'extra' ),
+			'{disabled}' => $this->getAttr( 'disabled' ),
+			'{tag}'      => self::escHtml( $this->get( 'tag' ) ),
+		]);
 		/* @formatter:on */
 	}
 
@@ -1524,6 +1672,6 @@ class Input
 	 */
 	protected function inputHtml()
 	{
-		return $this->val();
+		return self::escAttr( $this->val() );
 	}
 }
