@@ -405,7 +405,8 @@ class FilesSync
 		$file = $this->dir . '/' . $this->Factory->get( 'sync_manifest' );
 
 		if ( $this->isWrite ) {
-			file_put_contents( $file, json_encode( $this->manifest, DEBUG ? JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE : null ) );
+			$flags = DEBUG ? JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE : 0;
+			file_put_contents( $file, json_encode( $this->manifest, $flags ) );
 		}
 	}
 

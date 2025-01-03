@@ -205,7 +205,7 @@ class Input
 			'type'     => 'text',
 			'name'     => 'name_' . $i,
 			'value'    => null,
-			'defval'   => '',
+			'defval'   => null,
 			'disabled' => $disabled ?? false,
 			'readonly' => $readonly ?? false,
 		];
@@ -604,7 +604,8 @@ class Input
 				case 'number':
 				case 'date':
 				case 'datetime':
-					$val = addslashes( $defVal );
+					$val = preg_replace( "~\R~", '', $defVal );
+					$val = addslashes( $val );
 					$js = sprintf( 'jQuery( "#%s" ).val( "%s" )', $this->get( 'id' ), $val );
 					break;
 

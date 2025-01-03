@@ -6,7 +6,6 @@ REM ============================================================================
 Set Fso = CreateObject( "Scripting.FileSystemObject" )
 basename = Fso.GetBaseName( Wscript.ScriptFullName )
 basepath = Fso.GetParentFolderName( Wscript.ScriptFullName )
-REM cmd = basepath & "\" & basename & ".bat "
 
 Dim Args()
 ReDim Args( WScript.Arguments.Count - 1 )
@@ -15,7 +14,7 @@ For i = 0 To WScript.Arguments.Count - 1
    Args( i ) = """" & WScript.Arguments( i ) & """"
 Next
 
-cmd = cmd & Join( Args )
+cmd = Join( Args )
 
 REM tmp = MsgBox("CMD: " & cmd , 64, "VBS starter")
 REM WScript.Quit

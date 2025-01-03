@@ -245,13 +245,22 @@ class Utils
 	 * Format byte size string.
 	 * Examples: 361 bytes | 1016.1 kB | 14.62 Mb | 2.81 GB
 	 *
-	 * @param  int $bytes Size in bytes
+	 * @param  float $bytes Size in bytes
 	 * @return string Byte string formated
 	 */
-	public static function byteString( int $bytes = 0 ): string
+	public static function byteString( float $bytes = 0 ): string
 	{
 		$sizes = array( 'bytes', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' );
-		return $bytes ? ( round( $bytes / pow( 1024, ( $i = floor( log( $bytes, 1024 ) ) ) ), $i > 1 ? 2 : 1 ) . ' ' . $sizes[$i] ) : '0 ' . $sizes[0];
+		$i = (int) floor( log( $bytes, 1024 ) );
+		
+		if( $bytes ) {
+			$bytes = round( $bytes / pow( 1024, $i ), $i > 1 ? 2 : 1 );
+			return "{$bytes} {$sizes[$i]}";
+		}
+		
+		return "0 {$sizes[$i]}";
+		
+		// return $bytes ? ( round( $bytes / pow( 1024, ( $i = floor( log( $bytes, 1024 ) ) ) ), $i > 1 ? 2 : 1 ) . ' ' . $sizes[$i] ) : '0 ' . $sizes[0];
 	}
 
 	/**
