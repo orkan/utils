@@ -1025,7 +1025,7 @@ class Thumbnail
 	/**
 	 * Compute image crop size and position.
 	 *
-	 * @throws \InvalidArgumentException On invalid args
+	 * @throws \TypeError On invalid args
 	 *
 	 * @param float  $width  Source img width
 	 * @param float  $height Source img height
@@ -1047,7 +1047,7 @@ class Thumbnail
 		$_ratio = explode( ':', $ratio );
 
 		if ( 2 != count( $_ratio ) ) {
-			throw new \InvalidArgumentException( sprintf( 'Invalid ratio format: "%s"', $ratio ) );
+			throw new \TypeError( sprintf( 'Invalid ratio format: "%s"', $ratio ) );
 		}
 
 		$ratio = $_ratio;

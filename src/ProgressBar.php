@@ -50,19 +50,15 @@ class ProgressBar
 	 */
 	public function __destruct()
 	{
-		if ( !$this->verbose || defined( 'TESTING' ) ) {
-			return;
-		}
-
-		if ( $this->steps ) {
-			echo "\n";
+		if ( $this->verbose && $this->steps ) {
+			$this->Utils->print( "\n" );
 		}
 	}
 
 	/**
 	 * Get defaults.
 	 */
-	private function defaults(): array
+	protected function defaults(): array
 	{
 		/**
 		 * [bar_format]
@@ -78,6 +74,10 @@ class ProgressBar
 		 * [bar_size]
 		 * Progress bar size
 		 *
+		 * [bar_text_type]
+		 * Use advanced string cut methods depending on text displayed: str|path
+		 * @see ProgressBar::truncate()
+		 *
 		 * [bar_usleep]
 		 * Progress bar slow down
 		 *
@@ -88,10 +88,11 @@ class ProgressBar
 		return [
 			'bar_format'    => '[{bar}] {cent}% {text}',
 			'bar_verbose'   => 'INFO',
-			'bar_width'     => 80,
+			'bar_width'     => 100,
 			'bar_size'      => 20,
 			'bar_char_done' => '|',
 			'bar_char_fill' => '.',
+			'bar_text_type' => 'str',
 			'bar_usleep'    => getenv( 'BAR_USLEEP' ) ?: 0,
 			'bar_debug'     => getenv( 'BAR_DEBUG' ) ?: false,
 		];
@@ -140,7 +141,7 @@ class ProgressBar
 				break;
 			}
 
-			$text = $this->Utils->pathCut( $text, mb_strlen( $text ) + $sub );
+			$text = $this->truncate( $text, mb_strlen( $text ) + $sub );
 		}
 		while ( true );
 
@@ -152,7 +153,8 @@ class ProgressBar
 			throw new \LogicException( $line );
 		}
 
-		echo "$line\r";
+		$this->Utils->print( "$line\r" );
+
 		return true;
 	}
 
@@ -164,13 +166,26 @@ class ProgressBar
 	 */
 	public function inc( string $text = '', int $advance = 1, array $tokens = [] ): bool
 	{
-		$this->step += $advance;
+		$this->step = min( $this->step + $advance, $this->steps );
+
 		$result = $this->draw( $text, $tokens );
 
-		DEBUG && $result && $this->Factory->sleep( 'bar_usleep' );
+		DEBUG && $result && $this->Utils->usleep( $this->Factory->get( 'bar_usleep' ) );
 		DEBUG && $result && $this->Factory->get( 'bar_debug' ) && $this->Utils->stdin(); // Hit [Enter] to continue...
 
 		return $result;
+	}
+
+	/**
+	 * Help truncate string.
+	 */
+	protected function truncate( string $text, int $max ): string
+	{
+		if ( 'path' === $this->Factory->get( 'bar_text_type' ) ) {
+			return $this->Utils->pathCut( $text, $max );
+		}
+
+		return $this->Utils->strCut( $text, $max );
 	}
 
 	/**
@@ -192,7 +207,17 @@ class ProgressBar
 		$this->format = $this->Factory->get( $format );
 
 		if ( !$this->format ) {
-			throw new \InvalidArgumentException( sprintf( 'Bar format "%1$s" not found. Check cfg[%1$s]', $format ) );
+			throw new \InvalidArgumentException( sprintf( 'Bar format "%s" not found. Check cfg[%s]', $format ) );
 		}
+	}
+
+	/**
+	 * Get extra progress info.
+	 *
+	 * @return ProgressStats
+	 */
+	public function Stats()
+	{
+		return $this->Stats;
 	}
 }

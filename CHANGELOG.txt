@@ -1,4 +1,41 @@
 ===================================================================================================
+v10.0.0
+Removed config:
+---------------
+Application::cfg[dir_package] <-- dirname( ( new \ReflectionClass( Application::class ) )->getFileName(), 2 ); // vendor/orkan/[project]
+
+Updated config:
+---------------
+Utils::$dateFormat == Application::cfg[app_date_time]
+
+Renamed config:
+---------------
+Logger::cfg[log_debug] > cfg[log_extras]
+Logger::env[LOG_DEBUG] > env[LOG_EXTRAS]
+
+Updated methods:
+---------------
+Factory::log(method, format, tokens) > Loggex::log(format, tokens, method = '' )
+Factory::log('')                     > Loggex::log('-') <-- now empty string gives empty line
+Utils::dateStringDiff( ..., format[       0 => "begin",       1 => "final",      2 => "diff" ] ) > 
+                     ( ..., format[ [begin] => "begin", [final] => "final", [diff] => "diff" ] )
+Utils::print_r(expr, $opt: [ $simple[simple], $keys[keys], $sort[sort], $flatten[plain] ] )
+Utils::arraySort(arr, $opt: [ $locale[locale] => def. static::$strLocale <-- cfg[app_locale] ] )
+Utils::arraySortKey(arr, $opt: [ $locale[locale] ] )
+Factory::sleep( cfg[key] ) > Factory::usleep( usec )
+Utils::phpSummary(): removed 'PHP: ' prefix (keep in sync with Transport summary)
+
+Renamed methods:
+---------------
+Factory::debug()   > Loggex::debug()
+Factory::info()    > Loggex::info()
+Factory::notice()  > Loggex::notice()
+Factory::warning() > Loggex::warning()
+Factory::error()   > Loggex::error()
+Factory::sleep()   > Utils::sleep()
+Factory::usleep()  > Utils::usleep()
+
+===================================================================================================
 v9.0.0
 Renamed methods:
 ---------------

@@ -14,10 +14,10 @@ namespace Orkan;
 class DebugStarter
 {
 	const APP_NAME = 'Eclipse DEBUG starter';
-	const APP_DESC = 'Use this file to init debug in Eclipse.';
+	const APP_DESC = 'Use <a href="' . __FILE__ . '">this</a> file to init debug in Eclipse.';
 
 	/**
-	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Slant&t=Filmweb-Scraper
+	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Slant&t=Eclipse-DEBUG
 	 * @link Utils\usr\php\logo.php
 	 */
 	private static $logo = '    ______     ___                       ____  __________  __  ________
@@ -31,23 +31,26 @@ class DebugStarter
 	{
 		/* @formatter:off */
 		return sprintf(
-			"\n%1\$s" .
-			"\n%2\$s - %3\$s" .
-			"\nLoaded: %5\$s (<a href=\"%6\$s\">refresh</a>)" .
-			"\n\nUsage:\n" .
-			"\t%4\$s[?switch=1&switch=1&etc=...]\n" .
-			"Switches:\n" .
-			"\t[clearlog_sapi=1] Clear Apache error log\n" .
-			"\t[clearlog_cli=1]  Clear PHP error log\n" .
-			"\t[server_info=1]   Print \$_SERVER array\n" .
-			"\t[php_info=1]      Print phpinfo()\n" .
-			"\n",
+			<<<'EOT'
+			%1$s
+			%2$s - %3$s
+			Loaded: %5$s [<a href="%6$s">refresh</a>]
+			
+			Usage:
+				%4$s[?switch=1&switch=1&etc=...]
+			Switches:
+				Clear Apache error log   <a href="?clearlog_sapi=1">clearlog_sapi=1</a>
+				Clear PHP CLI error log  <a href="?clearlog_cli=1">clearlog_cli=1</a>
+				Print $_SERVER array     <a href="?server_info=1">server_info=1</a>
+				Print phpinfo()          <a href="?php_info=1">php_info=1</a>
+			EOT
+			,
 			/*1*/ self::$logo,
 			/*2*/ self::APP_NAME,
 			/*3*/ self::APP_DESC,
 			/*4*/ self::getUrl(),
 			/*5*/ Utils::dateString(),
-			/*6*/ $_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING'],
+			/*6*/ $_SERVER['PHP_SELF'] . ( isset( $_SERVER['QUERY_STRING'] ) ? '?' . $_SERVER['QUERY_STRING'] : '' ),
 		);
 		/* @formatter:on */
 	}
@@ -55,8 +58,8 @@ class DebugStarter
 	public static function getUrl()
 	{
 		/* @formatter:off */
-		return sprintf( '%s://%s%s',
-			/*1*/ $_SERVER['REQUEST_SCHEME'],
+		return sprintf( '%1$s://%2$s%3$s',
+			/*1*/ $_SERVER['REQUEST_SCHEME'] ?? 'http',
 			/*2*/ $_SERVER['HTTP_HOST'],
 			/*3*/ $_SERVER['SCRIPT_NAME'],
 		);
@@ -68,11 +71,12 @@ class DebugStarter
 		Utils::setup( [ 'timeZone' => $timeZone, 'dateFormat' => $dateFormat ] );
 
 		$switches = [];
-		parse_str( $_SERVER['QUERY_STRING'], $switches );
+		parse_str( $_SERVER['QUERY_STRING'] ?? '', $switches );
 		$logMsg = sprintf( "[%s] [%s] Log cleared by: %s\n", date( 'Y-m-d H:i:s' ), DebugStarter::APP_NAME, DebugStarter::getUrl() );
 
 		echo '<pre>';
 		echo DebugStarter::getHelp();
+		echo "\n\n";
 
 		if ( $switches['clearlog_sapi'] ?? false) {
 			echo 'Clear Apache error log: ';

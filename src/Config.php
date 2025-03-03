@@ -37,6 +37,7 @@ trait Config
 	 */
 	public function get( string $key = '', $default = '' )
 	{
+		// Use ?? instead of ?: to allow returning numeric ZERO instead of default ""
 		return $this->cfg( $key ) ?? $default;
 	}
 

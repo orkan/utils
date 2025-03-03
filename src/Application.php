@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '9.1.0';
-	const APP_DATE = 'Fri, 03 Jan 2025 09:41:27 +01:00';
+	const APP_VERSION = '10.0.0';
+	const APP_DATE = 'Tue, 04 Mar 2025 00:55:14 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -83,7 +83,7 @@ class Application
 	protected $Logger;
 
 	/**
-	 * Create Factory App.
+	 * Setup.
 	 */
 	public function __construct( Factory $Factory )
 	{
@@ -91,7 +91,7 @@ class Application
 
 		/**
 		 * Don't initialize Services here, since config is NOT fully loaded yet!
-		 * @see Application::run()
+		 * @see Application::configure()
 		 */
 		$this->Factory = $Factory->merge( self::defaults() );
 		$this->Utils = $Factory->Utils();
@@ -111,10 +111,8 @@ class Application
 	/**
 	 * Get defaults.
 	 */
-	private function defaults()
+	protected function defaults()
 	{
-		$packageDir = dirname( ( new \ReflectionClass( static::class ) )->getFileName(), 2 ); // vendor/orkan/[project]
-
 		/**
 		 * [app_title]
 		 * CMD window title
@@ -132,6 +130,9 @@ class Application
 		 * Garbage collect: Free up memory once is no longer used
 		 * @see Application::gc()
 		 *
+		 * [app_locale]
+		 * Current locale used in varoius string functions (see Utils)
+		 *
 		 * [app_dryrun]
 		 * Is --dry-run swith on?
 		 *
@@ -144,7 +145,7 @@ class Application
 		 * [app_php_ext]
 		 * Required PHP extensions: Array ( [extension_name] => (bool) verify, ... )
 		 *
-		 * -----------------------------------------------------------------------------------------------------------------
+		 * -------------------------------------------------------------------------------------------------------------
 		 * PHP INI: Prepare for CLI
 		 * @link https://www.php.net/manual/en/errorfunc.configuration.php
 		 *
@@ -176,7 +177,6 @@ class Application
 		 * [error_log]
 		 * Path to php_error.log
 		 * @see Logger::__construct()
-		 * -----------------------------------------------------------------------------------------------------------------
 		 *
 		 * @formatter:off */
 		return [
@@ -186,19 +186,20 @@ class Application
 			'app_usage'      => 'vendor/bin/app [options]',
 			'app_timezone'   => getenv( 'APP_TIMEZONE' ) ?: date_default_timezone_get(),
 			'app_gc'         => getenv( 'APP_GC' ) ?: false,
+			'app_locale'     => getenv( 'APP_LOCALE' ) ?: 'en_US',
 			'app_dryrun'     => false,
 			'app_err_handle' => true,
 			'app_exc_handle' => true,
 			// Utils
+			'app_date_time'  => 'Y-m-d H:i:s',
 			'app_date_short' => 'Y-m-d',
 			'app_date_long'  => 'l, Y-m-d H:i',
 			// Logger
-			'log_level'      => DEBUG ? 'DEBUG' : 'NOTICE',
-			'log_debug'      => DEBUG,
-			'log_history'    => 'WARNING',
-			'dir_package'    => $packageDir,
+			'log_level'      => getenv( 'LOG_LEVEL'   ) ?: ( DEBUG ? 'DEBUG' : 'NOTICE' ),
+			'log_extras'     => getenv( 'LOG_EXTRAS'  ) ?: DEBUG,
+			'log_history'    => getenv( 'LOG_HISTORY' ) ?: 'WARNING',
 			// PHP
-			'app_php_ext'    => [],
+			'app_php_ext'    => null,
 			'app_php_ini'    => [
 				'max_execution_time'     => null,
 				'error_reporting'        => E_ALL,
@@ -264,7 +265,7 @@ class Application
 	 */
 	protected function checkExtensions()
 	{
-		if ( !is_array( $extensions = $this->Factory->get( 'app_php_ext' ) ) ) {
+		if ( !is_array( $extensions = $this->Factory->get( 'app_php_ext', [] ) ) ) {
 			throw new \InvalidArgumentException( 'Invalid EXTENSIONS definition! See Application::defaults() for more info.' );
 		}
 
@@ -287,9 +288,9 @@ class Application
 	protected function gc( &$item ): void
 	{
 		if ( $this->Factory->get( 'app_gc' ) ) {
-			$this->Factory->debug( $this->Utils->phpMemoryMax(), 1 );
+			$this->Loggex->debug( $this->Utils->phpMemoryMax(), 1 );
 			$item = null;
-			$this->Factory->debug( $this->Utils->phpMemoryMax(), 1 );
+			$this->Loggex->debug( $this->Utils->phpMemoryMax(), 1 );
 		}
 	}
 
@@ -451,6 +452,7 @@ class Application
 			'{name}'    => static::APP_NAME,
 			'{version}' => static::APP_VERSION,
 			'{date}'    => static::APP_DATE,
+			'{now}'     => $this->Utils->dateString(),
 		]);
 		/* @formatter:on */
 	}
@@ -482,32 +484,29 @@ class Application
 	 * @param string|array $tokens Array( ['{token1}'] => text1, ['{token2}'] => text2, ... )
 	 * @param string       $format Eg. '{token1} - {token2} - {title}'
 	 */
-	protected function cmdTitle( ?string $format = null, array $tokens = [] ): void
+	protected function cmdTitle( ?string $format = null, array $tokens = [] ): string
 	{
 		$format = $format ? "$format — {app_title}" : '{app_title}';
 		$tokens['{app_title}'] = $this->Factory->get( 'app_title' );
+		cli_set_process_title( $title = strtr( $format, $tokens ) );
 
-		cli_set_process_title( strtr( $format, $tokens ) );
+		return $title;
 	}
 
 	/**
-	 * Initialize.
-	 *
-	 * Also initialize services now. For reason why so late:
-	 * @see Application::__construct()
+	 * Initialize env.
 	 */
 	public function run()
 	{
-		/* @formatter:off */
-		$this->Utils->setup([
-			'timeZone'   => $this->Factory->get( 'app_timezone' ),
-			'dateFormat' => $this->Factory->get( 'app_date_long' ),
-			'silent'     => $this->getArg( 'quiet' ),
-		]);
-		/* @formatter:on */
+		if ( !in_array( PHP_SAPI, [ 'cli', 'phpdbg', 'embed' ], true ) ) {
+			// Stop here since parent class uses PHP CLI functions not available in apache2handler SAPI!
+			die( sprintf(
+				/**/ "This application should be invoked via the CLI version of PHP, not the %s SAPI.",
+				/**/ PHP_SAPI ) );
+		}
 
 		/**
-		 * -------------------------------------------------------------------------------------------------------------
+		 * =============================================================================================================
 		 * Errors & Exceptions
 		 * @see Utils::errorHandler()
 		 * @see Application::exceptionHandler()
@@ -519,13 +518,16 @@ class Application
 			set_exception_handler( [ $this, 'exceptionHandler' ] );
 		}
 
-		$this->cmdTitle();
-		$this->Logger = $this->Factory->Logger();
+		// Force current working dir? Is preferred to use native shell command instead.
+		if ( $cd = getenv( 'APP_CWD' ) ) {
+			chdir( $cd );
+		}
 
-		/*
-		 * -------------------------------------------------------------------------------------------------------------
-		 * Help
-		 */
+		$this->configure();
+		$this->cmdTitle();
+
+		// =============================================================================================================
+		// Help
 		if ( $this->getArg( 'version' ) ) {
 			echo static::APP_VERSION;
 			exit();
@@ -537,21 +539,38 @@ class Application
 		}
 
 		if ( $this->getArg( 'setup' ) ) {
-			echo $this->Utils->print_r( $this->Factory->cfg(), true, [], 2, false );
+			echo $this->Utils->print_r( $this->Factory->cfg(), [ 'plain' => false, 'sort' => 2 ] );
 			exit();
 		}
 
-		/*
-		 * -------------------------------------------------------------------------------------------------------------
-		 * Welcome message
-		 * Keep this after "Help" section to prevent extra output if App is going to exit anyway
-		 */
+		// =============================================================================================================
+		// Welcome message
+		// Keep this after "Help" section to prevent extra output if App is going to exit anyway
 		if ( DEBUG ) {
 			$this->Logger->info( 'DEBUG is ON' );
 			$this->Factory->get( 'app_dryrun' ) && $this->Logger->info( 'DRY-RUN is ON' );
+		}
+		if ( $this->Logger->is( 'DEBUG' ) ) {
 			$this->Logger->debug( 'CMD: ' . implode( ' ', $GLOBALS['argv'] ) );
 			$this->Logger->debug( 'ARGS: ' . $this->Utils->print_r( $this->getArg() ) );
 			$this->Logger->debug( $this->Utils->print_r( $this->Factory->cfg() ) );
 		}
+	}
+
+	/**
+	 * Load post init config and services.
+	 */
+	protected function configure(): void
+	{
+		/* @formatter:off */
+		$this->Utils->setup([
+			'timeZone'   => $this->Factory->get( 'app_timezone' ),
+			'dateFormat' => $this->Factory->get( 'app_date_time' ),
+			'strLocale'  => $this->Factory->get( 'app_locale' ),
+			'silent'     => $this->getArg( 'quiet' ),
+		]);
+		/* @formatter:on */
+
+		$this->Logger = $this->Factory->Logger();
 	}
 }

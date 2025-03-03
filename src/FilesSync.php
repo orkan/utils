@@ -66,6 +66,7 @@ class FilesSync
 	protected $Factory;
 	protected $Utils;
 	protected $Logger;
+	protected $Loggex;
 
 	/**
 	 * Setup.
@@ -75,6 +76,7 @@ class FilesSync
 		$this->Factory = $Factory->merge( self::defaults() );
 		$this->Utils = $Factory->Utils();
 		$this->Logger = $Factory->Logger();
+		$this->Loggex = $Factory->Loggex();
 
 		if ( !$this->dir = realpath( $dir = $Factory->get( 'sync_dir_out' ) ) ) {
 			throw new \RuntimeException( sprintf( 'Output dir not found: "%s". Check cfg[sync_dir_out]', $dir ) );
@@ -86,7 +88,7 @@ class FilesSync
 	/**
 	 * Get defaults.
 	 */
-	private function defaults(): array
+	protected function defaults(): array
 	{
 		/**
 		 * [sync_dir_out]
@@ -119,6 +121,7 @@ class FilesSync
 			'bar_analyzing'   => '- analyzing [{bar}] {step}/{steps}',
 			'bar_copying'     => '- copying [{bar}] "{text}" [{size}]',
 			'bar_size'        => 10,
+			'bar_text_type'   => 'path',
 		];
 		/* @formatter:on */
 	}
@@ -176,7 +179,7 @@ class FilesSync
 		$this->manifestWrite();
 
 		/* @formatter:off */
-		$this->Factory->notice( 'Copy: {items} files | {bytes}', $tokens = [
+		$this->Loggex->notice( 'Copy: {items} files | {bytes}', $tokens = [
 			'{items}' => $this->stats['items'],
 			'{bytes}' => $this->Utils->byteString( $this->stats['bytes'] ),
 		]);
@@ -221,14 +224,14 @@ class FilesSync
 	 */
 	protected function manifestUnlink(): bool
 	{
-		$this->Factory->notice( 'Sync: "%s"', $this->dir );
+		$this->Loggex->notice( 'Sync: "%s"', $this->dir );
 		$file = $this->dir . '/' . $this->Factory->get( 'sync_manifest' );
 
 		// No manifest found? Clear output dir to get rid of all untracked files
 		if ( !is_file( $file ) ) {
 			$get = $this->Utils->prompt( 'Manifest file not found! Clear output dir? [y/N/q]: ', 'N', 'Q' );
 			if ( 'Y' === strtoupper( $get ) ) {
-				$this->Factory->notice( '- clearing dir: "%s"', $this->dir );
+				$this->Loggex->notice( '- clearing dir: "%s"', $this->dir );
 				$this->Utils->dirClear( $this->dir );
 			}
 			return false;
@@ -263,7 +266,7 @@ class FilesSync
 			if ( $id !== $this->manifestId( $oldSrc ) ) {
 				$unlink = true;
 				$invalid++;
-				$this->Factory->warning( 'Invalid [src:{src}, id:{id}]', [ '{id}' => $id, '{src}' => $oldSrc ] );
+				$this->Loggex->warning( 'Invalid [src:{src}, id:{id}]', [ '{id}' => $id, '{src}' => $oldSrc ] );
 				DEBUG && $this->stats['invalid'][] = $oldSrc;
 			}
 			// Same [src] but [dst] location has been changed
@@ -271,7 +274,7 @@ class FilesSync
 				$unlink = true;
 				$renamed++;
 				/* @formatter:off */
-				DEBUG && $this->Factory->debug( 'Rename [src:{src}, oldDst:{old}, newDst:{new}, id:{id}]', [
+				DEBUG && $this->Loggex->debug( 'Rename [src:{src}, oldDst:{old}, newDst:{new}, id:{id}]', [
 					'{id}'  => $id,
 					'{src}' => $oldSrc,
 					'{dst}' => $oldDst,
@@ -290,7 +293,7 @@ class FilesSync
 				$unlink && $updated++;
 				$size = $statDst['size'];
 				/* @formatter:off */
-				DEBUG && $this->Factory->debug(
+				DEBUG && $this->Loggex->debug(
 					'{action} [dst:{dst}, size:{srcB}/{dstB}, mtime:{srcT}/{dstT}, id:{id}]', [
 					'{id}'     => $id,
 					'{action}' => $unlink ? 'Update' : 'Keep',
@@ -305,7 +308,7 @@ class FilesSync
 			}
 			else {
 				$unlink = true;
-				DEBUG && $this->Factory->debug( 'Delete [dst:{dst}, id:{id}]', [ '{id}' => $id, '{dst}' => $oldDst ] );
+				DEBUG && $this->Loggex->debug( 'Delete [dst:{dst}, id:{id}]', [ '{id}' => $id, '{dst}' => $oldDst ] );
 				DEBUG && $this->stats['deleted'][] = $oldDst;
 			}
 
@@ -337,7 +340,7 @@ class FilesSync
 			$this->statsRebuild();
 
 			/* @formatter:off */
-			$this->Factory->info( '- saved {bytes} by not exporting {items} matched files', [
+			$this->Loggex->info( '- saved {bytes} by not exporting {items} matched files', [
 				'{items}' => $skipped,
 				'{bytes}' => $this->Utils->byteString( $bytes ),
 			]);
@@ -411,29 +414,30 @@ class FilesSync
 	}
 
 	/**
-	 * Compute copy progress info.
+	 * Compute progress info.
 	 *
-	 * @return array (
+	 * Info:
 	 * [byte_done] => elapsed: bytes
 	 * [cent_done] => progress:  %
 	 * [cent_left] => remaining: %
 	 * [time_exec] => elapsed: seconds
-	 * [time_done] => progress:  seconds
+	 * [time_cent] => seconds per cent
 	 * [time_left] => remaining: seconds
 	 * [speed_bps] => average: bytes / sec
-	 * )
+	 *
+	 * @return array Progress info
 	 */
 	protected function progress(): array
 	{
 		/* @formatter:off */
 		$out = [
-			'byte_done' => 0,   // elapsed: bytes
-			'cent_done' => 0,   // progress:  %
-			'cent_left' => 100, // remaining: %
-			'time_exec' => 0,   // elapsed: seconds
-			'time_done' => 0,   // progress:  seconds
-			'time_left' => 0,   // remaining: seconds
-			'speed_bps' => 0,   // average: bytes / sec
+			'byte_done' => 0,
+			'cent_done' => 0,
+			'cent_left' => 100,
+			'time_exec' => 0,
+			'time_cent' => 0,
+			'time_left' => 0,
+			'speed_bps' => 0,
 		];
 		/* @formatter:on */
 
@@ -446,12 +450,12 @@ class FilesSync
 		}
 
 		$out['byte_done'] = $this->stats['avg'] * $this->stats['item'];
-		$out['cent_done'] = intval( ceil( 100 / $this->stats['bytes'] * $out['byte_done'] ) );
+		$out['cent_done'] = $this->Utils->matchCent( $out['byte_done'] , $this->stats['bytes'] );
 		$out['cent_left'] = 100 - $out['cent_done'];
 
 		$out['time_exec'] = $this->Utils->exectime( $this->start );
-		$out['time_done'] = $out['time_exec'] / $out['cent_done'];
-		$out['time_left'] = $out['time_done'] * $out['cent_left'];
+		$out['time_cent'] = $out['time_exec'] / $out['cent_done'];
+		$out['time_left'] = $out['time_cent'] * $out['cent_left'];
 
 		$out['speed_bps'] = $out['byte_done'] / $out['time_exec'];
 

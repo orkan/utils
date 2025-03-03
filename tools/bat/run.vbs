@@ -1,11 +1,10 @@
 REM ==============================================================================================
 REM VBS starter
 REM This script will run file.bat (%1) in invisible window.
+REM Usage: wscript.exe run.vbs file.bat
 REM ==============================================================================================
 
 Set Fso = CreateObject( "Scripting.FileSystemObject" )
-basename = Fso.GetBaseName( Wscript.ScriptFullName )
-basepath = Fso.GetParentFolderName( Wscript.ScriptFullName )
 
 Dim Args()
 ReDim Args( WScript.Arguments.Count - 1 )

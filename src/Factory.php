@@ -19,6 +19,7 @@ class Factory
 	 */
 	protected $Utils;
 	protected $Logger;
+	protected $Loggex;
 	protected $Prompt;
 	protected $databases;
 
@@ -54,6 +55,14 @@ class Factory
 	}
 
 	/**
+	 * @return Loggex
+	 */
+	public function Loggex()
+	{
+		return $this->Loggex ?? $this->Loggex = new Loggex( $this );
+	}
+
+	/**
 	 * @return Prompt
 	 */
 	public function Prompt()
@@ -79,6 +88,14 @@ class Factory
 	public function ProgressBar( int $steps = 10, string $format = '' )
 	{
 		return new ProgressBar( $this, $steps, $format );
+	}
+
+	/**
+	 * @return ProgressStats
+	 */
+	public function ProgressStats( int $steps )
+	{
+		return new ProgressStats( $this, $steps );
 	}
 
 	/**
@@ -108,123 +125,5 @@ class Factory
 		}
 
 		return $this->databases[$dsn];
-	}
-
-	// =================================================================================================================
-	// HELPERS
-	// =================================================================================================================
-
-	/**
-	 * Sleep cfg[key_usec].
-	 */
-	public function sleep( string $key ): void
-	{
-		if ( defined( 'TESTING' ) ) {
-			return;
-		}
-
-		$ms = (int) $this->get( $key );
-		$ms && usleep( $ms );
-	}
-
-	// =================================================================================================================
-	// LOGGING
-	// Add Logger record with sprintf support
-	// =================================================================================================================
-
-	/**
-	 * Log tokenized messsage or ruler.
-	 *
-	 * @param string       $method Logger method
-	 * @param string|array $format Tokenized string (or array of strings) or one char to make a ruler
-	 * @param array        $tokens Token replacements. Use key {bar} to pass bar length
-	 */
-	public function log( string $method, $format = '', $tokens = [] )
-	{
-		$format = (array) $format;
-
-		if ( !is_array( $tokens ) ) {
-			$tokens = [ '%s' => (string) $tokens ];
-		}
-
-		$out = [];
-		$max = null;
-
-		foreach ( $format as $line ) {
-			if ( strlen( $line ) > 1 ) {
-				$line = strtr( $line, $tokens );
-			}
-			else {
-				$line = $line ?: '-';
-			}
-			$max = max( $max, strlen( $line ) );
-			$out[] = $line;
-		}
-
-		$max = $max > 1 ? $max : $this->get( 'log_barlen', 80 );
-		$len = $tokens['{bar}'] ?? $max;
-
-		foreach ( $out as $line ) {
-			if ( strlen( $line ) === 1 ) {
-				$line = str_repeat( $line, $len );
-			}
-			$this->Logger()->$method( $line, 2 );
-		}
-	}
-
-	/**
-	 * Log debug.
-	 *
-	 * @param string|array $format Tokenized string (or array of strings) or one char to make a ruler
-	 * @param int|array    $tokens Token replacements or ruler length
-	 */
-	public function debug( $format = '', $tokens = [] )
-	{
-		$this->log( 'debug', $format, $tokens );
-	}
-
-	/**
-	 * Log info.
-	 *
-	 * @param string|array $format Tokenized string (or array of strings) or one char to make a ruler
-	 * @param int|array    $tokens Token replacements or ruler length
-	 */
-	public function info( $format = '', $tokens = [] )
-	{
-		$this->log( 'info', $format, $tokens );
-	}
-
-	/**
-	 * Log notice.
-	 *
-	 * @param string|array $format Tokenized string (or array of strings) or one char to make a ruler
-	 * @param int|array    $tokens Token replacements or ruler length
-	 */
-	public function notice( $format = '', $tokens = [] )
-	{
-		$this->log( 'notice', $format, $tokens );
-	}
-
-	/**
-	 * Log warning.
-	 *
-	 * @param string       $method Logger method
-	 * @param string|array $format Tokenized string (or array of strings) or one char to make a ruler
-	 * @param int|array    $tokens Token replacements or ruler length
-	 */
-	public function warning( $format = '', $tokens = [] )
-	{
-		$this->log( 'warning', $format, $tokens );
-	}
-
-	/**
-	 * Log error.
-	 *
-	 * @param string|array $format Tokenized string (or array of strings) or one char to make a ruler
-	 * @param int|array    $tokens Token replacements or ruler length
-	 */
-	public function error( $format = '', $tokens = [] )
-	{
-		$this->log( 'error', $format, $tokens );
 	}
 }

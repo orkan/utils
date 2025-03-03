@@ -1,0 +1,24 @@
+body {
+	background: var(--bs-secondary-bg);
+}
+
+form.demo {
+	margin-bottom: 1em;
+	padding: 1em;
+	border: 1px dashed gray;
+	background: var(--bs-body-bg);
+	border-width: 1px;
+    border-radius: var(--bs-border-radius);
+}
+
+code.config {
+	margin-top: 4px;
+	white-space: pre;
+	line-height: 1em;
+	display: block;
+}
+
+table.th-auto tbody th {
+	width: 1px;
+    white-space: nowrap;
+}

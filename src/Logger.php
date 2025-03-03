@@ -108,7 +108,7 @@ class Logger
 	/**
 	 * Get defaults.
 	 */
-	private function defaults()
+	protected function defaults()
 	{
 		/**
 		 * [log_file]
@@ -131,31 +131,35 @@ class Logger
 		 * [log_reset]
 		 * Empty previous log file
 		 *
-		 * [log_history]
-		 * Min. log level to save in history. 0 == OFF
-		 * @see Logger::getHistory()
+		 * [log_extras]
+		 * Add extra info to each log entry (eg. backtrace) regardless of cfg[log_level]
+		 *
+		 * [log_level]
+		 * Minimum lvl to write to log file.
 		 *
 		 * [log_verbose]
 		 * Min. log level to echo. 0 == OFF
 		 * @see Logger::addRecord()
 		 *
-		 * [log_debug]
-		 * Print extra info in log file (backtrace, etc...)
+		 * [log_history]
+		 * Min. log level to save in history. 0 == OFF
+		 * @see Logger::getHistory()
+		 *
 		 *
 		 * @formatter:off */
 		return [
-			'log_file'      => '',
-			'log_keep'      => 5,
-			'log_channel'   => __CLASS__,
+			'log_file'      => getenv( 'LOG_FILE'     ) ?: '',
+			'log_keep'      => getenv( 'LOG_KEEP'     ) ?: 5,
+			'log_channel'   => getenv( 'LOG_CHANNEL'  ) ?:  __CLASS__,
 			'log_timezone'  => getenv( 'LOG_TIMEZONE' ) ?: date_default_timezone_get(),
-			'log_datetime'  => 'Y-m-d H:i:s',
-			'log_format'    => "[%datetime%] %level_name%: %context% %message%\n",
-			'log_mask'      => '',
-			'log_reset'     => getenv( 'LOG_RESET'   ) ?: false,
-			'log_level'     => getenv( 'LOG_LEVEL'   ) ?: self::INFO,
-			'log_history'   => getenv( 'LOG_HISTORY' ) ?: 0,
-			'log_verbose'   => getenv( 'LOG_VERBOSE' ) ?: 0,
-			'log_debug'     => getenv( 'LOG_DEBUG'   ) ?: false,
+			'log_datetime'  => getenv( 'LOG_DATETIME' ) ?: 'Y-m-d H:i:s',
+			'log_format'    => getenv( 'LOG_FORMAT'   ) ?: "[%datetime%] %level_name% %context% %message%\n",
+			'log_mask'      => getenv( 'LOG_MASK'     ) ?: '',
+			'log_reset'     => getenv( 'LOG_RESET'    ) ?: false,
+			'log_extras'    => getenv( 'LOG_EXTRAS'   ) ?: false,
+			'log_level'     => getenv( 'LOG_LEVEL'    ) ?: self::INFO,
+			'log_verbose'   => getenv( 'LOG_VERBOSE'  ) ?: 0,
+			'log_history'   => getenv( 'LOG_HISTORY'  ) ?: 0,
 		];
 		/* @formatter:on */
 	}
@@ -338,7 +342,7 @@ class Logger
 		}
 
 		// Add method name?
-		if ( $this->Factory->get( 'log_debug' ) && 0 <= $backtrace ) {
+		if ( $this->Factory->get( 'log_extras' ) && 0 <= $backtrace ) {
 			$context[] = $this->backtrace( $backtrace );
 		}
 

@@ -42,7 +42,7 @@ class Inputs
 		}
 	}
 
-	private function defaults(): array
+	protected function defaults(): array
 	{
 		/* @formatter:off */
 		return [

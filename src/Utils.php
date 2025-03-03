@@ -28,8 +28,9 @@ class Utils
 	 */
 	protected static $execTime = 0;
 	protected static $maxMemory = 0;
-	protected static $timeZone = 'UTC';
+	protected static $timeZone = 'UTC'; // see: __construct() > date_default_timezone_get()
 	protected static $dateFormat = 'Y-m-d H:i:s';
+	protected static $strLocale = 'en_US';
 
 	/**
 	 * Last dirs to show for error[file].
@@ -64,6 +65,14 @@ class Utils
 				static::$$property = $value;
 			}
 		}
+	}
+
+	/**
+	 * Read static property.
+	 */
+	public static function get( string $property )
+	{
+		return static::$$property ?? null;
 	}
 
 	/*
@@ -171,32 +180,59 @@ class Utils
 	}
 
 	/**
-	 * Sort array with locale.
+	 * Sort array with locale (keep key associations).
 	 *
-	 * @param string $locale Eg. 'us_US', 'pl_PL'
+	 * OPTIONS:
+	 * [locale]   string System locale eg. 'en_US' | 'pl_PL'
+	 * [strength] int    Collator strength (level)
+	 * [flags]    int    Sorting type: SORT_REGULAR, SORT_NUMERIC, SORT_STRING
 	 */
-	public static function arraySort( array &$arr, string $locale ): void
+	public static function arraySort( array &$arr, array $opt = [] ): void
 	{
-		$Collator = collator_create( $locale );
-		collator_sort( $Collator, $arr );
+		/* @formatter:off */
+		$opt = array_merge([
+			'locale'   => static::$strLocale,
+			'strength' => \Collator::TERTIARY, // "ao" < "Ao" < "aò"
+			'flags'    => \Collator::SORT_REGULAR,
+		], $opt );
+		/* @formatter:on */
+
+		$Collator = collator_create( $opt['locale'] );
+		collator_set_strength( $Collator, $opt['strength'] );
+// 		collator_set_attribute($Collator, \Collator::NORMALIZATION_MODE, \Collator::ON);
+// 		collator_set_attribute($Collator, \Collator::NUMERIC_COLLATION, \Collator::ON);
+
+		collator_asort( $Collator, $arr, $opt['flags'] );
 	}
 
 	/**
 	 * Sort array keys with locale.
 	 *
-	 * @param array $arr
-	 * @param string $locale
+	 * Currently no collator_ksort() available :(
+	 * @link https://www.php.net/manual/en/collator.setstrength.php
+	 *
+	 * OPTIONS:
+	 * [locale]   string System locale eg. 'en_US' | 'pl_PL'
+	 * [strength] int    Collator strength (level)
+	 * [asc]      bool   Sort ascending?
 	 */
-	public static function arraySortKey( array &$arr, string $locale ): void
+	public static function arraySortKey( array &$arr, array $opt = [] ): void
 	{
-		$out = [];
-		$keys = array_keys( $arr );
-		$Collator = collator_create( $locale );
-		collator_sort( $Collator, $keys );
-		foreach ( $keys as $k ) {
-			$out[$k] = $arr[$k];
-		}
-		$arr = $out;
+		/* @formatter:off */
+		$opt = array_merge([
+			'locale'   => static::$strLocale,
+			'strength' => \Collator::TERTIARY, // "ao" < "Ao" < "aò"
+			'asc'      => true,
+		], $opt );
+		/* @formatter:on */
+
+		$Collator = collator_create( $opt['locale'] );
+		collator_set_strength( $Collator, $opt['strength'] );
+
+		uksort( $arr, function ( $a, $b ) use ($Collator, $opt ) {
+			$cmp = collator_compare( $Collator, $a, $b );
+			return $opt['asc'] ? $cmp : -$cmp;
+		} );
 	}
 
 	/**
@@ -252,14 +288,14 @@ class Utils
 	{
 		$sizes = array( 'bytes', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' );
 		$i = (int) floor( log( $bytes, 1024 ) );
-		
-		if( $bytes ) {
+
+		if ( $bytes ) {
 			$bytes = round( $bytes / pow( 1024, $i ), $i > 1 ? 2 : 1 );
 			return "{$bytes} {$sizes[$i]}";
 		}
-		
+
 		return "0 {$sizes[$i]}";
-		
+
 		// return $bytes ? ( round( $bytes / pow( 1024, ( $i = floor( log( $bytes, 1024 ) ) ) ), $i > 1 ? 2 : 1 ) . ' ' . $sizes[$i] ) : '0 ' . $sizes[0];
 	}
 
@@ -340,35 +376,43 @@ class Utils
 	/**
 	 * Format diff timestamps with timezone.
 	 *
-	 * @link https://www.php.net/manual/en/timezones.php
+	 * @link https://www.php.net/manual/en/datetime.diff.php
 	 * @link https://www.php.net/manual/en/datetime.format.php
 	 * @link https://www.php.net/manual/en/dateinterval.format.php
+	 * @link https://www.php.net/manual/en/timezones.php
 	 *
-	 * @param int    $begin  Timestamp A
-	 * @param int    $final  Timestamp B
-	 * @param string $tzone  Timezone
-	 * @param array  $format Array ( [begin] => 'l, d.m.Y H:i' , [final] => 'l, d.m.Y H:i', [diff] => '%a' )
-	 * @return array         Formated dates: Array ( [begin] => date , [final] => date, [diff] => days )
+	 * @param  int    $begin  Timestamp A
+	 * @param  int    $final  Timestamp B
+	 * @param  string $tzone  Timezone
+	 * @param  array  $format Array ( [begin] => 'l, d.m.Y H:i' , [final] => 'l, d.m.Y H:i', [diff] => '%a' )
+	 * @return array  Formated dates: Array ( [begin] => date, [final] => date, [diff] => final - begin )
 	 */
 	public static function dateStringDiff( int $begin, int $final = 0, string $tzone = '', array $format = [] ): array
 	{
+		/* @formatter:off */
+		$format = array_merge([
+			'begin' => static::$dateFormat,
+			'final' => static::$dateFormat,
+			'diff'  => '%a',
+		], $format );
+		/* @formatter:on */
+
+		$TZ = new \DateTimeZone( $tzone ?: self::$timeZone );
+
+		$Begin = ( new \DateTime() )->setTimezone( $TZ )->setTimestamp( $begin );
+		$Final = ( new \DateTime() )->setTimezone( $TZ )->setTimestamp( $final );
+
 		$out = [];
+		$out['begin'] = $Begin->format( $format['begin']);
+		$out['final'] = $Final->format( $format['final']);
 
-		$final = $final ?: time();
-		$TZone = new \DateTimeZone( $tzone ?: self::$timeZone );
-
-		$Begin = ( new \DateTime() )->setTimestamp( $begin )->setTimezone( $TZone );
-		$Final = ( new \DateTime() )->setTimestamp( $final )->setTimezone( $TZone );
-
-		$out['begin'] = $Begin->format( $format[0] ?? static::$dateFormat);
-		$out['final'] = $Final->format( $format[1] ?? static::$dateFormat);
-
-		if ( !isset( $format[2] ) || '%a' === $format[2] ) {
-			$Begin->setTime( 0, 0 ); // Count full days!
-			$Final->setTime( 0, 0 );
+		if ( $format['diff'] === '%a' ) {
+			$out['diff'] = (int) $Final->diff( $Begin )->format( '%a' );
+			$out['diff']++; // fix day counter
 		}
-
-		$out['diff'] = $Final->diff( $Begin )->format( $format[2] ?? '%a');
+		else {
+			$out['diff'] = $Final->diff( $Begin )->format( $format['diff'] );
+		}
 
 		return $out;
 	}
@@ -376,23 +420,20 @@ class Utils
 	/**
 	 * Format date.
 	 */
-	public static function dateString( float $timestamp = 0, string $format = '', string $zone = '' ): string
+	public static function dateString( ?float $timestamp = null, string $format = '', string $zone = '' ): string
 	{
-		$timestamp = $timestamp ?: time();
+		$timestamp = $timestamp ?? time();
 
 		// Remove fractions from timestamp eg. 1588365133[974]
 		if ( strlen( $timestamp ) > $len = strlen( time() ) ) {
 			$timestamp = substr( $timestamp, 0, $len );
 		}
 
-		/* @formatter:off */
-		$date = ( new \DateTime() )
-			->setTimestamp( $timestamp )
-			->setTimezone( new \DateTimeZone( $zone ?: self::$timeZone ) )
-			->format( $format ?: self::$dateFormat );
-		/* @formatter:on */
+		$Dt = new \DateTime();
+		$Dt->setTimestamp( $timestamp );
+		$Dt->setTimezone( new \DateTimeZone( $zone ?: self::$timeZone ) );
 
-		return $date;
+		return $Dt->format( $format ?: self::$dateFormat );
 	}
 
 	/**
@@ -442,7 +483,7 @@ class Utils
 	 * Scan dir files with regex and depth level.
 	 *
 	 * @param string $regex Regular expression fo filter each path. Use empty to return all paths
-	 * @param int $depth    Directory depth to scan recursively. 0: current dir only. Def. -1: no limit
+	 * @param int    $depth Directory depth to scan recursively. 0: current dir only. Def. -1: no limit
 	 * @return array Matched absolute paths
 	 */
 	public static function dirScan( string $dir, ?string $regex = null, int $depth = -1 ): array
@@ -645,23 +686,27 @@ class Utils
 	/**
 	 * Compute execution time.
 	 *
-	 * @param  float|null $start Previous time in nanoseconds, 0: get current time, null: diff to instance creation time
-	 * @return float             Time diff in frac seconds
+	 * Time:
+	 * 0    - get current time (dafault)
+	 * null - diff to instance creation time
+	 *
+	 * @param  float|null $time Time in nanoseconds
+	 * @return float      Time diff in frac seconds
 	 */
-	public static function exectime( ?float $start = 0 ): float
+	public static function exectime( ?float $time = 0 ): float
 	{
-		$time = hrtime( true );
+		$now = hrtime( true );
 
-		if ( 0.0 === $start ) {
-			return $time;
+		if ( $time === 0.0 ) {
+			return $now;
 		}
 
-		if ( null === $start ) {
-			$start = static::$execTime; // get instance creation time
+		if ( $time === null ) {
+			$time = static::$execTime; // instance creation time
 		}
 
-		$end = $time - $start;
-		$end = $end / 1e+9; // nanoseconds to seconds 0.123456789
+		$end = $now - $time;
+		$end = $end / 1e+9; // nano to sec, eg. 0.123456789
 
 		return $end;
 	}
@@ -786,6 +831,20 @@ class Utils
 		}
 
 		return $rotated;
+	}
+
+	/**
+	 * Escape glob() special meaning characters.
+	 * @link https://www.php.net/manual/en/function.glob.php
+	 */
+	public static function globEsc( string $pattern, string $chars ): string
+	{
+		$tokens = [];
+		foreach ( str_split( $chars ) as $v ) {
+			$tokens[$v] = "[$v]"; // glob() treats chars inside [...] literaly, eg. [[] escapes '['
+		}
+
+		return strtr( $pattern, $tokens );
 	}
 
 	/**
@@ -1002,71 +1061,111 @@ class Utils
 	 * [mem] Memory: 8MB
 	 * )
 	 */
-	public static function phpSummary(): array
+	public static function phpSummary( ?string $key = null )
 	{
 		/* @formatter:off */
 		$out = [
-			'php' => sprintf( 'PHP: %1$s (took %2$s) on %3$s',
-				/*1*/ phpversion(),
-				/*2*/ static::timeString( static::exectime( null ) ),
-				/*3*/ date( 'r', time() ) ),
+			'php' => strtr( '{ver} (took {exec}) on {date}', [
+				'{ver}'  => phpversion(),
+				'{exec}' => static::timeString( static::exectime( null ) ),
+				'{date}' => date( 'r', time() ) ,
+			]),
 			'mem' => static::phpMemoryMax(),
 		];
 		/* @formatter:on */
 
-		return $out;
+		return $out[$key] ?? $out;
+	}
+
+	/**
+	 * Help print text.
+	 */
+	public static function print( string $s ): string
+	{
+		!defined( 'TESTING' ) && print ( $s ) ;
+		return $s;
 	}
 
 	/**
 	 * Fancy expression print.
 	 *
-	 * @param mixed $exp     Expression to print: array|object|string|float|etc...
-	 * @param bool  $simple  Remove objects?
-	 * @param array $keys    Keys replacements
-	 * @param int   $sort    Sort array|object keys to this level
-	 * @param bool  $flatten No line breaks?
+	 * OPTIONS:
+	 * [simple] bool  Remove objects?
+	 * [plain]  bool  No line breaks?
+	 * [keys]   array Keys replacements
+	 * [sort]   int   Sort array|object keys to this level
+	 * [trim]   int   Cut long strings
+	 *
+	 * @param mixed $exp Expression to print: array|object|string|float|etc...
+	 * @param array $opt Options
 	 */
-	public static function print_r( $exp, bool $simple = true, array $keys = [], int $sort = 0, bool $flatten = true )
+	public static function print_r( $exp, array $opt = [] )
 	{
 		static $level = 1;
 
+		/* @formatter:off */
+		$opt = array_merge([
+			'simple' => true,
+			'plain'  => true,
+			'keys'   => [],
+			'sort'   => 0,
+			'trim'   => 0,
+		], $opt );
+		/* @formatter:on */
+
+		// =============================================================================================================
+		// Objects, arrays...
+		// =============================================================================================================
 		if ( is_array( $exp ) || is_object( $exp ) ) {
 
 			$exp = (array) $exp;
-			$sort && $level <= $sort && ksort( $exp );
+			$opt['sort'] && $level <= $opt['sort'] && ksort( $exp );
 
 			foreach ( $exp as $k => $v ) {
-				// Extract internal arrays recursively...
 				if ( is_array( $v ) ) {
 					$level++;
-					$exp[$k] = static::print_r( $v, $simple, $keys, $sort, false );
+					$exp[$k] = static::print_r( $v, $opt ); // <-- Extract internal arrays recursively...
 					$level--;
+				}
+				// Trim string values
+				elseif ( is_string( $v ) ) {
+					$opt['trim'] && $exp[$k] = static::strCut( $exp[$k], $opt['trim'] );
 				}
 				// Replace bolean values
 				elseif ( is_bool( $v ) ) {
 					$exp[$k] = $v ? 'true' : 'false';
 				}
 				// Replace each Object in array with class name string
-				elseif ( $simple && is_object( $v ) ) {
+				elseif ( $opt['simple'] && is_object( $v ) ) {
 					$exp[$k] = '(Object) ' . get_class( $v );
 				}
 				// Replace callbacks
-				elseif ( $simple && is_callable( $v ) ) {
+				elseif ( $opt['simple'] && is_callable( $v ) ) {
 					$v[0] = is_object( $v[0] ) ? get_class( $v[0] ) : $v[0];
 					$exp[$k] = "(Callback) {$v[0]}::{$v[1]}()";
 				}
 			}
 
 			// Replace keys
-			if ( $keys ) {
+			if ( $opt['keys'] ) {
 				$new = [];
 				foreach ( $exp as $k => $v ) {
-					$key = $keys[$k] ?? $k; // Missing replacement - use old key!
+					$key = $opt['keys'][$k] ?? $k; // Missing replacement - use old key!
 					$new[$key] = $v;
 				}
 				$exp = $new;
 			}
 		}
+		// =============================================================================================================
+		// Strings...
+		// =============================================================================================================
+		elseif ( is_string( $exp ) ) {
+			$opt['trim'] && $exp = static::strCut( $exp, $opt['trim'] );
+		}
+
+		// -------------------------------------------------------------------------------------------------------------
+		// Finalize:
+		// -------------------------------------------------------------------------------------------------------------
 
 		// Don't format multi-array yet!
 		if ( $level > 1 ) {
@@ -1077,7 +1176,7 @@ class Utils
 		$str = print_r( $exp, true );
 
 		// No line breaks?
-		if ( $flatten ) {
+		if ( $opt['plain'] ) {
 			$str = str_replace( [ "\r", "\n" ], ' ', $str ); // remove line breaks
 			$str = preg_replace( '/[ ]{2,}/', ' ', $str ); // remove double spacess
 		}
@@ -1088,27 +1187,35 @@ class Utils
 	/**
 	 * Render Progress bar.
 	 *
-	 * @param number $step   Current item
-	 * @param number $max    Total items
+	 * @param number $step   Current step
+	 * @param number $steps  Total steps
 	 * @param number $size   Bar length
 	 * @param string $chDone Proggres char
 	 * @param string $chFill Fill char
 	 * @return Array (
-	 *  [bar]  => '|||.......'
+	 *  [bar]  => '||||.......'
 	 *  [cent] => ' 36'
 	 * )
 	 */
-	public static function progressBar( int $step, int $max, int $size = 20, string $chDone = '|', string $chFill = '.' ): array
+	public static function progressBar( int $step, int $steps, int $size = 20, string $chDone = '|', string $chFill = '.' ): array
 	{
-		$step = max( 0, min( $step, $max ) );
+		$step = max( 0, min( $step, $steps ) );
 
-		$cent = round( 100 / $max * $step );
-		$pos = round( $size * $step / $max );
+		$cent = static::matchCent( $step, $steps );
+		$pos = static::matchCent( $step, $steps, $size );
 
 		$bar = str_repeat( $chDone, $pos );
 		$bar .= str_repeat( $chFill, $size - $pos );
 
 		return [ 'bar' => $bar, 'cent' => $cent ];
+	}
+
+	/**
+	 * Get procentage/proportional value.
+	 */
+	public static function matchCent( int $item, int $items, int $total = 100 ): int
+	{
+		return intval( ceil( $total / $items * $item ) );
 	}
 
 	/**
@@ -1140,6 +1247,44 @@ class Utils
 		}
 
 		return $input;
+	}
+
+	/**
+	 * Sleep helper.
+	 */
+	public static function usleep( int $usec ): void
+	{
+		!defined( 'TESTING' ) && usleep( $usec );
+	}
+
+	/**
+	 * Sleep helper with countdown.
+	 *
+	 * @param  string $msg String to display, including %d to replace with current seconds
+	 * @return string 1st tokenized string
+	 */
+	public static function sleep( int $sec, string $msg = '' ): string
+	{
+		$out = $str = '';
+
+		while ( true ) {
+			if ( $msg ) {
+				$str && static::print( str_repeat( ' ', strlen( $str ) ) . "\r" );
+				$str = sprintf( $msg, $sec );
+				$out = $out ?: $str;
+				static::print( $str );
+			}
+			if ( $sec-- > 0 ) {
+				static::usleep( 1e+6 );
+			}
+			elseif ( $sec < 0 ) {
+				break;
+			}
+		}
+
+		$str && static::print( "\n" );
+
+		return $out;
 	}
 
 	/**
@@ -1177,8 +1322,12 @@ class Utils
 	/**
 	 * Cut {str}ing at {cent} position to {max} length and {mark} it.
 	 */
-	public static function strCut( string $str, int $max, int $cent = 100, string $mark = '...' ): string
+	public static function strCut( $str, int $max, int $cent = 100, string $mark = '...' )
 	{
+		if ( !is_string( $str ) ) {
+			return $str;
+		}
+
 		$lenS = mb_strlen( $str );
 		$lenM = mb_strlen( $mark );
 		$cent = max( 0, min( 100, $cent ) );
@@ -1315,13 +1464,17 @@ class Utils
 	/**
 	 * Print string with new lines.
 	 */
-	public static function writeln( string $text, int $addLines = 1, bool $echo = true ): string
+	public static function writeln( $text, int $addLines = 1, bool $echo = true )
 	{
+		if ( is_array( $text ) ) {
+			$text = implode( "\n", $text );
+		}
+
 		if ( $text ) {
 			$text .= str_repeat( "\n", $addLines );
 		}
 
-		$echo && print ( $text ) ;
+		$echo && $text && static::print( $text );
 
 		return $text;
 	}

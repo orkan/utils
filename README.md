@@ -1,4 +1,4 @@
-# Utils `v9.1.0`
+# Utils `v10.0.0`
 Bunch of scripts collected from all around the HDD
 
 # Console app
@@ -68,15 +68,6 @@ foreach ( $fields as $name => $field ) {
 - `bin/app_files_quantity.php` - Copy files from one dir to another with quantity limit and sorting features.
 
 ## About
-### Requirements
-- Main:
-  - PHP ^7
-- Tools:
-  - ANT ^1.9.4
-  - DOS
-  - Eclipse
-  - MySQL
-  
 ### Third Party Packages
 - none
 
@@ -90,4 +81,4 @@ foreach ( $fields as $name => $field ) {
 MIT
 
 ### Updated
-Fri, 03 Jan 2025 09:41:27 +01:00
+Tue, 04 Mar 2025 00:55:14 +01:00

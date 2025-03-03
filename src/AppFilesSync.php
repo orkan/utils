@@ -13,8 +13,8 @@ namespace Orkan;
 class AppFilesSync extends Application
 {
 	const APP_NAME = 'Copy files with priority, shuffle and size limit';
-	const APP_VERSION = '9.1.0';
-	const APP_DATE = 'Fri, 03 Jan 2025 09:41:27 +01:00';
+	const APP_VERSION = '10.0.0';
+	const APP_DATE = 'Tue, 04 Mar 2025 00:55:14 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Speed&t=File-Sync
@@ -62,7 +62,7 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 	/**
 	 * Get defaults.
 	 */
-	private function defaults(): array
+	protected function defaults(): array
 	{
 		/**
 		 * [sync_bytes]
@@ -129,22 +129,22 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 		parent::run();
 
 		// Verify config
-		$this->Factory->info();
+		$this->Loggex->info( '-' );
 		$this->configure();
 		$this->Files = $this->Factory->FilesSync();
 
 		// Select files
-		$this->Factory->info();
+		$this->Loggex->info( '-' );
 		$this->scan();
 		$this->limit();
 		$this->gc( $this->files ); // release memory!
 
 		// Copy files
-		$this->Factory->info();
+		$this->Loggex->info( '-' );
 		$this->Files->run();
 
 		// Finalize
-		$this->Factory->info();
+		$this->Loggex->info( '-' );
 		$this->cmdTitle();
 		$this->Logger->notice( 'Done.' );
 	}
@@ -184,17 +184,17 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 			]);
 			/* @formatter:on */
 
-			// ---------------------------------------------------------------------------------------------------------
+			// ----------------------------------------------------------------------------------------------------------
 			// Check size:
 			if ( $bytesMax && $bytesNow > $bytesMax ) {
 
-				$this->Factory->debug(
+				$this->Loggex->debug(
 					/**/ 'File too big! "{file}" (now:{bytes} + file:{size} = sum:{sumNow} > tot:{total})',
 					/**/ $tokens );
 
 				// Continue to find smaller file if there is still room for an average file size
 				if ( $bytesAvg <= $bytesMax ) {
-					$this->Factory->debug(
+					$this->Loggex->debug(
 						/**/ 'Find smaller file... (now:{bytes} + avg:{avg} = sum:{sumAvg} <= tot:{total})',
 						/**/ $tokens );
 					continue;
@@ -204,7 +204,7 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 				break;
 			}
 
-			// ---------------------------------------------------------------------------------------------------------
+			// ----------------------------------------------------------------------------------------------------------
 			// Add:
 			// Redirect all files from: [fav], [src] to [out] dir. Watch out for names conflict!
 			$home = $dirFav && 0 === strpos( $file, $dirFav ) ? $dirFav : $dirSrc;
@@ -222,19 +222,19 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 			]);
 			/* @formatter:on */
 
-			$this->Factory->debug( 'Add "{file}" [{size}]', $tokens );
+			$this->Loggex->debug( 'Add "{file}" [{size}]', $tokens );
 		}
 
 		// -------------------------------------------------------------------------------------------------------------
 		// Summary:
 		if ( count( $this->files ) > $this->Files->stats( 'items' ) ) {
-			$this->Factory->info(
+			$this->Loggex->info(
 				/**/ '- reduced, space left: {left} (now:{bytes} + avg:{avg} = sum:{sumAvg} > tot:{total})',
 				/**/ $tokens );
 		}
 
-		$this->Factory->info( 'Files total: {items} | {bytes} | ~{avg}', $tokens );
-		$this->Factory->debug( 'min:{min} | max:{max} | avg:{avg}', $tokens );
+		$this->Loggex->info( 'Files total: {items} | {bytes} | ~{avg}', $tokens );
+		$this->Loggex->debug( 'min:{min} | max:{max} | avg:{avg}', $tokens );
 	}
 
 	/**
@@ -250,9 +250,9 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 		$dirFav = $Prompt->importPath( 'sync_dir_fav', 'Favorites dir' );
 		$dirSrc = $Prompt->importPath( 'sync_dir_src', 'Source dir' );
 		$dirOut = $Prompt->importPath( 'sync_dir_out', 'Output dir' );
-		$this->Factory->info( 'Fav dir: "%s"', $this->Utils->pathCut( $dirFav, 69 ) );
-		$this->Factory->info( 'Src dir: "%s"', $this->Utils->pathCut( $dirSrc, 69 ) );
-		$this->Factory->info( 'Out dir: "%s"', $this->Utils->pathCut( $dirOut, 69 ) );
+		$this->Loggex->info( 'Fav dir: "%s"', $this->Utils->pathCut( $dirFav, 69 ) );
+		$this->Loggex->info( 'Src dir: "%s"', $this->Utils->pathCut( $dirSrc, 69 ) );
+		$this->Loggex->info( 'Out dir: "%s"', $this->Utils->pathCut( $dirOut, 69 ) );
 
 		if ( !$dirFav && !$dirSrc ) {
 			throw new \InvalidArgumentException(
@@ -277,7 +277,7 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 				$files = $this->Utils->dirScan( $dir, $this->pattern, $this->Factory->get( 'sync_depth' ) );
 				if ( $this->Factory->get( 'sync_shuffle' ) ) {
 					/* @formatter:off */
-					$this->Factory->info( '- shuffle {count} files in "{dir}"', [
+					$this->Loggex->info( '- shuffle {count} files in "{dir}"', [
 						'{count}' => count( $files ),
 						'{dir}'   => $dir
 					]);
@@ -289,7 +289,7 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 		}
 
 		/* @formatter:off */
-		$this->Factory->info( 'Files found: {count} ({types})', [
+		$this->Loggex->info( 'Files found: {count} ({types})', [
 			'{types}' => $this->pattern ? implode( '|', $this->Factory->get( 'sync_types' ) )  : '*',
 			'{count}' => count( $this->files ),
 		]);

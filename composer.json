@@ -20,6 +20,7 @@
 		"vendor-dir": "../vendor"
 	},
 	"require": {
+		"php": "^7.4",
 		"composer-runtime-api": "^2.2"
 	},
 	"require-dev": {
@@ -42,8 +43,8 @@
 	],
 	"extra": {
 		"branch-alias": {
-			"dev-master": "9.1.x-dev",
-			"dev-develop": "9.x-dev"
+			"dev-master": "10.0.x-dev",
+			"dev-develop": "10.x-dev"
 		}
 	}
 }

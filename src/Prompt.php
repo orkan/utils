@@ -52,7 +52,7 @@ class Prompt
 	/**
 	 * Default config.
 	 */
-	private function defaults(): array
+	protected function defaults(): array
 	{
 		/**
 		 * [prompt_quit]
@@ -99,7 +99,7 @@ class Prompt
 		if ( $ask ) {
 
 			if ( defined( 'TESTING' ) ) {
-				throw new \InvalidArgumentException( "Cannot prompt user input in tests! Use cfg[$key]" );
+				throw new \RuntimeException( "Cannot prompt user input in tests! Use cfg[$key]" );
 			}
 
 			$quit = $this->Factory->get( 'prompt_quit_str' );
@@ -158,7 +158,7 @@ class Prompt
 		if ( $ask ) {
 
 			if ( defined( 'TESTING' ) ) {
-				throw new \InvalidArgumentException( "Cannot prompt user input in tests! Use cfg[$key]" );
+				throw new \RuntimeException( "Cannot prompt user input in tests! Use cfg[$key]" );
 			}
 
 			$quit = $this->Factory->get( 'prompt_quit_str' );
