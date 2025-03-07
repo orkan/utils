@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '10.0.0';
-	const APP_DATE = 'Tue, 04 Mar 2025 00:55:14 +01:00';
+	const APP_VERSION = '10.1.0';
+	const APP_DATE = 'Fri, 07 Mar 2025 16:00:52 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -523,7 +523,16 @@ class Application
 			chdir( $cd );
 		}
 
-		$this->configure();
+		// Pre-configure application
+		try {
+			$this->configure();
+		}
+		catch ( \Throwable $E ) {
+			$this->Utils->writeln( $this->getHelp() );
+			$this->Utils->writeln( 'Configuration error:' );
+			throw $E;
+		}
+
 		$this->cmdTitle();
 
 		// =============================================================================================================

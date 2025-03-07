@@ -37,26 +37,25 @@ class ProgressStats extends Dataset
 	 */
 	public function __construct( Factory $Factory, int $steps )
 	{
-		$this->Factory = $Factory;
-		$this->Utils = $Factory->Utils();
-
-		$this->start = $this->Utils->exectime();
-
 		/* @formatter:off */
-		$this->data = [
-			'step'     => 0,
-			'steps'    => $steps,
-			'centDone' => 0,
-			'centLeft' => 100,
-			'timeDone' => 0,
-			'timeLeft' => 0,
+		parent::__construct([
+			'step'        => 0,
+			'steps'       => $steps,
+			'centDone'    => 0,
+			'centLeft'    => 100,
+			'timeDone'    => 0,
+			'timeLeft'    => 0,
 			'sumCentDone' => '0%',
 			'sumCentLeft' => '-100%',
 			'sumTimeDone' => '0s',
 			'sumTimeLeft' => '--',
-		];
+		]);
 		/* @formatter:on */
 
+		$this->Factory = $Factory;
+		$this->Utils = $Factory->Utils();
+
+		$this->start = $this->Utils->exectime();
 		$this->dirty = true;
 	}
 

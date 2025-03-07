@@ -1,0 +1,86 @@
+https://deviceatlas.com/blog/list-of-user-agent-strings
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+http://www.useragentstring.com/pages/useragentstring.php?name=Internet+Explorer
+https://www.keycdn.com/blog/web-crawlers
+https://github.com/VeNoMouS/cloudscraper/blob/master/cloudscraper/user_agent/browsers.json
+
+=============================================================================
+Orkan
+=============================================================================
+Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:76.0) Gecko/20100101 Firefox/76.0
+
+=============================================================================
+Android Mobile User Agents
+=============================================================================
+
+Samsung Galaxy S7
+Mozilla/5.0 (Linux; Android 7.0; SM-G930VC Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/58.0.3029.83 Mobile Safari/537.36
+
+Samsung Galaxy S6
+Mozilla/5.0 (Linux; Android 6.0.1; SM-G920V Build/MMB29K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.98 Mobile Safari/537.36
+
+Sony Xperia Z5
+Mozilla/5.0 (Linux; Android 6.0.1; E6653 Build/32.2.A.0.253) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.98 Mobile Safari/537.36
+
+
+=============================================================================
+iPhone User Agents
+=============================================================================
+
+Apple iPhone X
+Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1
+
+Apple iPhone 7
+Mozilla/5.0 (iPhone9,3; U; CPU iPhone OS 10_0_1 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) Version/10.0 Mobile/14A403 Safari/602.1
+
+=============================================================================
+Tablet User Agents
+=============================================================================
+
+Sony Xperia Z4 Tablet
+Mozilla/5.0 (Linux; Android 6.0.1; SGP771 Build/32.2.A.0.253; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Safari/537.36
+
+Samsung Galaxy Tab S3
+Mozilla/5.0 (Linux; Android 7.0; SM-T827R4 Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.116 Safari/537.36
+
+=============================================================================
+Desktop User Agents
+=============================================================================
+
+Windows 10-based PC using Edge browser
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246
+
+Windows 7-based PC using a Chrome browser
+Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36
+
+Mac OS X-based computer using a Safari browser
+Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9
+
+Linux-based PC using a Firefox browser
+Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1
+
+Firefox UA string
+Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0
+Mozilla/5.0 (Macintosh; Intel Mac OS X x.y; rv:42.0) Gecko/20100101 Firefox/42.0
+
+Chrome UA string
+Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36
+
+Opera UA string
+Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41
+
+Safari UA string
+Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Mobile/15E148 Safari/604.1
+
+Internet Explorer UA string
+Mozilla/5.0 (compatible; MSIE 9.0; Windows Phone OS 7.5; Trident/5.0; IEMobile/9.0)
+
+Crawler and bot UA strings
+Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+Mozilla/5.0 (compatible; YandexAccessibilityBot/3.0; +http://yandex.com/bots)
+
+Library and net tool UA strings
+curl/7.64.1
+PostmanRuntime/7.26.5
+
+

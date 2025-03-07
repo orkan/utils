@@ -403,8 +403,8 @@ class Utils
 		$Final = ( new \DateTime() )->setTimezone( $TZ )->setTimestamp( $final );
 
 		$out = [];
-		$out['begin'] = $Begin->format( $format['begin']);
-		$out['final'] = $Final->format( $format['final']);
+		$out['begin'] = $Begin->format( $format['begin'] );
+		$out['final'] = $Final->format( $format['final'] );
 
 		if ( $format['diff'] === '%a' ) {
 			$out['diff'] = (int) $Final->diff( $Begin )->format( '%a' );
@@ -875,6 +875,58 @@ class Utils
 	}
 
 	/**
+	 * Get random browser User-Agent.
+	 *
+	 * @param  array        $opt Query data
+	 * @return array|string User-Agent string or browser headers
+	 */
+	public static function netUseragent( array $opt = [] )
+	{
+		/* @formatter:off */
+		$opt = array_merge([
+			'brand'   => [ 'chrome', 'firefox' ],
+			'os'      => [ 'windows', 'linux', 'darwin', 'android', 'ios' ],
+			'device'  => [ 'desktop', 'mobile' ],
+			'headers' => false,
+			'last'    => 3,
+		], $opt);
+		/* @formatter:on */
+
+		foreach ( [ 'brand', 'os', 'device' ] as $k ) {
+			$opt[$k] = (array) $opt[$k];
+		}
+
+		$browsers = static::jsonLoad( __DIR__ . '/../tools/useragents/browsers.json' );
+
+		$ua = [];
+		foreach ( $opt['device'] as $device ) {
+			foreach ( $opt['os'] as $os ) {
+				foreach ( $opt['brand'] as $brand ) {
+					// Some combinations doesnt have browsers, eg. mobile > ios > firefox
+					if ( !$arr = array_slice( $browsers['user_agents'][$device][$os][$brand], -$opt['last'] ) ) {
+						continue;
+					}
+					static::arrayShuffle( $arr );
+					$ua[$brand][] = current( $arr );
+				}
+			}
+		}
+
+		$ua = static::arrayFlat( $ua );
+		static::arrayShuffle( $ua );
+		$ua = current( $ua );
+
+		if ( $opt['headers'] ) {
+			$brand = $opt['brand'][0];
+			$headers = $browsers['headers'][$brand];
+			$headers['User-Agent'] = $ua;
+			$ua = $headers;
+		}
+
+		return $ua;
+	}
+
+	/**
 	 * Left pad number string.
 	 *
 	 * @see \str_pad()
@@ -1080,9 +1132,15 @@ class Utils
 	/**
 	 * Help print text.
 	 */
-	public static function print( string $s ): string
+	public static function print( $s )
 	{
-		!defined( 'TESTING' ) && print ( $s ) ;
+		if ( defined( 'TESTING' ) ) {
+			$GLOBALS[__METHOD__] = $s;
+		}
+		else {
+			echo $s;
+		}
+
 		return $s;
 	}
 
@@ -1202,7 +1260,7 @@ class Utils
 		$step = max( 0, min( $step, $steps ) );
 
 		$cent = static::matchCent( $step, $steps );
-		$pos = static::matchCent( $step, $steps, $size );
+		$pos = (int) ceil( $size / 100 * $cent );
 
 		$bar = str_repeat( $chDone, $pos );
 		$bar .= str_repeat( $chFill, $size - $pos );
@@ -1213,9 +1271,12 @@ class Utils
 	/**
 	 * Get procentage/proportional value.
 	 */
-	public static function matchCent( int $item, int $items, int $total = 100 ): int
+	public static function matchCent( int $item, int $items ): int
 	{
-		return intval( ceil( $total / $items * $item ) );
+		$items = max( 0, $items );
+		$item = max( 0, min( $item, $items ) );
+
+		return (int) ceil( 100 / $items * $item );
 	}
 
 	/**
@@ -1231,19 +1292,21 @@ class Utils
 	 */
 	public static function prompt( string $msg = '', string $default = '', string $quit = '' ): string
 	{
-		if ( self::$silent || defined( 'TESTING' ) ) {
+		if ( self::$silent ) {
 			$input = $default;
 		}
 		else {
-			echo $msg;
+			self::print( $msg );
 			$input = self::stdin();
 		}
 
 		if ( $quit && strtoupper( $quit ) === strtoupper( $input ) ) {
 			if ( defined( 'TESTING' ) ) {
-				throw new \LogicException( $msg );
+				$GLOBALS[__METHOD__] = 'exit';
 			}
-			exit( "User exit. Bye!\n" );
+			else {
+				exit( "User exit. Bye!\n" );
+			}
 		}
 
 		return $input;
@@ -1403,6 +1466,11 @@ class Utils
 	/**
 	 * Format time.
 	 *
+	 * IDEA #1:
+	 * $t = round($seconds);
+	 * return sprintf('%02d:%02d:%02d', $t/3600, floor($t/60)%60, $t%60);
+	 * @link https://stackoverflow.com/questions/3534533/output-is-in-seconds-convert-to-hhmmss-format-in-php
+	 *
 	 * @param float $seconds   Time in fractional seconds
 	 * @param int   $precision How many fractional digits? 0 == no fractions part
 	 * @return string Time in format 18394d 16g 11m 41s, 12s, 4.45s, 0.682s
@@ -1469,12 +1537,14 @@ class Utils
 		if ( is_array( $text ) ) {
 			$text = implode( "\n", $text );
 		}
-
-		if ( $text ) {
-			$text .= str_repeat( "\n", $addLines );
+		else {
+			$text = (string) $text;
 		}
 
-		$echo && $text && static::print( $text );
+		if ( $text !== '' ) {
+			$text .= str_repeat( "\n", $addLines );
+			$echo && static::print( $text );
+		}
 
 		return $text;
 	}
