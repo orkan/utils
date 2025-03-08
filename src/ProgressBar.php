@@ -127,7 +127,8 @@ class ProgressBar
 			/* @formatter:off */
 			$line = strtr( $this->format, array_merge([
 				'{bar}'   => $bar['bar'],
-				'{cent}'  => sprintf( '% 3d', $bar['cent'] ),
+				'{cent}'  => $bar['cent'],
+				'{Cent}'  => sprintf( '% 3d', $bar['cent'] ),
 				'{step}'  => $this->step,
 				'{steps}' => $this->steps,
 				'{text}'  => $text,
@@ -145,14 +146,10 @@ class ProgressBar
 		}
 		while ( true );
 
-		$fill = max( 0, $this->last - $len );
-		$line .= str_repeat( ' ', $fill );
 		$this->last = $len;
 
-		if ( defined( 'TESTING' ) ) {
-			throw new \LogicException( $line );
-		}
-
+		$fill = max( 0, $this->last - $len );
+		$line .= str_repeat( ' ', $fill );
 		$this->Utils->print( "$line\r" );
 
 		return true;

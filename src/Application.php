@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '10.1.0';
-	const APP_DATE = 'Fri, 07 Mar 2025 16:00:52 +01:00';
+	const APP_VERSION = '10.1.1';
+	const APP_DATE = 'Sat, 08 Mar 2025 13:36:55 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -567,7 +567,7 @@ class Application
 	}
 
 	/**
-	 * Load post init config and services.
+	 * Load post init config and services before run.
 	 */
 	protected function configure(): void
 	{
