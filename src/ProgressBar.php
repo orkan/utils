@@ -146,10 +146,10 @@ class ProgressBar
 		}
 		while ( true );
 
-		$this->last = $len;
-
 		$fill = max( 0, $this->last - $len );
 		$line .= str_repeat( ' ', $fill );
+
+		$this->last = $len;
 		$this->Utils->print( "$line\r" );
 
 		return true;
