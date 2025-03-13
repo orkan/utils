@@ -1323,6 +1323,10 @@ class Utils
 	/**
 	 * Sleep helper with countdown.
 	 *
+	 * NOTE:
+	 * Long strings (>80 chars) have tendency to overflow CMD window buffer and display line below
+	 * Use self::strCut(), pathCut(), etc...
+	 *
 	 * @param  string $msg String to display, including %d to replace with current seconds
 	 * @return string 1st tokenized string
 	 */

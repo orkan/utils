@@ -91,6 +91,14 @@ class Dataset
 	}
 
 	/**
+	 * Triggered by calling isset() or empty().
+	 */
+	public function __isset( string $key ): bool
+	{
+		return isset( $this->data[$key] );
+	}
+
+	/**
 	 * Setter.
 	 */
 	public function __set( string $key, $value ): void
@@ -116,7 +124,7 @@ class Dataset
 		// Set
 		$last = $this->data[$key] ?? null;
 
-		if ( $last !== $value ) {
+		if ( $last === null || $last !== $value ) {
 			$this->data[$key] = $value;
 			$this->dirty = true;
 		}
