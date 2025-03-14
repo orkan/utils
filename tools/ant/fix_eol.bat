@@ -13,12 +13,9 @@ set COMMAND=ant -DSourceDir="%SOURCE%" -DExcludes="%EXCLUDES%" -DIncludes="%INCL
 
 REM Run: -----------------------------------------------
 echo.
-cmd /c %COMMAND%
+cmd /C %COMMAND%
 
 REM ----------------------------------------------------
 :end
-if "%EXTRAS%" == "nowait" (
-	exit /b
-) else (
-	pause
-)
+if "%EXTRAS%" NEQ "nowait" pause
+exit /B %ERRORLEVEL%

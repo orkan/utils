@@ -11,11 +11,9 @@ set COMMAND=ant -DTargetDir = %TARGET% -f %BUILDFILE%
 REM -----------------------------------------------------------
 
 echo.
-cmd /c %COMMAND%
+cmd /C %COMMAND%
 
 REM -----------------------------------------------------------
-if "nowait" == "%EXTRAS%" (
-	exit /b
-) else (
-	pause
-)
+:end
+if "%EXTRAS%" NEQ "nowait" pause
+exit /B %ERRORLEVEL%

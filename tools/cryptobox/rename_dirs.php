@@ -25,17 +25,17 @@ foreach ( $Dir as $Item ) {
 		continue;
 	}
 
-	$name = $Item->getFilename();
+	$varName = $Item->getFilename();
 
-	if ( !preg_match( '~^\[TS\]~', $name ) ) {
+	if ( !preg_match( '~^\[TS\]~', $varName ) ) {
 		continue; // not a DVR dir!
 	}
 
-	$name = substr( $name, 4 ); // remove "[TS]..." prefix
+	$varName = substr( $varName, 4 ); // remove "[TS]..." prefix
 
 	// Extract channel, programme, time
 	$parts = [];
-	preg_match( '~(.+)\[(.+)\]+~', $name, $parts );
+	preg_match( '~(.+)\[(.+)\]+~', $varName, $parts );
 	$tmp = $parts[2];
 	$parts[2] = substr( $tmp, 0, -20 ); // Program name
 	$parts[3] = substr( $tmp, -19 ); // Time

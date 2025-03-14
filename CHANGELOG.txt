@@ -1,4 +1,12 @@
 ===================================================================================================
+v10.2.0
+
+Updated methods:
+---------------
+Utils::phpMemoryMax() - Now uses PHP memory_get_peak_usage(). 
+                        No need for multiple invocations to save current usage.
+
+===================================================================================================
 v10.1.0
 
 Updated methods:

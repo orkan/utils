@@ -27,7 +27,6 @@ class Utils
 	 * @see Utils::setup()
 	 */
 	protected static $execTime = 0;
-	protected static $maxMemory = 0;
 	protected static $timeZone = 'UTC'; // see: __construct() > date_default_timezone_get()
 	protected static $dateFormat = 'Y-m-d H:i:s';
 	protected static $strLocale = 'en_US';
@@ -1101,8 +1100,7 @@ class Utils
 	 */
 	public static function phpMemoryMax( string $format = 'Memory: %s' ): string
 	{
-		static::$maxMemory = max( memory_get_usage(), static::$maxMemory );
-		return sprintf( $format, static::byteString( static::$maxMemory ) );
+		return sprintf( $format, static::byteString( memory_get_peak_usage( true ) ) );
 	}
 
 	/**
