@@ -805,31 +805,51 @@ class Utils
 	}
 
 	/**
-	 * Keep last n files in dir.
+	 * Keep exact number of files in dir.
 	 *
 	 * @param  string $mask Filename wildcard
 	 * @param  int    $keep How many files to keep?
 	 * @param  bool   $last Keep last (true) or first (false) files?
-	 * @return array Deleted (rotated) files
+	 * @return array  Rotated files
 	 */
-	public static function filesRotate( string $mask, int $keep, bool $last = true ): array
+	public static function filesRotateCount( string $mask, int $keep, bool $last = true ): array
 	{
 		$files = glob( $mask );
 		$order = $last ? -1 : 1;
-		$rotated = [];
+		$out = [];
 
 		if ( $keep < count( $files ) ) {
 			usort( $files, function ( $a, $b ) use ($order ) {
 				return strcmp( $a, $b ) * $order;
 			} );
-			foreach ( array_slice( $files, $keep ) as $file ) {
-				if ( is_writable( $file ) && @unlink( $file ) ) {
-					$rotated[] = $file;
-				}
+			foreach ( array_slice( $files, $keep ) as $f ) {
+				@unlink( $f ) && $out[] = $f;
 			}
 		}
 
-		return $rotated;
+		return $out;
+	}
+
+	/**
+	 * Keep n last modified files in dir.
+	 *
+	 * @param  string     $mask Filename wildcard
+	 * @param  int|string $keep Time interval
+	 * @return array      Rotated files
+	 */
+	public static function filesRotateLast( string $mask, $keep ): array
+	{
+		$files = glob( $mask );
+		is_string( $keep ) && $keep = strtotime( $keep ) - time();
+		$out = [];
+
+		foreach ( $files as $f ) {
+			if ( filemtime( $f ) < $keep ) {
+				@unlink( $f ) && $out[] = $f;
+			}
+		}
+
+		return $out;
 	}
 
 	/**
