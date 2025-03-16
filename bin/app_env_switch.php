@@ -11,7 +11,7 @@ require $GLOBALS['_composer_autoload_path'] ?? $_ENV['COMPOSER_AUTOLOAD'];
 /* @formatter:off */
 $Factory = new Factory([
 	'app_title'   => 'Environment Switch',
-	'app_usage'   => sprintf( '%s --env <env name> --loc [home dir] [options]', basename( __FILE__ ) ),
+	'app_usage'   => sprintf( '%s [OPTIONS] --env <env name> --loc [home dir]', basename( __FILE__ ) ),
 	'app_opts'    => [
 		'env'    => [ 'short' => 'e:', 'long' => 'env:'   , 'desc' => 'Environment name' ],
 		'loc'    => [ 'short' => 'l:', 'long' => 'loc:'   , 'desc' => 'Home dir. Default: current dir' ],

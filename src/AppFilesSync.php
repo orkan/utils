@@ -13,8 +13,8 @@ namespace Orkan;
 class AppFilesSync extends Application
 {
 	const APP_NAME = 'Copy files with priority, shuffle and size limit';
-	const APP_VERSION = '11.0.0';
-	const APP_DATE = 'Sat, 15 Mar 2025 03:40:17 +01:00';
+	const APP_VERSION = '11.0.1';
+	const APP_DATE = 'Sun, 16 Mar 2025 05:38:01 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Speed&t=File-Sync
@@ -87,7 +87,7 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 		return [
 			// App
 			'app_title'   => 'Files Sync',
-			'app_usage'   => 'vendor/bin/ork-files-sync [options]',
+			'app_usage'   => 'vendor/bin/ork-files-sync [OPTIONS]',
 			'app_opts'    => [
 				'config' => [ 'short' => 'c:', 'long' => 'config:', 'desc' => 'Configuration file' ],
 			],

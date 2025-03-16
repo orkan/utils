@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '11.0.0';
-	const APP_DATE = 'Sat, 15 Mar 2025 03:40:17 +01:00';
+	const APP_VERSION = '11.0.1';
+	const APP_DATE = 'Sun, 16 Mar 2025 05:38:01 +01:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -183,7 +183,7 @@ class Application
 			'app_title'      => static::APP_NAME,
 			'app_welcome'    => '{title} — {name} v{version}',
 			'app_opts'       => static::ARGUMENTS,
-			'app_usage'      => 'vendor/bin/app [options]',
+			'app_usage'      => 'vendor/bin/app [OPTIONS]',
 			'app_timezone'   => getenv( 'APP_TIMEZONE' ) ?: date_default_timezone_get(),
 			'app_gc'         => getenv( 'APP_GC' ) ?: false,
 			'app_locale'     => getenv( 'APP_LOCALE' ) ?: 'en_US',
@@ -561,8 +561,8 @@ class Application
 		}
 		if ( $this->Logger->is( 'DEBUG' ) ) {
 			$this->Logger->debug( 'CMD: ' . implode( ' ', $GLOBALS['argv'] ) );
-			$this->Logger->debug( 'ARGS: ' . $this->Utils->print_r( $this->getArg() ) );
-			$this->Logger->debug( $this->Utils->print_r( $this->Factory->cfg() ) );
+			DEBUG && $this->Logger->debug( 'ARGS: ' . $this->Utils->print_r( $this->getArg() ) );
+			DEBUG && $this->Logger->debug( $this->Utils->print_r( $this->Factory->cfg() ) );
 		}
 	}
 

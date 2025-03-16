@@ -44,18 +44,18 @@ class Logger
 	 * 	 [message] => (string) Record
 	 * 	), (...)
 	 */
-	private $history = [];
+	protected $history = [];
 
 	/**
 	 * Is Monolog installed?
 	 */
-	private static $isMonolog = true;
+	protected static $isMonolog = true;
 
 	/**
 	 * Services:
 	 */
-	private $Factory;
-	private $Logger;
+	protected $Factory;
+	protected $Logger;
 
 	/**
 	 * Build Factory Logger.
@@ -317,6 +317,19 @@ class Logger
 	}
 
 	/**
+	 * Help print text.
+	 */
+	protected function print( $s ): void
+	{
+		if ( defined( 'TESTING' ) ) {
+			$GLOBALS[__METHOD__] = $s;
+		}
+		else {
+			echo $s . "\n";
+		}
+	}
+
+	/**
 	 * Add a log record.
 	 *
 	 * @param int $backtrace Add backtrace info in DEBUG mode. -1: OFF
@@ -330,10 +343,7 @@ class Logger
 
 		// Echo?
 		if ( self::isHandling( $this->Factory->get( 'log_verbose' ), $level ) ) {
-			if ( defined( 'TESTING' ) ) {
-				throw new \LogicException( $message );
-			}
-			echo $message . "\n";
+			$this->print( $message );
 		}
 
 		// Add to log file?
