@@ -840,7 +840,8 @@ class Utils
 	public static function filesRotateLast( string $mask, $keep ): array
 	{
 		$files = glob( $mask );
-		is_string( $keep ) && $keep = strtotime( $keep ) - time();
+		is_string( $keep ) && $keep = strtotime( $keep, 0 );
+		$keep = time() - $keep;
 		$out = [];
 
 		foreach ( $files as $f ) {
@@ -1335,7 +1336,12 @@ class Utils
 	 */
 	public static function usleep( int $usec ): void
 	{
-		!defined( 'TESTING' ) && usleep( $usec );
+		if ( defined( 'TESTING' ) ) {
+			$GLOBALS[__METHOD__] = $usec;
+		}
+		else {
+			usleep( $usec );
+		}
 	}
 
 	/**
