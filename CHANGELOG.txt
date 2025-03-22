@@ -108,7 +108,7 @@ Factory::cmdTitle()        > Application::cmdTitle()
 Updated methods:
 ---------------
 Factory::cmdTitle(format = '%cmdTitle%', ...) > (format = '{cmd_title}', ...)
-Factory::log(,,tokens = [])                   > log(,, array tokens = []) --> use [{bar}] for ruler length
+Factory::log(,,tokens = [])                   > log(,,tokens = []) --> use [{bar}] for ruler length
 Utils::exceptionPrint($E, $log, $dirUp)       > exceptionPrint($E) --> use Utils::$errDirUp, Utils::$errLog
 Utils::exceptionHandler($E, $log)             > exceptionHandler($E) --> use Utils::$errLog
 Utils::exceptionPrint($E, $log)               > exceptionPrint($E) --> use Utils::$errLog

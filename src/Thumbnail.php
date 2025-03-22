@@ -644,6 +644,7 @@ class Thumbnail
 		foreach ( $images as $image ) {
 			if ( $Img = @imageCreateFromPng( $image ) ) {
 				header( 'Content-type: image/png' );
+				header( 'ETag: default-' . time() );
 				imagePng( $Img );
 				return;
 			}
@@ -688,6 +689,19 @@ class Thumbnail
 	/**
 	 * Send image headers.
 	 *
+	 * [Pragma]
+	 * Deprecated: This feature is no longer recommended
+	 *
+	 * [Cache-Control]
+	 * Behavior is the same as Cache-Control: no-cache if the Cache-Control header field is omitted in a request
+	 *
+	 * [Etag]
+	 * Entity tag response header is an identifier for a specific version of a resource.
+	 *
+	 * [Last-Modified]
+	 * It is less accurate than an ETag for determining file contents,
+	 * but can be used as a fallback mechanism if ETags are unavailable.
+	 *
 	 * [Expires]
 	 * CAUTION: It keeps the photo in browsers cache even after it has been modified on the server!
 	 */
@@ -696,11 +710,10 @@ class Thumbnail
 		/* @formatter:off */
 		$headers = array_merge( [
 			'Content-type'   => 'image/jpeg',
-			'Etag'           => sprintf( '"%s-%s"', $this->idx(), $this->type() ),
-			'Last-Modified'  => date( $this->get('date_format') ), // default. @see self:::send()
+			'ETag'           => sprintf( '"%s-%s"', $this->idx(), $this->type() ),
+			'Last-Modified'  => date( DATE_RFC7231 ), // default. @see self:::send()
 			//'Expires'      => date( $this->get('date_format'), time() + $this->get('max_age') ),
 			'Cache-Control'  => 'max-age=' . $this->get('max_age'),
-			'Pragma'         => 'public',
 			'Connection'     => 'close',
 		], $headers );
 		/* @formatter:on */

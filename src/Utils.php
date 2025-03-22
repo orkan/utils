@@ -198,9 +198,6 @@ class Utils
 
 		$Collator = collator_create( $opt['locale'] );
 		collator_set_strength( $Collator, $opt['strength'] );
-// 		collator_set_attribute($Collator, \Collator::NORMALIZATION_MODE, \Collator::ON);
-// 		collator_set_attribute($Collator, \Collator::NUMERIC_COLLATION, \Collator::ON);
-
 		collator_asort( $Collator, $arr, $opt['flags'] );
 	}
 
@@ -373,6 +370,39 @@ class Utils
 	}
 
 	/**
+	 * Convert date interval to seconds.
+	 */
+	public static function dateDuration( $interval ): int
+	{
+		if ( is_numeric( $interval ) ) {
+			return (int) $interval;
+		}
+
+		// Use defined date, eg. 1970-01-01 as a starting point to prevent unknown date fluctuation
+		// that may affect final interval computation, like summer time changes etc...
+		return strtotime( $interval, 0 );
+	}
+
+	/**
+	 * Format date.
+	 */
+	public static function dateString( ?float $timestamp = null, string $format = '', string $zone = '' ): string
+	{
+		$timestamp = $timestamp ?? time();
+
+		// Remove fractions from timestamp eg. 1588365133[974]
+		if ( strlen( $timestamp ) > $len = strlen( time() ) ) {
+			$timestamp = substr( $timestamp, 0, $len );
+		}
+
+		$Dt = new \DateTime();
+		$Dt->setTimestamp( $timestamp );
+		$Dt->setTimezone( new \DateTimeZone( $zone ?: self::$timeZone ) );
+
+		return $Dt->format( $format ?: self::$dateFormat );
+	}
+
+	/**
 	 * Format diff timestamps with timezone.
 	 *
 	 * @link https://www.php.net/manual/en/datetime.diff.php
@@ -414,25 +444,6 @@ class Utils
 		}
 
 		return $out;
-	}
-
-	/**
-	 * Format date.
-	 */
-	public static function dateString( ?float $timestamp = null, string $format = '', string $zone = '' ): string
-	{
-		$timestamp = $timestamp ?? time();
-
-		// Remove fractions from timestamp eg. 1588365133[974]
-		if ( strlen( $timestamp ) > $len = strlen( time() ) ) {
-			$timestamp = substr( $timestamp, 0, $len );
-		}
-
-		$Dt = new \DateTime();
-		$Dt->setTimestamp( $timestamp );
-		$Dt->setTimezone( new \DateTimeZone( $zone ?: self::$timeZone ) );
-
-		return $Dt->format( $format ?: self::$dateFormat );
 	}
 
 	/**
@@ -840,7 +851,7 @@ class Utils
 	public static function filesRotateLast( string $mask, $keep ): array
 	{
 		$files = glob( $mask );
-		is_string( $keep ) && $keep = strtotime( $keep, 0 );
+		$keep = static::dateDuration( $keep );
 		$keep = time() - $keep;
 		$out = [];
 

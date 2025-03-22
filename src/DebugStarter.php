@@ -30,40 +30,49 @@ class DebugStarter
 	public static function getHelp()
 	{
 		/* @formatter:off */
-		return sprintf(
+		return strtr(
 			<<<'EOT'
-			%1$s
-			%2$s - %3$s
-			Loaded: %5$s [<a href="%6$s">refresh</a>]
+			{logo}
+			{name} - {desc}
+			Loaded: {date} [<a href="{query}">refresh</a>]
 			
 			Usage:
-				%4$s[?switch=1&switch=1&etc=...]
+				{url}[?switch=1&switch=1&etc=...]
 			Switches:
-				Clear Apache error log   <a href="?clearlog_sapi=1">clearlog_sapi=1</a>
+				Clear Server error log   <a href="?clearlog_sapi=1">clearlog_sapi=1</a>
 				Clear PHP CLI error log  <a href="?clearlog_cli=1">clearlog_cli=1</a>
 				Print $_SERVER array     <a href="?server_info=1">server_info=1</a>
 				Print phpinfo()          <a href="?php_info=1">php_info=1</a>
 			EOT
-			,
-			/*1*/ self::$logo,
-			/*2*/ self::APP_NAME,
-			/*3*/ self::APP_DESC,
-			/*4*/ self::getUrl(),
-			/*5*/ Utils::dateString(),
-			/*6*/ $_SERVER['PHP_SELF'] . ( isset( $_SERVER['QUERY_STRING'] ) ? '?' . $_SERVER['QUERY_STRING'] : '' ),
-		);
+			, [
+			'{logo}'  => self::$logo,
+			'{name}'  => self::APP_NAME,
+			'{desc}'  => self::APP_DESC,
+			'{url}'   => self::getUrl(),
+			'{date}'  => Utils::dateString(),
+			'{query}' => $_SERVER['PHP_SELF'] . ( isset( $_SERVER['QUERY_STRING'] ) ? '?' . $_SERVER['QUERY_STRING'] : '' ),
+		]);
 		/* @formatter:on */
 	}
 
 	public static function getUrl()
 	{
 		/* @formatter:off */
-		return sprintf( '%1$s://%2$s%3$s',
-			/*1*/ $_SERVER['REQUEST_SCHEME'] ?? 'http',
-			/*2*/ $_SERVER['HTTP_HOST'],
-			/*3*/ $_SERVER['SCRIPT_NAME'],
-		);
+		return strtr( '{scheme}://{host}{file}', [
+			'{scheme}' => static::getUrlScheme(),
+			'{host}'   => $_SERVER['HTTP_HOST'],
+			'{file}'   => $_SERVER['SCRIPT_NAME'],
+		]);
 		/* @formatter:on */
+	}
+
+	public static function getUrlScheme()
+	{
+		$isHttps = false;
+		$isHttps |= isset( $_SERVER['REQUEST_SCHEME'] ) && $_SERVER['REQUEST_SCHEME'] === 'https';
+		$isHttps |= isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] === 'on';
+		$isHttps |= isset( $_SERVER['SERVER_PORT'] ) && $_SERVER['SERVER_PORT'] === '443';
+		return $isHttps ? 'https' : 'http';
 	}
 
 	public static function run( $timeZone = 'UTC', $dateFormat = DATE_RFC822 )
@@ -72,14 +81,14 @@ class DebugStarter
 
 		$switches = [];
 		parse_str( $_SERVER['QUERY_STRING'] ?? '', $switches );
-		$logMsg = sprintf( "[%s] [%s] Log cleared by: %s\n", date( 'Y-m-d H:i:s' ), DebugStarter::APP_NAME, DebugStarter::getUrl() );
+		$logMsg = sprintf( "[%s] [%s] Log cleared by: %s\n", date( 'Y-m-d H:i:s' ), static::APP_NAME, static::getUrl() );
 
 		echo '<pre>';
-		echo DebugStarter::getHelp();
+		echo static::getHelp();
 		echo "\n\n";
 
 		if ( $switches['clearlog_sapi'] ?? false) {
-			echo 'Clear Apache error log: ';
+			echo 'Clear Server error log: ';
 			if ( false !== file_put_contents( $log = ini_get( 'error_log' ), $logMsg ) ) {
 				echo "$log - Done!\n";
 			}
