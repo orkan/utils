@@ -28,6 +28,11 @@ class Thumbnail
 	const TYPE_ORIG = 'orig';
 	const TYPE_FULL = '9999';
 
+	/*
+	 * Constant name holding path to static config file.
+	 */
+	const THUMBNAIL_CFG = 'ORKAN_THUMBNAIL_CFG';
+
 	/**
 	 * Thumbnail id.
 	 * A numeric key representing thumb file in cache dir.
@@ -57,6 +62,12 @@ class Thumbnail
 	 */
 	protected static $Instance;
 
+	/**
+	 * Errors holder, whenever throwing exception is unavailable, eg. in constructor.
+	 * @see Thumbnail::errors()
+	 */
+	protected $errors = [];
+
 	/* @formatter:off */
 
 	/**
@@ -84,19 +95,42 @@ class Thumbnail
 	 * Available options and constants:
 	 * @see Thumbnail::defaults()
 	 *
-	 * @param string $idx  Thumbnail id. Use NULL to auto import from GET.
-	 * @param string $type Thumbnail sub-dir. Use NULL to auto import from GET.
+	 * @param string|null $idx  Thumbnail id. Use NULL to auto import from GET.
+	 * @param string|null $type Thumbnail sub-dir. Use NULL to auto import from GET.
 	 */
 	public function __construct( ?string $idx = '', ?string $type = '', array $cfg = [] )
 	{
-		try {
-			$this->cfg = $cfg;
-			$this->merge( self::config() )->merge( self::defaults() );
+		$exceptions = [];
+		$this->cfg = $cfg;
+		$this->merge( self::defaults() );
 
-			$this->idx = null === $idx ? self::import( 'idx', 0 ) : $idx;
-			$this->type( '' === $type ? $this->get( 'th_default' ) : $type );
+		try {
+			$this->merge( self::config(), true );
 		}
 		catch ( \Throwable $E ) {
+			$exceptions[] = $E;
+		}
+
+		if ( !is_dir( $dir = $this->get( 'dir_upload' ) ) ) {
+			$exceptions[] = new \InvalidArgumentException( "Upload dir [$dir] not found" );
+		}
+
+		try {
+			$this->idx = null === $idx ? self::import( 'idx', 0 ) : $idx;
+		}
+		catch ( \Throwable $E ) {
+			$exceptions[] = $E;
+		}
+
+		try {
+			$this->type( $type );
+		}
+		catch ( \Throwable $E ) {
+			$exceptions[] = $E;
+		}
+
+		foreach ( $exceptions as $E ) {
+			$this->errors[] = $E->getMessage();
 			self::logException( $E ); // No exit!
 		}
 	}
@@ -126,6 +160,12 @@ class Thumbnail
 	 *
 	 * [is_temporary]
 	 * Skeep cache dir and force create new thumbnail
+	 *
+	 * [dir_upload]
+	 * Main dir holding thumbnail subdirs
+	 *
+	 * [dir_assets]
+	 * Dir holding "default image" in none found in "type" subdir, copybar font, etc...
 	 *
 	 * [orig_keep]
 	 * Save orig image resource for later use.
@@ -257,11 +297,14 @@ class Thumbnail
 	 */
 	protected static function configFile(): string
 	{
-		/*
-		 * PHPUnit Exception if not defined!
-		 * return @constant( 'ORKAN_THUMBNAIL_CFG' );
-		 */
-		return defined( 'ORKAN_THUMBNAIL_CFG' ) ? ORKAN_THUMBNAIL_CFG : '';
+		$name = static::THUMBNAIL_CFG;
+		$file = @constant( $name );
+
+		if ( !$file ) {
+			throw new \RuntimeException( "$name: constant missing" );
+		}
+
+		return $file;
 	}
 
 	/**
@@ -283,13 +326,13 @@ class Thumbnail
 	 * @link https://stackoverflow.com/questions/48858210/does-phps-require-function-cache-its-results-in-php-5-6
 	 *
 	 * @param  array $cfg Config to write or leave empty to read from file
-	 * @return array      Config from file
+	 * @return array Config from file
 	 */
-	public static function config( array $cfg = [] ): array
+	public static function config( ?array $cfg = null ): array
 	{
 		$file = self::configFile();
 
-		if ( !$cfg ) {
+		if ( null === $cfg ) {
 			return is_file( $file ) ? json_decode( file_get_contents( $file ), true ) : [];
 		}
 
@@ -307,16 +350,20 @@ class Thumbnail
 	/**
 	 * Get/Set thumb type.
 	 *
-	 * @param string|null $type Subdir name eg. 400|9999|orig or null to import type from GET
+	 * @param string|null $type Subdir name eg. 400|9999|orig or NULL to import type from GET
 	 */
 	public function type( ?string $type = '' ): string
 	{
-		if ( ( '' === $type || $this->type === $type ) && $this->type ) {
+		if ( $this->type && ( '' === $type || $this->type === $type ) ) {
 			return $this->type;
 		}
 
 		if ( null === $type ) {
-			$type = self::import( 'type', $this->get( 'th_default' ) );
+			$type = self::import( 'type' );
+		}
+
+		if ( !$type ) {
+			$type = $this->get( 'th_default' );
 		}
 
 		if ( self::TYPE_ORIG === $type ) {
@@ -334,7 +381,7 @@ class Thumbnail
 		// Fall back to defautl type on error
 		if ( !is_dir( $dir = $this->pathType( $type ) ) ) {
 			$this->type = $this->get( 'th_default' );
-			throw new \InvalidArgumentException( sprintf( 'Missing type [%s] subdir "%s"', $type, $dir ) );
+			throw new \InvalidArgumentException( "Subdir [$dir] not found for type [$type]" );
 		}
 
 		return $this->type;
@@ -442,7 +489,7 @@ class Thumbnail
 	/**
 	 * Import var from URL.
 	 */
-	public static function import( string $name, string $default = '' ): string
+	public static function import( string $name, string $default = '' ): ?string
 	{
 		$m = [];
 
@@ -458,6 +505,8 @@ class Thumbnail
 				preg_match( '~\d+|\w{2,43}~', $_GET[$name] ?? '', $m );
 				return $m[0] ?? $default;
 		}
+
+		return null;
 	}
 
 	/**
@@ -584,6 +633,7 @@ class Thumbnail
 			$sort && asort( $types, SORT_NUMERIC );
 		}
 		catch ( \Throwable $E ) {
+			$E = new \RuntimeException( 'Upload dir: ' . $E->getMessage(), $E->getCode(), $E );
 			self::exceptionHandler( $E );
 		}
 
@@ -1410,6 +1460,17 @@ class Thumbnail
 	{
 		!$this->cache['exif'] && $this->origGet();
 		return $this->cache['exif'];
+	}
+
+	/**
+	 * Get latest errors, that can't use throw.
+	 */
+	public function errors(): array
+	{
+		$err = $this->errors;
+		$this->errors = [];
+
+		return $err;
 	}
 
 	/**

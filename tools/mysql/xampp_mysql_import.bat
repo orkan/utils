@@ -3,7 +3,7 @@ setlocal
 
 echo ***************************************************
 echo   XAMPP MySQL import script
-echo   Usage: %~f0 ^<database^> ^<sql file^>
+echo   Usage: %~nx0 ^<database^> ^<sql file^>
 echo ***************************************************
 echo.
 

@@ -1221,7 +1221,7 @@ class Input
 	 * ENT_HTML401 - I.e. single quotes to &#039; (Default)
 	 * ENT_HTML5   - I.e. single quotes to &apos;
 	 */
-	public static function escAttr( string $text, int $flags = ENT_QUOTES | ENT_HTML5 ): string
+	public static function escAttr( ?string $text = '', int $flags = ENT_QUOTES | ENT_HTML5 ): string
 	{
 		$text = htmlspecialchars( $text, $flags );
 		return $text;
@@ -1232,7 +1232,7 @@ class Input
 	 *
 	 * @param int $flags @see Input::escAttr()
 	 */
-	public static function escHtml( string $text, int $flags = ENT_QUOTES | ENT_HTML5 ): string
+	public static function escHtml( ?string $text = '', int $flags = ENT_QUOTES | ENT_HTML5 ): string
 	{
 		$text = htmlentities( $text, $flags );
 		return $text;
