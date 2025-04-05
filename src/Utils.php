@@ -1470,6 +1470,26 @@ class Utils
 	}
 
 	/**
+	 * Remove non-printable chars, fix spaces, etc.
+	 */
+	public static function strFix( string $str, int $len = 100 ): string
+	{
+		/* @formatter:off */
+		$preg = [
+			'~[^[:print:]]~u' => ' ', // Non-printable chars
+			'~ ~'             => ' ', // Non-breaking space (U+C2A0)
+			'~[ ]+~'          => ' ', // Double spaces
+		];
+		/* @formatter:on */
+
+		$str = preg_replace( array_keys( $preg ), $preg, $str );
+		$str = trim( $str );
+		$len && $str = substr( $str, 0, $len );
+
+		return $str;
+	}
+
+	/**
 	 * String slugiffy.
 	 * Based on Symfony Jobeet tutorial.
 	 *

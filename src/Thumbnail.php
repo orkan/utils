@@ -1475,7 +1475,6 @@ class Thumbnail
 
 	/**
 	 * Log exception to PHP error log.
-	 * @todo Send admin email
 	 */
 	public static function logException( \Throwable $E ): void
 	{

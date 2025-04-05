@@ -207,14 +207,4 @@ class ProgressBar
 			throw new \InvalidArgumentException( sprintf( 'Bar format "%s" not found. Check cfg[%s]', $format ) );
 		}
 	}
-
-	/**
-	 * Get extra progress info.
-	 *
-	 * @return ProgressStats
-	 */
-	public function Stats()
-	{
-		return $this->Stats;
-	}
 }
