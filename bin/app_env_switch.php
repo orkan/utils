@@ -26,7 +26,7 @@ $Factory = new Factory([
 /* @formatter:on */
 
 $App = new Application( $Factory );
-$App->loadUserConfig( 'config' );
+$App->cfgLoad( 'config' );
 $App->run();
 $Utils = $Factory->Utils();
 

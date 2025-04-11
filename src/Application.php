@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '11.4.0';
-	const APP_DATE = 'Sat, 05 Apr 2025 17:30:05 +02:00';
+	const APP_VERSION = '12.0.0';
+	const APP_DATE = 'Fri, 11 Apr 2025 17:35:49 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -145,6 +145,15 @@ class Application
 		 * [app_php_ext]
 		 * Required PHP extensions: Array ( [extension_name] => (bool) verify, ... )
 		 *
+		 * [cfg_user]
+		 * Full file path to required user config
+		 *
+		 * [cfg_name]
+		 * Short version of cfg[cfg_user]
+		 *
+		 * [cfg_slug]
+		 * Slugified version of cfg[cfg_name], eg. to generate file names related to current config
+		 *
 		 * -------------------------------------------------------------------------------------------------------------
 		 * PHP INI: Prepare for CLI
 		 * @link https://www.php.net/manual/en/errorfunc.configuration.php
@@ -190,6 +199,9 @@ class Application
 			'app_dryrun'     => false,
 			'app_err_handle' => true,
 			'app_exc_handle' => true,
+			'cfg_user'       => 'Factory config',
+			'cfg_name'       => 'Factory config',
+			'cfg_slug'       => 'factory-config',
 			// Utils
 			'app_date_time'  => 'Y-m-d H:i:s',
 			'app_date_short' => 'Y-m-d',
@@ -220,21 +232,24 @@ class Application
 	 * CAUTION:
 	 * An unknown switch leads PHP::getopt() to stop parsing following arguments!
 	 *
-	 * @param string $arg Argument key. See cfg[app_opts][{key}]
-	 * @return string|null Config file location or null if argument wasn't present
+	 * @param  string      $key Cmd line arg. See cfg[app_opts]
+	 * @return string|null Supplied user config file
 	 */
-	public function loadUserConfig( string $arg = '' ): ?string
+	public function cfgLoad( string $key = '' ): ?string
 	{
-		if ( $arg ) {
-			$file = $this->getArg( $arg );
+		if ( $key ) {
+			$file = $this->getArg( $key );
 		}
 		else {
 			$file = $this->Utils->cmdLastArg();
 		}
 
 		if ( $file ) {
-			$this->Factory->merge( require $file, true );
-			$this->Factory->cfg( 'cfg_user', realpath( $file ) );
+			$cfg = require $file;
+			$cfg['cfg_user'] = realpath( $file );
+			$cfg['cfg_name'] = basename( $file );
+			$cfg['cfg_slug'] = $this->Utils->strSlug( $cfg['cfg_name'] );
+			$this->Factory->merge( $cfg, true );
 		}
 
 		return $file;
@@ -304,6 +319,10 @@ class Application
 	{
 		if ( !$appOpts = $this->Factory->get( 'app_opts' ) ) {
 			return null;
+		}
+
+		if ( defined( 'TESTING' ) ) {
+			return $GLOBALS[__METHOD__][$name] ?? null;
 		}
 
 		if ( !$cmdOpts = $this->Factory->get( 'cmd_opts' ) ) {

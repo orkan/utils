@@ -79,11 +79,31 @@ class Utils
 	 */
 
 	/**
+	 * Find all duplicated values.
+	 *
+	 * @param  array $arr Array( "value1", "value1", "value2", ...  )
+	 * @return array Array( [value1] => 2, ... )
+	 */
+	public static function arrayDup( array $arr ): array
+	{
+		$dup = [];
+		foreach ( $arr as $key ) {
+			static::arrayInc( $dup, $key );
+		}
+
+		$dup = array_filter( $dup, function ( $i ) {
+			return $i > 1;
+		} );
+
+		return $dup;
+	}
+
+	/**
 	 * Flatten multi-dimensional array.
 	 */
-	public static function arrayFlat( array $a ): array
+	public static function arrayFlat( array $arr ): array
 	{
-		return iterator_to_array( new \RecursiveIteratorIterator( new \RecursiveArrayIterator( $a ) ), false );
+		return iterator_to_array( new \RecursiveIteratorIterator( new \RecursiveArrayIterator( $arr ) ), false );
 	}
 
 	/**
@@ -98,7 +118,7 @@ class Utils
 	/**
 	 * Increment array element.
 	 */
-	public static function arrayInc( &$arr, $key )
+	public static function arrayInc( array &$arr, $key )
 	{
 		$arr[$key] = isset( $arr[$key] ) ? $arr[$key] + 1 : 1;
 	}
