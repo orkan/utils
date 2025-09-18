@@ -16,12 +16,13 @@ $Logger = $Factory->Logger();
 $Logger->info( '' );
 $Logger->info( "====================================================================================================" );
 $Logger->info( $App->getWelcome() );
+$Logger->info( sprintf( 'Sync: "%s"', $Factory->get( 'sync_dir_out' ) ) );
 DEBUG && $Logger->info( 'Config: ' . $Factory->get( 'cfg_user' ) );
 $Logger->info( "====================================================================================================" );
 $App->run();
 $Logger->info( "====================================================================================================" );
 $Logger->info( $App->getWelcome( 'APP: {title} v{version}' ) );
-$Logger->info( implode( '. ', $Utils->phpSummary() ) );
+$Logger->info( 'PHP: ' . implode( '. ', $Utils->phpSummary() ) );
 $Logger->info( 'Bye!' );
 
 $Utils->writeln( implode( "\n", $Logger->getHistoryLogs() ) );

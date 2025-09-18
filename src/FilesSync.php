@@ -78,7 +78,10 @@ class FilesSync
 		$this->Logger = $Factory->Logger();
 		$this->Loggex = $Factory->Loggex();
 
-		if ( !$this->dir = realpath( $dir = $Factory->get( 'sync_dir_out' ) ) ) {
+		if ( !$dir = $Factory->get( 'sync_dir_out' ) ) {
+			throw new \RuntimeException( 'Output dir not defined! Check cfg[sync_dir_out]' );
+		}
+		if ( !$this->dir = realpath( $dir ) ) {
 			throw new \RuntimeException( sprintf( 'Output dir not found: "%s". Check cfg[sync_dir_out]', $dir ) );
 		}
 

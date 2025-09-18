@@ -488,6 +488,14 @@ class Utils
 	 */
 	public static function dirCopy( string $src, string $dst ): ?string
 	{
+		if ( !$src ) {
+			throw new \InvalidArgumentException( __FUNCTION__ . ': Empty [src] path!' );
+		}
+
+		if ( !$dst ) {
+			throw new \InvalidArgumentException( __FUNCTION__ . ': Empty [dst] path!' );
+		}
+
 		$cmd = defined( 'PHP_WINDOWS_VERSION_BUILD' ) ? 'xcopy /E  "%s" "%s"' : 'cp -R "%s" "%s"';
 		$cmd = sprintf( $cmd, realpath( $src ), realpath( $dst ) );
 
@@ -499,6 +507,10 @@ class Utils
 	 */
 	public static function dirRemove( string $dir ): bool
 	{
+		if ( !$dir ) {
+			throw new \InvalidArgumentException( __FUNCTION__ . ': Empty [dir] path!' );
+		}
+
 		if ( $abs = realpath( $dir ) ) {
 			$cmd = defined( 'PHP_WINDOWS_VERSION_BUILD' ) ? 'rmdir /S /Q "%s"' : 'rm -rf "%s"';
 			$cmd = sprintf( $cmd, $abs );
@@ -518,6 +530,10 @@ class Utils
 	 */
 	public static function dirScan( string $dir, ?string $regex = null, int $depth = -1 ): array
 	{
+		if ( !$dir ) {
+			throw new \InvalidArgumentException( __FUNCTION__ . ': Empty [dir] path!' );
+		}
+
 		$Directory = new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS );
 		$Iterator = new \RecursiveIteratorIterator( $Directory );
 		$Iterator->setMaxDepth( $depth );

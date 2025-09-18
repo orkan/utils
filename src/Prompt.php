@@ -19,13 +19,14 @@ class Prompt
 	 * Config value prefixes.
 	 *
 	 * Use as cfg[key]: "{prefix}value"
-	 * Examples:
+	 * <pre>
 	 * "*"      -> returns empty value, no user prompt
 	 * "?"      -> always prompt user
 	 * "?123"   -> always prompt user, return 123 if no value provided
 	 * "*123"   -> does nothing for numeric values, same as "123"
 	 * "?a/b/c" -> returns "a/b/c" only if path exists, otherwise propmt user again
 	 * "*a/b/c" -> returns "a/b/c" even if path does not exist
+	 * </pre>
 	 */
 	const MODES = [
 		'*', // value is not required, can be empty or invalid path
@@ -39,6 +40,7 @@ class Prompt
 	 */
 	protected $Factory;
 	protected $Utils;
+	protected $Logger;
 
 	/**
 	 * Setup.
@@ -47,6 +49,7 @@ class Prompt
 	{
 		$this->Factory = $Factory->merge( self::defaults() );
 		$this->Utils = $Factory->Utils();
+		$this->Logger = $this->Factory->Logger();
 	}
 
 	/**
@@ -55,7 +58,7 @@ class Prompt
 	protected function defaults(): array
 	{
 		/**
-		 * [prompt_quit]
+		 * [prompt_quit_key]
 		 * User input quit sequence
 		 *
 		 * [prompt_quit_str]
@@ -66,7 +69,7 @@ class Prompt
 		 *
 		 * @formatter:off */
 		return [
-			'prompt_quit'     => 'Q',
+			'prompt_quit_key' => 'Q',
 			'prompt_quit_str' => '(use Q to quit)',
 			'prompt_autodirs' => false,
 		];
@@ -129,63 +132,62 @@ class Prompt
 
 	/**
 	 * Import path string.
+	 * @see Prompt::MODES
 	 *
-	 * cfg[key]:
-	 *      "": ask for path
-	 *  "PATH": ask if missing path
-	 * "-PATH": allow empty / missing path
-	 * "+PATH": always ask for path
-	 *
-	 * @see Utils::prompt()
-	 *
-	 * @param string $key cfg[key] holding initial path
-	 * @param string $msg Prompt message
-	 * @return int Fixed path or empty if not exist or not required (*)
+	 * @param  string $key cfg[key] holding initial path
+	 * @param  string $msg Prompt message
+	 * @return int    Fixed path or empty if not exist or not required (*)
 	 */
-	public function importPath( string $key, string $msg = 'Enter text' ): string
+	public function importPath( string $key, array $opt = [] ): string
 	{
+		/* @formatter:off */
+		$opt = array_merge([
+			'quit_str' => $this->Factory->get( 'prompt_quit_str' ),
+			'quit_key' => $this->Factory->get( 'prompt_quit_key' ),
+			'autodirs' => $this->Factory->get( 'prompt_autodirs' ),
+			'msg'      => 'Enter text',
+		], $opt);
+		/* @formatter:on */
+
 		$dir = $this->Factory->get( $key );
-		$dir = $this->Utils->pathFix( $dir );
-		$create = $this->Factory->get( 'prompt_autodirs' );
 
 		$mode = $dir[0] ?? '';
-		$dir = ltrim( $dir, implode( '', self::MODES ) );
-
 		$mode = in_array( $mode, self::MODES ) ? $mode : '';
-		$ask = '?' === $mode; // always ask
-		$ask |= '' === $mode && !is_dir( $dir ); // ask if not found
+		$mode && $dir = substr( $dir, 1 );
 
-		if ( $ask ) {
+		if ( !is_dir( $dir ) && '*' !== $mode ) {
 
-			if ( defined( 'TESTING' ) ) {
-				throw new \RuntimeException( "Cannot prompt user input in tests! Use cfg[$key]" );
-			}
+			$k2d = sprintf( 'cfg[%s]: "%s"', $key, $dir );
+			$this->Logger->notice( "Dir not found $k2d" );
 
-			$quit = $this->Factory->get( 'prompt_quit_str' );
-			$msg .= $quit ? ' ' . $quit : '';
-			$msg .= $dir ? ': ' . $dir : ':';
-
-			do {
-				$out = $this->Utils->prompt( $msg . "\n", $dir, $this->Factory->get( 'prompt_quit' ) );
-				$out = trim( $out ?: $dir );
-
-				if ( is_dir( $out ) ) {
-					break;
-				}
-
-				if ( !$out || !$create ) {
-					printf( '- dir not found "%s"' . "\n", $out );
-				}
-				elseif ( $this->Utils->dirClear( $out ) ) {
-					break;
+			// Auto-create?
+			if ( $opt['autodirs'] ) {
+				if ( $this->Utils->dirClear( $dir ) ) {
+					$this->Logger->notice( "Creating path $k2d" );
 				}
 				else {
-					printf( '- error creating path "%s"' . "\n", $out );
+					throw new \RuntimeException( 'Error creating path!' );
 				}
 			}
-			while ( true );
+			// Ask user...
+			elseif ( '?' === $mode ) {
+				$quit = $opt['quit_str'];
+				$msg .= $quit ? " $quit" : '';
+				$msg .= $dir ? ": $dir" : ':';
 
-			$dir = $out;
+				do {
+					$out = $this->Utils->prompt( "$msg\n", $dir, $opt['quit_key'] );
+					$out = trim( $out ?: $dir );
+
+					if ( !is_dir( $out ) ) {
+						printf( 'Dir not found: "%s"%s', $out, "\n" );
+						continue;
+					}
+				}
+				while ( 1 );
+
+				$dir = $out;
+			}
 		}
 
 		$dir = is_dir( $dir ) ? realpath( $this->Utils->pathFix( $dir ) ) : '';
