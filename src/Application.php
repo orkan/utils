@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '13.0.0';
-	const APP_DATE = 'Thu, 18 Sep 2025 15:34:15 +02:00';
+	const APP_VERSION = '13.1.0';
+	const APP_DATE = 'Fri, 19 Sep 2025 06:15:21 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -190,7 +190,7 @@ class Application
 		 * @formatter:off */
 		return [
 			'app_title'      => static::APP_NAME,
-			'app_welcome'    => '{title} — {name} v{version}',
+			'app_welcome'    => '{title} — {desc}',
 			'app_opts'       => static::ARGUMENTS,
 			'app_usage'      => 'vendor/bin/app [OPTIONS]',
 			'app_timezone'   => getenv( 'APP_TIMEZONE' ) ?: date_default_timezone_get(),
@@ -468,7 +468,7 @@ class Application
 		/* @formatter:off */
 		return strtr( $format ?? $this->Factory->get( 'app_welcome' ), [
 			'{title}'   => $this->Factory->get( 'app_title' ),
-			'{desc}'    => $this->Factory->get( 'app_desc' ),
+			'{desc}'    => $this->Factory->get( 'app_desc', static::APP_NAME ),
 			'{name}'    => static::APP_NAME,
 			'{version}' => static::APP_VERSION,
 			'{date}'    => static::APP_DATE,

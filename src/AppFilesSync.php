@@ -13,8 +13,8 @@ namespace Orkan;
 class AppFilesSync extends Application
 {
 	const APP_NAME = 'Copy files with priority, shuffle and size limit';
-	const APP_VERSION = '13.0.0';
-	const APP_DATE = 'Thu, 18 Sep 2025 15:34:15 +02:00';
+	const APP_VERSION = '13.1.0';
+	const APP_DATE = 'Fri, 19 Sep 2025 06:15:21 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Speed&t=File-Sync
@@ -48,12 +48,6 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 	 * Total bytes to copy.
 	 */
 	protected $bytesMax;
-
-	/**
-	 * File types.
-	 * @var array
-	 */
-	protected $types;
 
 	/**
 	 * File types regex.
@@ -96,12 +90,12 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 		 * [sync_shuffle]
 		 * Shuffle found files before applying limits?
 		 *
-		 * [sync_dir_src]
-		 * Source files dir
-		 * @see \Orkan\Prompt::MODES
-		 *
 		 * [sync_dir_fav]
 		 * Favorite source files dir. These have higher priority
+		 * @see \Orkan\Prompt::MODES
+		 *
+		 * [sync_dir_src]
+		 * Source files dir
 		 * @see \Orkan\Prompt::MODES
 		 *
 		 * @formatter:off */
@@ -117,8 +111,8 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 			'sync_types'     => null,
 			'sync_depth'     => 0,
 			'sync_shuffle'   => true,
-			'sync_dir_src'   => getenv( 'APP_SRCDIR' ) ?: '',
-			'sync_dir_fav'   => getenv( 'APP_FAVDIR' ) ?: '',
+			'sync_dir_fav'   => getenv( 'APP_FAVDIR' ) ?: null,
+			'sync_dir_src'   => getenv( 'APP_SRCDIR' ) ?: null,
 			// FileSync
 			'sync_callback' => [ $this, 'cbFileSync' ],
 		];
@@ -185,12 +179,14 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 	{
 		$Prompt = $this->Factory->Prompt();
 
-		$this->dirFav = $Prompt->importPath( 'sync_dir_fav', [ 'msg' => 'Favorites dir', 'autodirs' => false ] );
+		$this->dirFav = $this->Factory->get( 'sync_dir_fav' );
+		$this->dirFav && $this->dirFav = $Prompt->importPath( 'sync_dir_fav', [ 'msg' => 'Favorites dir', 'autodirs' => false ] );
 		$this->dirSrc = $Prompt->importPath( 'sync_dir_src', [ 'msg' => 'Source dir', 'autodirs' => false ] );
 		$this->dirOut = $Prompt->importPath( 'sync_dir_out', [ 'msg' => 'Output dir' ] );
-		$this->Loggex->info( 'Fav dir: "%s"', $this->Utils->pathCut( $this->dirFav, 63 ) );
-		$this->Loggex->info( 'Src dir: "%s"', $this->Utils->pathCut( $this->dirSrc, 63 ) );
-		$this->Loggex->info( 'Out dir: "%s"', $this->Utils->pathCut( $this->dirOut, 63 ) );
+
+		$this->dirFav && $this->Loggex->info( 'Fav dir: "%s"', $this->Utils->pathCut( $this->dirFav, 89 ) );
+		$this->Loggex->info( 'Src dir: "%s"', $this->Utils->pathCut( $this->dirSrc, 89 ) );
+		$this->Loggex->info( 'Out dir: "%s"', $this->Utils->pathCut( $this->dirOut, 89 ) );
 
 		if ( !$this->dirFav && !$this->dirSrc ) {
 			throw new \InvalidArgumentException(
@@ -201,8 +197,8 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 		$this->Loggex->info( 'Total size: %s', $this->bytesMax ? $this->Utils->byteString( $this->bytesMax ) : 'no limit' );
 
 		// Filter scaned files with regex?
-		$this->types = (array) $this->Factory->get( 'sync_types' );
-		$this->pattern = $this->types ? '~(\.' . implode( '|\.', $this->types ) . ')$~i' : '';
+		$types = $this->Factory->get( 'sync_types', [] );
+		count( $types ) && $this->pattern = '~(\.' . implode( '|\.', $types ) . ')$~i';
 	}
 
 	/**
@@ -233,7 +229,7 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 
 		/* @formatter:off */
 		$this->Loggex->info( 'Files found: {count} ({types})', [
-			'{types}' => $this->types ? implode( '|', $this->types )  : '*',
+			'{types}' => implode( '|', $this->Factory->get( 'sync_types', ['*'] ) ),
 			'{count}' => $this->items,
 		]);
 		/* @formatter:on */

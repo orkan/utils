@@ -1342,7 +1342,10 @@ class Utils
 		$items = max( 0, $items );
 		$item = max( 0, min( $item, $items ) );
 
-		return (int) ceil( 100 / $items * $item );
+		$cent = 100 / $items * $item;
+		$cent = (int) min( 100, ceil( $cent ) );
+
+		return $cent;
 	}
 
 	/**
