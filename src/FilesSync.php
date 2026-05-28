@@ -38,7 +38,7 @@ class FilesSync
 	 * @see FilesSync::manifestUnlink()
 	 *
 	 * @var array Array(
-	 * [id] => Array( [src] => source file, [dst] => export file ),
+	 * [id] => Array( [src] => source file, [dst] => destination file ),
 	 * [id] => Array( ... )
 	 * )
 	 */
@@ -48,6 +48,12 @@ class FilesSync
 	 * Output dir.
 	 */
 	protected $dir;
+
+	/**
+	 * Output filename mapping.
+	 * @var string
+	 */
+	protected $map;
 
 	/**
 	 * Progress start time.
@@ -85,6 +91,7 @@ class FilesSync
 			throw new \RuntimeException( sprintf( 'Output dir not found: "%s". Check cfg[sync_dir_out]', $dir ) );
 		}
 
+		$this->map = $Factory->get( 'sync_map_out' );
 		$this->isWrite = !$Factory->get( 'app_dryrun' );
 	}
 
@@ -96,6 +103,10 @@ class FilesSync
 		/**
 		 * [sync_dir_out]
 		 * Copy files to...
+		 *
+		 * [sync_map_out]
+		 * Translate [out] filename to something else with tokens
+		 * @see FilesSync::manifestInsert()
 		 *
 		 * [sync_manifest]
 		 * Filename holding list of all files created by previus export to help make a diff list
@@ -118,6 +129,7 @@ class FilesSync
 		return [
 			// FileSync
 			'sync_dir_out'    => '',
+			'sync_map_out'    => '',
 			'sync_manifest'   => 'sync.json',
 			'sync_callback'   => null,
 			// ProgressBar
@@ -133,7 +145,7 @@ class FilesSync
 	 * Add file to export.
 	 *
 	 * @param string $src  Source file
-	 * @param string $home Source file path part to replace with [out] path: [home]/[src] => [out]/[stc]
+	 * @param string $home Source file path part to replace with [out] path: [home]/[src] => [out]/[src]
 	 * @return bool True if added, false if already in queue
 	 */
 	public function add( string $src, string $home ): bool
@@ -386,6 +398,23 @@ class FilesSync
 
 		$id = $this->manifestId( $src );
 
+		if ( $this->map ) {
+			$stat = stat( $src );
+			$info = pathinfo( $src );
+			/* @formatter:off */
+			$map = strtr( $this->map, [
+				'{filename}'   => $info['filename'],
+				'{basename}'   => $info['basename'],
+				'{extension}'  => $info['extension'],
+				'{bytes}'      => $stat['size'],
+				'{uniqid}'     => bin2hex( random_bytes( 5 ) ),
+				'{manifestid}' => $id,
+			]);
+			/* @formatter:on */
+			$out = dirname( $dst );
+			$dst = $this->Utils->pathFix( "{$out}/{$map}" );
+		}
+
 		if ( !isset( $this->manifest[$id] ) ) {
 			$this->manifest[$id] = [ 'src' => $src, 'dst' => $dst ];
 			return true;
@@ -453,7 +482,7 @@ class FilesSync
 		}
 
 		$out['byte_done'] = $this->stats['avg'] * $this->stats['item'];
-		$out['cent_done'] = $this->Utils->matchCent( $out['byte_done'] , $this->stats['bytes'] );
+		$out['cent_done'] = $this->Utils->matchCent( $out['byte_done'], $this->stats['bytes'] );
 		$out['cent_left'] = 100 - $out['cent_done'];
 
 		$out['time_exec'] = $this->Utils->exectime( $this->start );
