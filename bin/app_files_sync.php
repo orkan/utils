@@ -13,10 +13,8 @@ $App = new AppFilesSync( $Factory );
 $Utils = $Factory->Utils();
 $Logger = $Factory->Logger();
 
-$Logger->info( '' );
 $Logger->info( "====================================================================================================" );
 $Logger->info( $App->getWelcome() );
-$Logger->info( sprintf( 'Sync: "%s"', $Factory->get( 'sync_dir_out' ) ) );
 DEBUG && $Logger->info( 'Config: ' . $Factory->get( 'cfg_user' ) );
 $Logger->info( "====================================================================================================" );
 $App->run();

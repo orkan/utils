@@ -13,8 +13,8 @@ namespace Orkan;
 class AppFilesSync extends Application
 {
 	const APP_NAME = 'Copy files with priority, shuffle and size limit';
-	const APP_VERSION = '13.2.0';
-	const APP_DATE = 'Thu, 28 May 2026 19:26:56 +02:00';
+	const APP_VERSION = '13.3.0';
+	const APP_DATE = 'Fri, 29 May 2026 12:13:18 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Speed&t=File-Sync
@@ -156,7 +156,6 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 		parent::run();
 
 		// Select files
-		$this->Loggex->info( '-' );
 		$this->verify();
 		$this->scan();
 		$this->limit();
@@ -246,7 +245,6 @@ _  __/   _  / _  / /  __//_____/___/ /_  /_/ /_  / / / /__
 	 */
 	protected function limit(): void
 	{
-
 		// NOTE: FilesSync requires cfg[sync_dir_out] to be defined already
 		$this->Files = $this->Factory->FilesSync();
 

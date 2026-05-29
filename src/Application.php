@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '13.2.0';
-	const APP_DATE = 'Thu, 28 May 2026 19:26:56 +02:00';
+	const APP_VERSION = '13.3.0';
+	const APP_DATE = 'Fri, 29 May 2026 12:13:18 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -46,6 +46,7 @@ class Application
 		'help'    => [ 'short' => 'h', 'long' => 'help'   , 'desc' => 'Display App help'                  ],
 		'dry-run' => [ 'short' => 'd', 'long' => 'dry-run', 'desc' => 'Do not make changes in filesystem' ],
 		'quiet'   => [ 'short' => 'q', 'long' => 'quiet'  , 'desc' => 'Do not output any message'         ],
+		'silent'  => [                 'long' => 'silent' , 'desc' => 'Do not prompt any questions'       ],
 		'verbose' => [ 'short' => [ 'v', 'vv', 'vvv' ],
 		               'long'  => 'verbose::',
 		               'desc'  => 'Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug' ],
@@ -54,7 +55,7 @@ class Application
 	/*
 	 * Translate Verbosity levels from cmd line.
 	 */
-	const VERBOSITY_QUIET        = -1; // -q, --quite
+	const VERBOSITY_QUIET        = -1; // -q, --quiet
 	const VERBOSITY_NORMAL       =  0; // default
 	const VERBOSITY_VERBOSE      =  1; // -v,   --verbose=1
 	const VERBOSITY_VERY_VERBOSE =  2; // -vv,  --verbose=2
@@ -596,7 +597,7 @@ class Application
 			'timeZone'   => $this->Factory->get( 'app_timezone' ),
 			'dateFormat' => $this->Factory->get( 'app_date_time' ),
 			'strLocale'  => $this->Factory->get( 'app_locale' ),
-			'silent'     => $this->getArg( 'quiet' ),
+			'silent'     => $this->getArg( 'silent' ),
 		]);
 		/* @formatter:on */
 
