@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '13.3.0';
-	const APP_DATE = 'Fri, 29 May 2026 12:13:18 +02:00';
+	const APP_VERSION = '13.3.1';
+	const APP_DATE = 'Thu, 04 Jun 2026 13:49:12 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -127,6 +127,9 @@ class Application
 		 * Defined command line argument (extendable by Factory::cfg())
 		 * @see Application::ARGUMENTS
 		 *
+		 * [app_usage_show]
+		 * Show app usage on error
+		 *
 		 * [app_gc]
 		 * Garbage collect: Free up memory once is no longer used
 		 * @see Application::gc()
@@ -194,6 +197,7 @@ class Application
 			'app_welcome'    => '{title} — {desc}',
 			'app_opts'       => static::ARGUMENTS,
 			'app_usage'      => 'vendor/bin/app [OPTIONS]',
+			'app_usage_show' => false,
 			'app_timezone'   => getenv( 'APP_TIMEZONE' ) ?: date_default_timezone_get(),
 			'app_gc'         => getenv( 'APP_GC' ) ?: false,
 			'app_locale'     => getenv( 'APP_LOCALE' ) ?: 'en_US',
@@ -437,19 +441,26 @@ class Application
 	 */
 	public function getHelp(): string
 	{
+		$help = explode( "\n", $this->Factory->get( 'app_usage' ) );
+		$args = $this->getArgHelp();
+
 		/* @formatter:off */
-		return sprintf(
-			"\n%1\$s" .
-			"\n%2\$s" .
-			"\n\nUsage:\n" .
-			"\t%3\$s\n" .
-			"Options:\n" .
-			"%4\$s",
-			/*1*/ static::LOGO,
-			/*2*/ static::getVersionLong(),
-			/*3*/ $this->Factory->get( 'app_usage' ),
-			/*4*/ "\t" . implode( "\n\t", $this->getArgHelp() ) . "\n",
-		);
+		return strtr( <<<HELP
+			{logo}
+			{version}
+			
+			Usage:
+				{help}
+			
+			Options:
+				{args}
+			
+			HELP, [
+			'{logo}'    => static::LOGO,
+			'{version}' => static::getVersionLong(),
+			'{help}'    => implode( "\n\t", $help ),
+			'{args}'    => implode( "\n\t", $args ),
+		]);
 		/* @formatter:on */
 	}
 
@@ -495,7 +506,13 @@ class Application
 		$this->Logger && $this->Logger->error( $E->getMessage() );
 		$this->Utils && $this->Utils->exceptionPrint( $E );
 
+		if ( $this->Factory->get( 'app_usage_show' ) ) {
+			echo $this->getHelp();
+		}
+
 		ini_get( 'log_errors' ) && error_log( $E );
+		echo "\n";
+
 		exit( $E->getCode() ?: 1 );
 	}
 
