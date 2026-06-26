@@ -1352,8 +1352,6 @@ class Utils
 	 * Get user input or die.
 	 * @see Utils::$silent
 	 *
-	 * @throws \BadMethodCallException In TESTING mode throws some exotic Exception instead of exit()
-	 *
 	 * @param  string $msg     Prompt message to show
 	 * @param  string $default Default answer in silent mode
 	 * @param  string $quit    Quit sequence. Empty to disable
@@ -1361,17 +1359,17 @@ class Utils
 	 */
 	public static function prompt( string $msg = '', string $default = '', string $quit = '' ): string
 	{
-		if ( self::$silent ) {
-			$input = $default;
-		}
-		else {
+		$input = $default;
+		$silent = self::$silent || defined( 'TESTING' );
+
+		if ( !$silent ) {
 			self::print( $msg );
 			$input = self::stdin();
 		}
 
 		if ( $quit && strtoupper( $quit ) === strtoupper( $input ) ) {
 			if ( defined( 'TESTING' ) ) {
-				$GLOBALS[__METHOD__] = 'exit';
+				$GLOBALS[__METHOD__] = $msg;
 			}
 			else {
 				exit( "User exit. Bye!\n" );

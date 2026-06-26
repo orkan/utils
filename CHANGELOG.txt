@@ -1,4 +1,16 @@
 ===================================================================================================
+v14.0.0
+
+Updated methods:
+---------------
+Tests\FactoryMockTrait::__construct( TestCase $TestCase, array $cfg = [] )
+	- constructor removed from Trait - bad design!
+	- Factory is initialized now in TestCase::setUp()
+	- added getter/setter: FactoryMock::TestCase( TestCase $TestCase )
+Utils::prompt()
+	- in TESTING mode sets $GLOBALS[__METHOD__] = $msg; instead of 'exit'
+
+===================================================================================================
 v13.0.0
 
 Renamed config:

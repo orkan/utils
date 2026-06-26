@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '13.3.1';
-	const APP_DATE = 'Thu, 04 Jun 2026 13:49:12 +02:00';
+	const APP_VERSION = '14.0.0';
+	const APP_DATE = 'Fri, 26 Jun 2026 16:06:14 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
