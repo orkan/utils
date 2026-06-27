@@ -1,4 +1,14 @@
 ===================================================================================================
+v15.0.0
+
+Updated method declarations:
+---------------
+Application::defaults()     > Application::defaults(): array
+Application::run()          > Application::run(): self
+Application::configure()    > Application::configure(): self
+Application::setVerbosity() > Application::setVerbosity(): self
+
+===================================================================================================
 v14.0.0
 
 Updated methods:

@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '14.0.0';
-	const APP_DATE = 'Fri, 26 Jun 2026 16:06:14 +02:00';
+	const APP_VERSION = '15.0.0';
+	const APP_DATE = 'Sat, 27 Jun 2026 15:17:47 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -112,7 +112,7 @@ class Application
 	/**
 	 * Get defaults.
 	 */
-	protected function defaults()
+	protected function defaults(): array
 	{
 		/**
 		 * [app_title]
@@ -263,10 +263,10 @@ class Application
 	/**
 	 * Set verbosity level from cmd line switches.
 	 */
-	public function setVerbosity( array $map = [] )
+	public function setVerbosity( array $map = [] ): self
 	{
 		if ( defined( 'TESTING' ) ) {
-			return;
+			return $this;
 		}
 
 		$map = $map ?: static::VERBOSITY;
@@ -276,6 +276,8 @@ class Application
 		$level = $this->getArg( 'quiet' ) ? static::VERBOSITY_QUIET : $level;
 
 		$this->Factory->cfg( 'log_verbose', $map[$level] );
+
+		return $this;
 	}
 
 	/**
@@ -283,7 +285,7 @@ class Application
 	 *
 	 * @throws \RuntimeException On missing required PHP extension
 	 */
-	protected function checkExtensions()
+	protected function checkExtensions(): void
 	{
 		if ( !is_array( $extensions = $this->Factory->get( 'app_php_ext', [] ) ) ) {
 			throw new \InvalidArgumentException( 'Invalid EXTENSIONS definition! See Application::defaults() for more info.' );
@@ -534,7 +536,7 @@ class Application
 	/**
 	 * Initialize env.
 	 */
-	public function run()
+	public function run(): self
 	{
 		if ( !in_array( PHP_SAPI, [ 'cli', 'phpdbg', 'embed' ], true ) ) {
 			// Stop here since parent class uses PHP CLI functions not available in apache2handler SAPI!
@@ -602,12 +604,14 @@ class Application
 			DEBUG && $this->Logger->debug( 'ARGS: ' . $this->Utils->print_r( $this->getArg() ) );
 			DEBUG && $this->Logger->debug( $this->Utils->print_r( $this->Factory->cfg() ) );
 		}
+
+		return $this;
 	}
 
 	/**
 	 * Load post init config and services before run.
 	 */
-	protected function configure(): void
+	protected function configure(): self
 	{
 		/* @formatter:off */
 		$this->Utils->setup([
@@ -619,5 +623,7 @@ class Application
 		/* @formatter:on */
 
 		$this->Logger = $this->Factory->Logger();
+
+		return $this;
 	}
 }
