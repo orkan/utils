@@ -106,15 +106,15 @@ if ( 'POST' == $_SERVER['REQUEST_METHOD'] ) {
 		/* @formatter:on */
 		?>
 		<form class="demo" id="control" method="post" action="?action=filter">
-		<div id="selector" class="row mb-3">
-			<div class="col-1">Output:</div>
-			<div class="col-11" id="selector"><?php echo $Selector->getContents() ?></div>
-			<div class="col-1">Filter:</div>
-			<div class="col-11"><?php echo $Filter->getContents() ?></div>
-		</div>
-		<hr class="mb-3">
-		<button type="submit" class="btn btn-primary">Apply</button>
-	</form>
+			<div id="selector" class="row mb-3">
+				<div class="col-1">Output:</div>
+				<div class="col-11" id="selector"><?php echo $Selector->getContents() ?></div>
+				<div class="col-1">Filter:</div>
+				<div class="col-11"><?php echo $Filter->getContents() ?></div>
+			</div>
+			<hr class="mb-3">
+			<button type="submit" class="btn btn-primary">Apply</button>
+		</form>
 		<?php
 	}
 
@@ -123,8 +123,7 @@ if ( 'POST' == $_SERVER['REQUEST_METHOD'] ) {
 	?>
 
 	<!-- Render admin table -->
-	<form class="demo" method="post" action="?action=save"
-		enctype="multipart/form-data">
+	<form class="demo" method="post" action="?action=save" enctype="multipart/form-data">
 		<pre>Request method: <?php echo $_SERVER['REQUEST_METHOD'] ?></pre>
 
 		<?php if ( 'POST' == $_SERVER['REQUEST_METHOD'] ): ?>

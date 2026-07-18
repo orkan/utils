@@ -1527,6 +1527,22 @@ class Utils
 	}
 
 	/**
+	 * Line string.
+	 */
+	public function strLine( string $char = '-', int $len = 100 ): string
+	{
+		return str_repeat( $char, $len );
+	}
+
+	/**
+	 * Wrap string.
+	 */
+	public function strWrap( string $text, int $len = 100 ): string
+	{
+		return wordwrap( $text, $len );
+	}
+
+	/**
 	 * String slugiffy.
 	 * Based on Symfony Jobeet tutorial.
 	 *

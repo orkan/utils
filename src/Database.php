@@ -237,4 +237,13 @@ class Database
 
 		return $query ? sprintf( '%s; Rows affected: %s', $query, $count ) : '';
 	}
+
+	/**
+	 * Get all table names in DB.
+	 */
+	public function tables(): array
+	{
+		$this->query( "SELECT name FROM sqlite_master WHERE type='table'" );
+		return $this->fetchColumn( 0 ) ?: [];
+	}
 }
