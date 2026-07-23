@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '15.1.0';
-	const APP_DATE = 'Sat, 18 Jul 2026 18:52:30 +02:00';
+	const APP_VERSION = '15.2.0';
+	const APP_DATE = 'Thu, 23 Jul 2026 16:34:35 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -527,8 +527,15 @@ class Application
 	protected function cmdTitle( ?string $format = null, array $tokens = [] ): string
 	{
 		$format = $format ? "$format — {app_title}" : '{app_title}';
-		$tokens['{app_title}'] = $this->Factory->get( 'app_title' );
-		cli_set_process_title( $title = strtr( $format, $tokens ) );
+
+		/* @formatter:off */
+		$tokens = array_merge([
+			'{app_title}' => $this->Factory->get( 'app_title' ),
+		], $tokens );
+		/* @formatter:on */
+
+		$title = strtr( $format, $tokens );
+		cli_set_process_title( $title );
 
 		return $title;
 	}

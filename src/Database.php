@@ -239,11 +239,41 @@ class Database
 	}
 
 	/**
-	 * Get all table names in DB.
+	 * Get all table names from database.
+	 * @link https://stackoverflow.com/questions/82875/how-can-i-list-the-tables-in-a-sqlite-database-file-that-was-opened-with-attach
 	 */
 	public function tables(): array
 	{
-		$this->query( "SELECT name FROM sqlite_master WHERE type='table'" );
-		return $this->fetchColumn( 0 ) ?: [];
+		$this->query( <<<EOT
+			SELECT name FROM sqlite_master
+			WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%'
+			UNION ALL
+			SELECT name FROM sqlite_temp_master
+			WHERE type IN ('table','view')
+			ORDER BY 1
+			EOT );
+
+		return $this->fetchColumn() ?: [];
+	}
+
+	/**
+	 * Get/set DB version.
+	 */
+	public function version( ?int $version = null ): int
+	{
+		if ( $version !== null ) {
+			$this->query( "PRAGMA user_version=$version" );
+		}
+
+		return $this->query( 'PRAGMA user_version' )->fetchColumn();
+	}
+
+	/**
+	 * Get row count.
+	 */
+	public function rows( string $table ): int
+	{
+		$this->query( "SELECT count(*) FROM '$table'" );
+		return $this->fetchColumn()[0];
 	}
 }
