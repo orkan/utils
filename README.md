@@ -1,4 +1,4 @@
-# Utils `v15.2.0`
+# Utils `v15.3.0`
 Bunch of scripts collected from all around the HDD
 
 # Console app
@@ -81,4 +81,4 @@ foreach ( $fields as $name => $field ) {
 MIT
 
 ### Updated
-Thu, 23 Jul 2026 16:34:35 +02:00
+Fri, 24 Jul 2026 14:20:33 +02:00

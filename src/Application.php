@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '15.2.0';
-	const APP_DATE = 'Thu, 23 Jul 2026 16:34:35 +02:00';
+	const APP_VERSION = '15.3.0';
+	const APP_DATE = 'Fri, 24 Jul 2026 14:20:33 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -98,8 +98,8 @@ class Application
 		$this->Utils = $Factory->Utils();
 
 		// PHP setup
-		date_default_timezone_set( $this->Factory->get( 'app_timezone' ) );
-		foreach ( $this->Factory->get( 'app_php_ini', [] ) as $k => $v ) {
+		date_default_timezone_set( $Factory->get( 'app_timezone' ) );
+		foreach ( $Factory->get( 'app_php_ini', [] ) as $k => $v ) {
 			isset( $v ) && ini_set( $k, $v );
 		}
 
@@ -527,14 +527,9 @@ class Application
 	protected function cmdTitle( ?string $format = null, array $tokens = [] ): string
 	{
 		$format = $format ? "$format — {app_title}" : '{app_title}';
+		$tokens = array_merge( [ '{app_title}' => $this->Factory->get( 'app_title' ) ], $tokens );
 
-		/* @formatter:off */
-		$tokens = array_merge([
-			'{app_title}' => $this->Factory->get( 'app_title' ),
-		], $tokens );
-		/* @formatter:on */
-
-		$title = strtr( $format, $tokens );
+		$this->Factory->cfg( 'app_cmdtitle', $title = strtr( $format, $tokens ) );
 		cli_set_process_title( $title );
 
 		return $title;
