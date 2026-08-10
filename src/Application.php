@@ -13,8 +13,8 @@ namespace Orkan;
 class Application
 {
 	const APP_NAME = 'CLI App';
-	const APP_VERSION = '15.3.0';
-	const APP_DATE = 'Fri, 24 Jul 2026 14:20:33 +02:00';
+	const APP_VERSION = '16.0.0';
+	const APP_DATE = 'Mon, 10 Aug 2026 05:54:15 +02:00';
 
 	/**
 	 * @link https://patorjk.com/software/taag/#p=display&v=0&f=Ivrit&t=CLI%20App
@@ -119,8 +119,12 @@ class Application
 		 * CMD window title
 		 * @see Application::cmdTitle()
 		 *
+		 * [app_desc]
+		 * App description
+		 * @see Application::getWelcome()
+		 *
 		 * [app_welcome]
-		 * Parse message with App tokens
+		 * Parse string with selected cfg tokens: {app_title}, {app_desc}
 		 * @see Application::getWelcome()
 		 *
 		 * [app_opts]
@@ -194,6 +198,7 @@ class Application
 		 * @formatter:off */
 		return [
 			'app_title'      => static::APP_NAME,
+			'app_desc'       => '',
 			'app_welcome'    => '{title} — {desc}',
 			'app_opts'       => static::ARGUMENTS,
 			'app_usage'      => 'vendor/bin/app [OPTIONS]',
@@ -443,13 +448,14 @@ class Application
 	 */
 	public function getHelp(): string
 	{
+		$name = array_filter( [ static::getVersionLong(), $this->Factory->get( 'app_desc' ) ] );
 		$help = explode( "\n", $this->Factory->get( 'app_usage' ) );
 		$args = $this->getArgHelp();
 
 		/* @formatter:off */
 		return strtr( <<<HELP
 			{logo}
-			{version}
+			{name}
 			
 			Usage:
 				{help}
@@ -459,7 +465,7 @@ class Application
 			
 			HELP, [
 			'{logo}'    => static::LOGO,
-			'{version}' => static::getVersionLong(),
+			'{name}'    => implode( "\n", $name ),
 			'{help}'    => implode( "\n\t", $help ),
 			'{args}'    => implode( "\n\t", $args ),
 		]);
@@ -530,7 +536,7 @@ class Application
 		$tokens = array_merge( [ '{app_title}' => $this->Factory->get( 'app_title' ) ], $tokens );
 
 		$this->Factory->cfg( 'app_cmdtitle', $title = strtr( $format, $tokens ) );
-		cli_set_process_title( $title );
+		$this->Utils->cmdTitle( $title );
 
 		return $title;
 	}

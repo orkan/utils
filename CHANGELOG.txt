@@ -1,4 +1,12 @@
 ===================================================================================================
+v16.0.0
+
+Updated methods:
+---------------
+Factory::__construct()
+	- removed setting up default exception handlers. Now must be done explicitly by user.
+
+===================================================================================================
 v15.0.0
 
 Updated method declarations:

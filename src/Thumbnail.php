@@ -56,7 +56,7 @@ class Thumbnail
 	 * This static instance might be then used in Exceptions handler.
 	 * Together with cfg[keep_orig] might limit remote requests for orig photo.
 	 * @see Thumbnail::getInstance()
-	 * @see Thumbnail::errorException()
+	 * @see Thumbnail::errorHandler()
 	 *
 	 * @var Thumbnail
 	 */
@@ -1522,15 +1522,23 @@ class Thumbnail
 	/**
 	 * Turn PHP errors into Exceptions.
 	 *
-	 * @see set_error_handler()
 	 * Hardcoded here to skip including external code.
+	 * @see \Orkan\Utils::errorHandler()
+	 * @see set_error_handler()
 	 */
-	public static function errorException( $severity, $message, $filename, $lineno ): void
+	public static function errorHandler( $severity, $message, $filename, $lineno ): void
 	{
-		// This error code is not included in error_reporting or error was suppressed with the @-operator
+		/**
+		 * This error code is not included in error_reporting
+		 * or error was suppressed with the @-operator
+		 */
 		if ( !( error_reporting() & $severity ) ) {
 			return;
 		}
+
+		$type = array_search( $severity, get_defined_constants() );
+		$type && $message = "{$type}: $message";
+
 		throw new \ErrorException( $message, 0, $severity, $filename, $lineno );
 	}
 }

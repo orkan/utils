@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="build_release" default="main" basedir=".">
+
+	<target name="main">
+
+		<echo>Clear tests</echo>
+		<echo>SourceDir: ${SourceDir}</echo>
+
+		<replaceregexp match="^[\s\/]+console.debug\(.+\n" replace="" flags="gm" byline="no">
+			<fileset dir="${SourceDir}" includes="**/*.js"/>
+		</replaceregexp>
+
+	</target>
+
+</project>

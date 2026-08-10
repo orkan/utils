@@ -12,20 +12,28 @@ $basename = basename( __FILE__ );
 /* @formatter:off */
 $Factory = new Factory([
 	'app_title'      => 'Environment Switch',
+	'app_desc'       => 'Symlink configuration files throughout the project',
 	'app_usage_show' => true,
-	'app_usage' => <<<USAGE
+	'app_usage'      => <<<EOT
 	$basename [OPTIONS] --env <env name> [--loc <home dir>] [--config <file.php>]
 	
-	Default config contains:
+	===============
+	Default config: 
+	===============
+	
 	'app_map' => [
+		// %s == <env name>
 		// ------------------------------------
-		// target file       || symlink
+		// Find file:        => Create symlink:
 		// ------------------------------------
 		'composer.[%s].json' => 'composer.json',
 		'composer.[%s].lock' => 'composer.lock',
 	]
 	
-	To add/remove/modify mappings create custom --config <file.php> returning an array:
+	======================================
+	Example of custom --config <file.php>:
+	======================================
+	
 	<?php
 	return [
 		'app_map' => [
@@ -41,9 +49,7 @@ $Factory = new Factory([
 			'package-lock.[%s].json' => 'src/package-lock.json',
 		],
 	];
-	
-	NOTE: The "%s" in target filename will be replaced by --env "name".
-	USAGE,
+	EOT,
 	'app_opts' => [
 		'env'    => [ 'short' => 'e:', 'long' => 'env:'   , 'desc' => 'Environment name used in target files' ],
 		'loc'    => [ 'short' => 'l:', 'long' => 'loc:'   , 'desc' => 'Working dir (default: current dir)' ],
@@ -78,13 +84,13 @@ if ( !$map = array_filter( $Factory->cfg( 'app_map' ) ) ) {
 
 // =====================================================================================================================
 // Run
-$Utils->writeln( "SWITCH env to [$env]", 2 );
+$Utils->writeln( "SWITCH env to [$env]" );
 foreach ( $map as $target => $symlnk ) {
 
 	$target = $Utils->pathFix( $loc . '/' . sprintf( $target, $env ) );
 	$symlnk = $Utils->pathFix( $loc . '/' . sprintf( $symlnk, $env ) );
 
-	$Utils->writeln( sprintf( "Create symlink:\n%s =>\n%s", $target, $symlnk ) );
+	$Utils->writeln( sprintf( "\nCreate symlink:\n%s =>\n%s", $target, $symlnk ) );
 
 	if ( is_file( $target ) ) {
 		try {
@@ -104,6 +110,4 @@ foreach ( $map as $target => $symlnk ) {
 	else {
 		$Utils->writeln( 'Not found!' );
 	}
-
-	echo "\n";
 }

@@ -17,9 +17,9 @@ class Factory
 	/*
 	 * Services:
 	 */
-	protected $Utils;
 	protected $Logger;
 	protected $Loggex;
+	protected $Utils;
 	protected $Prompt;
 	protected $databases;
 
@@ -31,7 +31,8 @@ class Factory
 		!defined( 'DEBUG' ) && define( 'DEBUG', (bool) getenv( 'APP_DEBUG' ) );
 		$this->cfg = $cfg;
 
-		$this->Utils()->exceptionHandle();
+		// Do NOT overwrite custom exception handlers - will discard already set handlers! See: Ajax|Thumbnail
+		// $this->Utils()->exceptionHandle();
 	}
 
 	// =================================================================================================================
@@ -39,11 +40,11 @@ class Factory
 	// =================================================================================================================
 
 	/**
-	 * @return Utils
+	 * @return Ajax
 	 */
-	public function Utils()
+	public function Ajax()
 	{
-		return $this->Utils ?? $this->Utils = new Utils();
+		return $this->Ajax ?? $this->Ajax = new Ajax();
 	}
 
 	/**
@@ -60,6 +61,14 @@ class Factory
 	public function Loggex()
 	{
 		return $this->Loggex ?? $this->Loggex = new Loggex( $this );
+	}
+
+	/**
+	 * @return Utils
+	 */
+	public function Utils()
+	{
+		return $this->Utils ?? $this->Utils = new Utils();
 	}
 
 	/**

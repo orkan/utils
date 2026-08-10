@@ -371,6 +371,18 @@ class Utils
 	}
 
 	/**
+	 * Set process title.
+	 */
+	public static function cmdTitle( string $title ): bool
+	{
+		if ( defined( 'TESTING' ) ) {
+			return false;
+		}
+
+		return cli_set_process_title( $title );
+	}
+
+	/**
 	 * Return an associative array of defined constants in format: [int] => 'CONSTANT_NAME'
 	 *
 	 * @see get_defined_constants()
@@ -576,6 +588,9 @@ class Utils
 	 * ... risky code ...
 	 * restore_error_handler(); // no errors, so restore handler manually or keep?!?
 	 *
+	 * @see set_error_handler()
+	 * @see \Orkan\Thumbnail::errorException()
+	 *
 	 * @link https://www.php.net/manual/en/class.errorexception.php
 	 * @link https://www.php.net/manual/en/language.exceptions.php
 	 * @link https://stackoverflow.com/questions/1241728/can-i-try-catch-a-warning
@@ -589,6 +604,9 @@ class Utils
 		if ( !( error_reporting() & $severity ) ) {
 			return;
 		}
+
+		$type = array_search( $severity, get_defined_constants() );
+		$type && $message = "{$type}: $message";
 
 		restore_error_handler();
 		throw new \ErrorException( $message, static::$errorExceptionCode, $severity, $filename, $lineno );
@@ -721,11 +739,16 @@ class Utils
 	 */
 	public static function exceptionPrint( \Throwable $E ): void
 	{
-		if ( !defined( 'TESTING' ) && defined( 'DEBUG' ) && DEBUG ) {
+		$out = static::exceptionFormat( $E->getMessage(), get_class( $E ), $E->getFile(), $E->getLine() );
+
+		if ( defined( 'TESTING' ) ) {
+			$GLOBALS[__METHOD__] = $out;
+		}
+		elseif ( defined( 'DEBUG' ) && DEBUG ) {
 			echo $E;
 		}
 		else {
-			echo static::exceptionFormat( $E->getMessage(), get_class( $E ), $E->getFile(), $E->getLine() );
+			echo $out;
 		}
 	}
 
@@ -1548,31 +1571,27 @@ class Utils
 	 *
 	 * @link https://stackoverflow.com/questions/2955251/php-function-to-make-slug-url-string
 	 */
-	public static function strSlug( string $str ): string
+	public static function strSlug( string $str, string $rep = '-', string $ret = 'n-a' ): string
 	{
 		// replace non letter or digits by -
-		$str = preg_replace( '~[^.\pL\d]+~u', '-', $str );
+		$str = preg_replace( '~[^.\pL\d]+~u', $rep, $str );
 
 		// transliterate
 		$str = iconv( 'utf-8', 'us-ascii//TRANSLIT', $str );
 
 		// remove unwanted characters
-		$str = preg_replace( '~[^-.\w]+~', '', $str );
+		$str = preg_replace( "~[^{$rep}.\w]+~", '', $str );
 
 		// trim
-		$str = trim( $str, '-' );
+		$str = trim( $str, $rep );
 
 		// remove duplicate -
-		$str = preg_replace( '~-+~', '-', $str );
+		$str = preg_replace( "~{$rep}+~", $rep, $str );
 
 		// lowercase
 		$str = strtolower( $str );
 
-		if ( empty( $str ) ) {
-			return 'n-a';
-		}
-
-		return $str;
+		return $str ?: $ret;
 	}
 
 	/**
