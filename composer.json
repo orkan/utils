@@ -43,7 +43,7 @@
 	],
 	"extra": {
 		"branch-alias": {
-			"dev-master": "16.0.x-dev",
+			"dev-master": "16.1.x-dev",
 			"dev-develop": "16.x-dev"
 		}
 	}

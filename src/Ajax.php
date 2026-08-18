@@ -15,10 +15,10 @@ namespace Orkan;
  * USAGE:
  * <pre>
  * // ------------------------------------------------------------------------------------------------------------------
- * Ajax.init([
+ * Ajax.setup([
  *   'api_key' => '...',
  *   'php_ini' => [
- *     'error_log' => 'err.log',
+ *     'error_log' => 'my_error.log',
  *   ],
  * ]);
  *
@@ -30,8 +30,8 @@ namespace Orkan;
  * // ------------------------------------------------------------------------------------------------------------------
  * // Read request sent by: Fetch API
  * // Content-Type: "multipart/form-data"
- * $request = file_get_contents( 'php://input' ); // PHP 7
- * [$_POST, $_FILES] = request_parse_body(); // PHP 8
+ * $request = file_get_contents( 'php://input' ); // PHP7
+ * [$_POST, $_FILES] = request_parse_body(); // PHP8
  *
  * // ------------------------------------------------------------------------------------------------------------------
  * // Send response:
@@ -117,8 +117,8 @@ class Ajax
 		 * Format the error message as HTML?
 		 *
 		 * [error_log]
-		 * Path to php_error.log
-		 * see Logger::__construct()
+		 * Use default php_error.log from PHP ini
+		 * @see ini_get( 'error_log' )
 		 *
 		 * @formatter:off */
 		return [
@@ -134,7 +134,7 @@ class Ajax
 				'ignore_repeated_errors' => '1',
 				'ignore_repeated_source' => '0',
 				'html_errors'            => '0',
-				'error_log'              => getenv( 'LOG_FILE' ) ?: ini_get( 'error_log' ),
+				//'error_log'            => null,
 			],
 		];
 		/* @formatter:on */

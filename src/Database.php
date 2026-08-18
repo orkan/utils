@@ -104,7 +104,7 @@ class Database
 	/**
 	 * Execute statement and create PDOStatement object.
 	 *
-	 * @return \PDOStatement
+	 * @return \PDOStatement|false
 	 */
 	public function query( string $statement )
 	{
@@ -116,6 +116,7 @@ class Database
 
 	/**
 	 * Parse statement and create PDOStatement object.
+	 * @return \PDOStatement|false
 	 */
 	public function prepare( string $statement )
 	{
@@ -128,7 +129,7 @@ class Database
 	/**
 	 * Assisgn values and execute last Query.
 	 */
-	public function execute( array $bind )
+	public function execute( array $bind ): bool
 	{
 		$result = false;
 
@@ -151,7 +152,7 @@ class Database
 	 *   [1] => value 2,
 	 * )
 	 */
-	public function fetchColumn( int $column = 0 )
+	public function fetchColumn( int $column = 0 ): array
 	{
 		$result = false;
 

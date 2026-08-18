@@ -422,7 +422,7 @@ class Utils
 	{
 		$timestamp = $timestamp ?? time();
 
-		// Remove fractions from timestamp eg. 1588365133[974]
+		// Remove ms from timestamp eg. 1588365133[974]
 		if ( strlen( $timestamp ) > $len = strlen( time() ) ) {
 			$timestamp = substr( $timestamp, 0, $len );
 		}

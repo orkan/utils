@@ -15,7 +15,7 @@ $Factory = new Factory([
 	'app_desc'       => 'Symlink configuration files throughout the project',
 	'app_usage_show' => true,
 	'app_usage'      => <<<EOT
-	$basename [OPTIONS] --env <env name> [--loc <home dir>] [--config <file.php>]
+	$basename [OPTIONS] --env <env name> [--loc <home dir>] [--config <file.php>] [--copy]
 	
 	===============
 	Default config: 
@@ -54,6 +54,7 @@ $Factory = new Factory([
 		'env'    => [ 'short' => 'e:', 'long' => 'env:'   , 'desc' => 'Environment name used in target files' ],
 		'loc'    => [ 'short' => 'l:', 'long' => 'loc:'   , 'desc' => 'Working dir (default: current dir)' ],
 		'config' => [ 'short' => 'c:', 'long' => 'config:', 'desc' => 'Custom config file' ],
+		'copy'   => [                  'long' => 'copy'   , 'desc' => 'Copy files instead of creating symlinks' ],
 	],
 	// Symlink files. (Tip: empty value to remove mapping)
 	'app_map' => [
@@ -82,26 +83,41 @@ if ( !$map = array_filter( $Factory->cfg( 'app_map' ) ) ) {
 	throw new InvalidArgumentException( 'Nothing to map. See cfg[app_map]' );
 }
 
+$mode = $App->getArg( 'copy' ) ? 'copy' : 'symlink';
+
 // =====================================================================================================================
 // Run
 $Utils->writeln( "SWITCH env to [$env]" );
-foreach ( $map as $target => $symlnk ) {
+foreach ( $map as $src => $dst ) {
 
-	$target = $Utils->pathFix( $loc . '/' . sprintf( $target, $env ) );
-	$symlnk = $Utils->pathFix( $loc . '/' . sprintf( $symlnk, $env ) );
+	$src = $Utils->pathFix( $loc . '/' . sprintf( $src, $env ) );
+	$dst = $Utils->pathFix( $loc . '/' . sprintf( $dst, $env ) );
 
-	$Utils->writeln( sprintf( "\nCreate symlink:\n%s =>\n%s", $target, $symlnk ) );
+	$Utils->writeln( <<<EOT
+		
+		Create {$mode}:
+		$src =>
+		$dst
+		EOT );
 
-	if ( is_file( $target ) ) {
+	if ( is_file( $src ) ) {
 		try {
-			/**
-			 * symlink():
-			 * Needs Administrative rights to run on windows!
-			 * @param $target Must be absolute path on windows
-			 * @param $symlnk Default location is c:\windows\system32 !!!
-			 */
-			@unlink( $symlnk );
-			symlink( realpath( $target ), $symlnk ); // issues E_WARNING!
+			if ( $mode === 'copy' ) {
+				@unlink( $dst );
+				$result = copy( $src, $dst );
+				$Utils->errorCheck( $result );
+			}
+			else {
+				/**
+				 * symlink():
+				 * Needs Administrative rights to run on windows!
+				 * @param $target Must be absolute path on windows
+				 * @param $symlnk Default location is c:\windows\system32 !!!
+				 */
+				@unlink( $dst );
+				$result = symlink( realpath( $src ), $dst ); // issues E_WARNING!
+				$Utils->errorCheck( $result );
+			}
 		}
 		catch ( \Throwable $E ) {
 			$Utils->writeln( trim( $E->getMessage() ) );
